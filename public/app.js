@@ -21,6 +21,7 @@ const state = {
 };
 
 let searchTimer;
+let playbackFallbackHandler = null;
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -134,7 +135,55 @@ function clearChannelState() {
   renderChannels();
 }
 
+function clearPlaybackFallback() {
+  if (!playbackFallbackHandler) return;
+  elements.player.removeEventListener('error', playbackFallbackHandler);
+  playbackFallbackHandler = null;
+}
+
+function getDirectPlaybackUrl(channel) {
+  try {
+    const parsed = new URL(String(channel?.url || ''), window.location.href);
+    const extensionMatch = parsed.pathname.toLocaleLowerCase('tr-TR').match(/\.([a-z0-9]+)$/i);
+    const extension = extensionMatch ? extensionMatch[1] : '';
+    const browserNative = ['m3u8', 'mp4', 'mov', 'm4v', '3gp', '3g2'].includes(extension);
+    const transportSafe = window.location.protocol !== 'https:' || parsed.protocol === 'https:';
+
+    return browserNative && transportSafe ? parsed.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function setPlaybackSource(channel) {
+  clearPlaybackFallback();
+
+  const fallbackUrl = `/api/play/${channel.id}`;
+  const directUrl = getDirectPlaybackUrl(channel);
+
+  if (!directUrl) {
+    elements.player.src = fallbackUrl;
+    return;
+  }
+
+  playbackFallbackHandler = () => {
+    if (state.currentChannelId !== channel.id) return;
+
+    clearPlaybackFallback();
+    elements.player.pause();
+    elements.player.src = fallbackUrl;
+    elements.player.load();
+    elements.player.play().catch(() => {
+      setStatus('Yayin uyumluluk motoruyla acilmaya hazirlaniyor.', 'warning');
+    });
+  };
+
+  elements.player.addEventListener('error', playbackFallbackHandler, { once: true });
+  elements.player.src = directUrl;
+}
+
 function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
+  clearPlaybackFallback();
   elements.player.pause();
   elements.player.removeAttribute('src');
   elements.player.load();
@@ -622,7 +671,7 @@ async function playChannel(channelId) {
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
-  elements.player.src = `/api/play/${channel.id}`;
+  setPlaybackSource(channel);
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });

@@ -7,19 +7,30 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="app-shell">
+    <section id="loginScreen" class="login-screen">
+      <form id="loginForm" class="login-box">
+        <p class="eyebrow">Siberdeyz</p>
+        <h1>Admin Girisi</h1>
+        <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" autocomplete="current-password" />
+        <button id="loginButton" type="submit">Giris Yap</button>
+        <p id="loginStatus" class="source-status">Ana panele gecmek icin sifre girin.</p>
+      </form>
+    </section>
+
+    <main id="appShell" class="app-shell" hidden>
       <section class="player-panel">
         <div class="topbar">
           <div>
             <p class="eyebrow">Siberdeyz</p>
             <h1>Yayin Sistemi</h1>
           </div>
-          <button id="refreshButton" type="button">Yenile</button>
+          <div class="topbar-actions">
+            <button id="refreshButton" type="button">Yenile</button>
+            <button id="logoutButton" class="secondary-button" type="button">Cikis</button>
+          </div>
         </div>
 
         <div class="source-manager">
-          <label for="adminPasswordInput">Admin Sifresi</label>
-          <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" />
           <label for="sourceInput">Yayin URL</label>
           <div class="source-row">
             <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />

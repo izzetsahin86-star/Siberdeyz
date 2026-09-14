@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { enrichChannel } from './channelClassifier.js';
 import { parseM3U, parseM3UStream } from './m3uParser.js';
 import { getActivePlaylistSource } from './sourceStorage.js';
+import { getPlaylistFetchCandidates } from './playlistCompatibility.js';
 
 let cache = {
   loadedAt: 0,
@@ -71,18 +72,42 @@ async function loadChannelsFromSource(source) {
     return { channels, groups, sourceReady: true, cached: false, stale: false };
   }
 
-  const response = await fetch(source.url, {
-    headers: {
-      'user-agent': 'Siberdeyz-IPTV-Player/1.0',
-      accept: 'application/x-mpegURL,text/plain,*/*',
-    },
-  });
+  const candidates = getPlaylistFetchCandidates(source.url);
+  let channels = [];
+  let lastStatus = 0;
+  let lastError = null;
 
-  if (!response.ok) {
-    throw new Error('Yayin listesi alinamadi: HTTP ' + response.status);
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(candidate, {
+        headers: {
+          'user-agent': 'Siberdeyz-IPTV-Player/1.0',
+          accept: 'application/x-mpegURL,text/plain,*/*',
+        },
+      });
+
+      lastStatus = response.status;
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const parsedChannels = await readPlaylist(response);
+
+      if (parsedChannels.length > 0) {
+        channels = parsedChannels;
+        break;
+      }
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  const channels = await readPlaylist(response);
+  if (channels.length === 0) {
+    if (lastError) throw lastError;
+    throw new Error('Yayin listesi alinamadi: HTTP ' + (lastStatus || 502));
+  }
+
   const groups = buildGroups(channels);
 
   cache = {

@@ -18,6 +18,8 @@
         </div>
 
         <div class="source-manager">
+          <label for="adminPasswordInput">Admin Sifresi</label>
+          <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" />
           <label for="sourceInput">Yayin URL</label>
           <div class="source-row">
             <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
@@ -37,7 +39,17 @@
       <aside class="channel-panel">
         <div class="filters">
           <input id="searchInput" type="search" placeholder="Kanal ara" />
+          <select id="typeSelect" aria-label="Yayin turu sec">
+            <option value="all">Tumu</option>
+            <option value="live">Canli TV</option>
+            <option value="movie">Film</option>
+            <option value="series">Dizi</option>
+          </select>
           <select id="groupSelect" aria-label="Kategori sec"></select>
+          <label class="checkbox-line">
+            <input id="favoritesOnlyInput" type="checkbox" />
+            Sadece favoriler
+          </label>
         </div>
         <div id="status" class="status">Yayin listesi yukleniyor...</div>
         <div id="channelList" class="channel-list"></div>

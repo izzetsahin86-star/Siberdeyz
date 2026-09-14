@@ -57,7 +57,20 @@ const elements = {
   typeButtons: document.querySelectorAll('[data-type-filter]'),
   favoritesFilterButton: document.querySelector('[data-favorites-filter]'),
   controlButtons: document.querySelectorAll('.control-button'),
+  watchArea: document.querySelector('#watchArea'),
   player: document.querySelector('#player'),
+  playerControls: document.querySelector('#playerControls'),
+  currentTime: document.querySelector('#currentTime'),
+  durationTime: document.querySelector('#durationTime'),
+  seekSlider: document.querySelector('#seekSlider'),
+  liveIndicator: document.querySelector('#liveIndicator'),
+  rewindButton: document.querySelector('#rewindButton'),
+  playPauseButton: document.querySelector('#playPauseButton'),
+  playPauseIcon: document.querySelector('#playPauseIcon'),
+  forwardButton: document.querySelector('#forwardButton'),
+  muteButton: document.querySelector('#muteButton'),
+  muteIcon: document.querySelector('#muteIcon'),
+  fullscreenButton: document.querySelector('#fullscreenButton'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
@@ -122,6 +135,122 @@ function applySoundSetting() {
   elements.soundStatus.textContent = state.soundEnabled
     ? 'Ses acik. Uygulama kapaninca tekrar sessiz baslar.'
     : 'Video her acilista sessiz baslar.';
+
+  if (elements.muteIcon) {
+    elements.muteIcon.textContent = state.soundEnabled ? 'Ses' : 'Sessiz';
+  }
+
+  if (elements.muteButton) {
+    elements.muteButton.setAttribute(
+      'aria-label',
+      state.soundEnabled ? 'Sesi kapat' : 'Sesi ac'
+    );
+  }
+}
+
+function formatPlaybackTime(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
+
+  const wholeSeconds = Math.floor(seconds);
+  const hours = Math.floor(wholeSeconds / 3600);
+  const minutes = Math.floor((wholeSeconds % 3600) / 60);
+  const remainingSeconds = wholeSeconds % 60;
+
+  if (hours > 0) {
+    return [hours, minutes, remainingSeconds]
+      .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, '0'))
+      .join(':');
+  }
+
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+function getPlayableDuration() {
+  const duration = Number(elements.player.duration);
+  return Number.isFinite(duration) && duration > 0 ? duration : 0;
+}
+
+function updatePlayerControls() {
+  const hasSource = Boolean(
+    state.currentChannelId &&
+    (elements.player.currentSrc || elements.player.getAttribute('src'))
+  );
+  const duration = getPlayableDuration();
+  const isVod = hasSource && duration > 0;
+  const isLive = hasSource && elements.player.readyState >= 1 && !Number.isFinite(Number(elements.player.duration));
+
+  elements.playerControls.dataset.mode = isLive ? 'live' : (isVod ? 'vod' : 'idle');
+  elements.seekSlider.disabled = !isVod;
+  elements.rewindButton.disabled = !isVod;
+  elements.forwardButton.disabled = !isVod;
+  elements.playPauseButton.disabled = !hasSource;
+  elements.liveIndicator.hidden = !isLive;
+
+  if (isVod) {
+    const currentTime = Math.min(Math.max(Number(elements.player.currentTime) || 0, 0), duration);
+    const progress = duration > 0 ? Math.min(1000, Math.max(0, Math.round((currentTime / duration) * 1000))) : 0;
+
+    elements.currentTime.textContent = formatPlaybackTime(currentTime);
+    elements.durationTime.textContent = formatPlaybackTime(duration);
+    elements.seekSlider.value = String(progress);
+    elements.seekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
+  } else {
+    elements.currentTime.textContent = '00:00';
+    elements.durationTime.textContent = '--:--';
+    elements.seekSlider.value = '0';
+    elements.seekSlider.style.setProperty('--seek-progress', '0%');
+  }
+
+  const paused = elements.player.paused || elements.player.ended;
+  elements.playPauseIcon.textContent = paused ? '▶' : '❚❚';
+  elements.playPauseButton.setAttribute('aria-label', paused ? 'Oynat' : 'Duraklat');
+}
+
+function seekRelative(seconds) {
+  const duration = getPlayableDuration();
+  if (!duration) return;
+
+  const nextTime = Math.min(
+    duration,
+    Math.max(0, (Number(elements.player.currentTime) || 0) + seconds)
+  );
+
+  elements.player.currentTime = nextTime;
+  updatePlayerControls();
+}
+
+function togglePlayerPlayback() {
+  if (!state.currentChannelId) return;
+
+  if (elements.player.paused || elements.player.ended) {
+    elements.player.play().catch(() => {
+      setStatus('Oynatmak icin tekrar dokunun.', 'warning');
+    });
+  } else {
+    elements.player.pause();
+  }
+}
+
+async function togglePlayerFullscreen() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    if (elements.watchArea?.requestFullscreen) {
+      await elements.watchArea.requestFullscreen();
+      return;
+    }
+
+    if (typeof elements.player.webkitEnterFullscreen === 'function') {
+      elements.player.controls = true;
+      elements.player.webkitEnterFullscreen();
+    }
+  } catch {
+    setStatus('Tam ekran bu cihazda kullanilamiyor.', 'warning');
+  }
 }
 
 function clearChannelState() {
@@ -189,6 +318,7 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
+  updatePlayerControls();
   if (resetSound) {
     state.soundEnabled = false;
     applySoundSetting();
@@ -672,6 +802,7 @@ async function playChannel(channelId) {
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
   setPlaybackSource(channel);
+  updatePlayerControls();
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
@@ -805,6 +936,55 @@ elements.soundToggleInput.addEventListener('change', (event) => {
   applySoundSetting();
 });
 
+elements.playPauseButton.addEventListener('click', togglePlayerPlayback);
+elements.rewindButton.addEventListener('click', () => seekRelative(-10));
+elements.forwardButton.addEventListener('click', () => seekRelative(10));
+
+elements.seekSlider.addEventListener('input', (event) => {
+  const duration = getPlayableDuration();
+  if (!duration) return;
+
+  const progress = Number(event.target.value) || 0;
+  const previewTime = (progress / 1000) * duration;
+  elements.currentTime.textContent = formatPlaybackTime(previewTime);
+  elements.seekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
+});
+
+elements.seekSlider.addEventListener('change', (event) => {
+  const duration = getPlayableDuration();
+  if (!duration) return;
+
+  const progress = Number(event.target.value) || 0;
+  elements.player.currentTime = (progress / 1000) * duration;
+  updatePlayerControls();
+});
+
+elements.muteButton.addEventListener('click', () => {
+  state.soundEnabled = !state.soundEnabled;
+  applySoundSetting();
+});
+
+elements.fullscreenButton.addEventListener('click', () => {
+  togglePlayerFullscreen();
+});
+
+['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended', 'emptied', 'canplay']
+  .forEach((eventName) => {
+    elements.player.addEventListener(eventName, updatePlayerControls);
+  });
+
+elements.player.addEventListener('webkitendfullscreen', () => {
+  elements.player.controls = false;
+  updatePlayerControls();
+});
+
+document.addEventListener('fullscreenchange', () => {
+  elements.fullscreenButton.setAttribute(
+    'aria-label',
+    document.fullscreenElement ? 'Tam ekrandan cik' : 'Tam ekran'
+  );
+});
+
 elements.loadMoreButton.addEventListener('click', () => {
   loadChannels().catch((error) => {
     setLoading(false);
@@ -843,3 +1023,4 @@ renderGroups();
 renderTypeFilters();
 renderSources();
 applySoundSetting();
+updatePlayerControls();

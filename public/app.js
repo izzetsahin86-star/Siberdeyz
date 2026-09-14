@@ -98,11 +98,16 @@ function showApp() {
   }
 }
 
+function setPanelCompact(isCompact) {
+  elements.bottomPanel.dataset.compact = isCompact ? 'true' : 'false';
+}
+
 function switchPanel(panelName) {
   const isSettings = panelName === 'settings';
   elements.channelsView.hidden = isSettings;
   elements.settingsView.hidden = !isSettings;
   elements.bottomPanel.dataset.open = panelName;
+  setPanelCompact(false);
 
   elements.navButtons.forEach((button) => {
     button.classList.toggle('is-active', button.dataset.panel === panelName);
@@ -343,11 +348,13 @@ async function playChannel(channelId) {
   elements.player.play().catch(() => {
     setStatus('Oynatma baslatilamadi. Kanal secildi, oynat tusuna basin.', 'warning');
   });
+  setPanelCompact(true);
 }
 
 function reloadFilteredChannels() {
   state.channels = [];
   state.hasMore = false;
+  setPanelCompact(false);
   renderChannels();
   loadChannels({ reset: true }).catch((error) => {
     setLoading(false);
@@ -365,6 +372,12 @@ elements.loginForm.addEventListener('submit', (event) => {
   }
 
   login(adminPassword).catch((error) => setLoginStatus(error.message, 'error'));
+});
+
+elements.bottomPanel.addEventListener('click', (event) => {
+  if (event.target.closest('.panel-handle')) {
+    setPanelCompact(elements.bottomPanel.dataset.compact !== 'true');
+  }
 });
 
 elements.navButtons.forEach((button) => {

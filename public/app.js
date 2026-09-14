@@ -626,7 +626,7 @@ async function playChannel(channelId) {
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
-  closePanel();
+  setPanelCompact(true);
 }
 
 async function playNextChannel() {
@@ -761,14 +761,6 @@ elements.loadMoreButton.addEventListener('click', () => {
     setLoading(false);
     setStatus(error.message, 'error');
   });
-});
-
-elements.player.addEventListener('playing', () => {
-  setStatus(`${elements.currentChannel.textContent} oynatiliyor.`);
-});
-
-elements.player.addEventListener('error', () => {
-  setStatus('Yayin acilamadi. Baska bir kanal deneyin veya sayfayi yenileyin.', 'error');
 });
 
 elements.toggleUrlFormButton.addEventListener('click', () => {

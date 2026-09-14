@@ -29,6 +29,11 @@ select {
   font: inherit;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -73,21 +78,68 @@ h1 {
   line-height: 1.1;
 }
 
-#refreshButton {
+#refreshButton,
+#saveSourceButton,
+.danger-button {
   border: 0;
   border-radius: 8px;
   padding: 10px 14px;
-  background: var(--brand);
-  color: #052e16;
   font-weight: 800;
   cursor: pointer;
+}
+
+#refreshButton,
+#saveSourceButton {
+  background: var(--brand);
+  color: #052e16;
+}
+
+.danger-button {
+  background: var(--danger);
+  color: #fff;
+}
+
+.source-manager {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(31, 41, 55, 0.6);
+}
+
+.source-manager label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.source-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+
+.source-status {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.source-status[data-type="error"] {
+  color: var(--danger);
+}
+
+.source-status[data-type="warning"] {
+  color: var(--warning);
 }
 
 video {
   width: 100%;
   flex: 1;
-  min-height: 360px;
-  max-height: calc(100vh - 150px);
+  min-height: 320px;
+  max-height: calc(100vh - 230px);
   background: #020617;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -212,8 +264,13 @@ select {
     padding: 10px;
   }
 
+  .source-row {
+    grid-template-columns: 1fr;
+  }
+
   video {
     min-height: 240px;
+    max-height: none;
   }
 
   .channel-panel {

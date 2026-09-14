@@ -520,25 +520,42 @@ async function deleteAllSources() {
 }
 
 async function activateSource(sourceId) {
-  if (sourceId === state.activeSourceId) return;
+  const isAlreadyActive = sourceId === state.activeSourceId;
 
-  const adminPassword = getAdminPassword();
-  setSourceStatus('Hesap aciliyor...');
+  if (!isAlreadyActive) {
+    const adminPassword = getAdminPassword();
+    setSourceStatus('Hesap aciliyor...');
 
-  const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}/active`, {
-    method: 'PUT',
-    headers: { 'x-admin-password': adminPassword },
-  });
-  const data = await response.json();
+    const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}/active`, {
+      method: 'PUT',
+      headers: { 'x-admin-password': adminPassword },
+    });
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Hesap acilamadi');
+    if (!response.ok) {
+      throw new Error(data.error || 'Hesap acilamadi');
+    }
+
+    setSourceState(data);
+    stopPlayback({ message: '', resetSound: false });
   }
 
-  setSourceState(data);
+  state.group = 'Tumu';
+  state.type = 'all';
+  state.favoritesOnly = false;
+  state.search = '';
+  state.channels = [];
+  state.hasMore = false;
+  elements.searchInput.value = '';
+
+  renderGroups();
+  renderTypeFilters();
+  renderChannels();
   switchPanel('channels');
-  stopPlayback({ message: '', resetSound: false });
-  await loadChannels({ force: true, reset: true });
+
+  setSourceStatus('Hesap acildi. Kanallar yukleniyor...');
+  await loadChannels({ force: !isAlreadyActive, reset: true });
+  setSourceStatus('Hesap aktif. Kanallar yuklendi.');
 }
 
 async function toggleFavorite(channelId) {

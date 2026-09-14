@@ -9,6 +9,7 @@ import { proxyStream } from './streamProxy.js';
 
 const HLS_RESOURCE_TTL_MS = 15 * 60 * 1000;
 const TRANSCODE_IDLE_MS = 2 * 60 * 1000;
+const MAX_TRANSCODE_SESSIONS = 2;
 const TRANSCODE_ROOT = path.join(os.tmpdir(), 'siberdeyz-universal-player');
 
 const hlsResources = new Map();
@@ -271,6 +272,13 @@ async function getOrStartSession(channel, req) {
   if (existing) {
     existing.lastAccess = Date.now();
     return existing;
+  }
+
+  if (sessionsById.size >= MAX_TRANSCODE_SESSIONS) {
+    const oldest = Array.from(sessionsById.values())
+      .sort((a, b) => a.lastAccess - b.lastAccess)[0];
+
+    await removeSession(oldest);
   }
 
   await fsp.mkdir(TRANSCODE_ROOT, { recursive: true });

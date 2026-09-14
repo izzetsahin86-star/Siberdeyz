@@ -62,6 +62,8 @@ const elements = {
   sourceNameInput: document.querySelector('#sourceNameInput'),
   sourceInput: document.querySelector('#sourceInput'),
   sourceFileInput: document.querySelector('#sourceFileInput'),
+  sourceUrlForm: document.querySelector('#sourceUrlForm'),
+  toggleUrlFormButton: document.querySelector('#toggleUrlFormButton'),
   sourceStatus: document.querySelector('#sourceStatus'),
   sourceList: document.querySelector('#sourceList'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
@@ -294,19 +296,19 @@ function renderSources() {
     const badge = source.active ? 'Aktif' : (isFile ? 'Dosya' : '#' + (index + 1));
     const title = source.label || 'Hesap ' + (index + 1);
     const meta = isFile
-      ? ((source.channelCount || 0) + ' yayin - ' + (source.fileName || 'Dosya'))
-      : (source.url || '');
+      ? ((source.channelCount || 0) + ' yayin')
+      : 'Liste URL';
 
     return [
-      '<article class="source-item ' + (source.active ? 'is-active' : '') + '">',
-      '<button class="source-select" type="button" data-source-active="' + escapeHtml(source.id) + '">',
-      '<span class="source-badge">' + escapeHtml(badge) + '</span>',
-      '<span class="source-copy">',
+      '<article class="source-pill-item ' + (source.active ? 'is-active' : '') + '">',
+      '<button class="source-pill-select" type="button" data-source-active="' + escapeHtml(source.id) + '">',
+      '<span class="source-pill-badge">' + escapeHtml(badge) + '</span>',
+      '<span class="source-pill-copy">',
       '<strong>' + escapeHtml(title) + '</strong>',
       '<small>' + escapeHtml(meta) + '</small>',
       '</span>',
       '</button>',
-      '<button class="mini-danger-button" type="button" data-source-delete="' + escapeHtml(source.id) + '">Sil</button>',
+      '<button class="source-pill-delete" type="button" data-source-delete="' + escapeHtml(source.id) + '" aria-label="Hesabi sil">Sil</button>',
       '</article>',
     ].join('');
   }).join('');
@@ -380,6 +382,8 @@ async function saveSource() {
 
   elements.sourceInput.value = '';
   elements.sourceNameInput.value = '';
+  elements.sourceUrlForm.hidden = true;
+  elements.toggleUrlFormButton.classList.remove('is-active');
   setSourceState(data);
   switchPanel('channels');
   stopPlayback({ message: '', resetSound: false });
@@ -698,6 +702,12 @@ elements.player.addEventListener('playing', () => {
 
 elements.player.addEventListener('error', () => {
   setStatus('Yayin acilamadi. Baska bir kanal deneyin veya sayfayi yenileyin.', 'error');
+});
+
+elements.toggleUrlFormButton.addEventListener('click', () => {
+  elements.sourceUrlForm.hidden = !elements.sourceUrlForm.hidden;
+  elements.toggleUrlFormButton.classList.toggle('is-active', !elements.sourceUrlForm.hidden);
+  if (!elements.sourceUrlForm.hidden) elements.sourceInput.focus();
 });
 
 elements.sourceFileInput.addEventListener('change', () => {

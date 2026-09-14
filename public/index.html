@@ -75,16 +75,19 @@
           <div id="accountsView" class="panel-view accounts-view" hidden>
             <div id="sourceStatus" class="source-status" hidden></div>
             <div class="source-tools">
-              <div class="source-row">
-                <input id="sourceNameInput" type="text" placeholder="Hesap adi" autocomplete="off" />
-                <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
-                <button id="saveSourceButton" type="button">URL Yukle</button>
+              <div class="source-action-row">
+                <label class="file-upload-card">
+                  <input id="sourceFileInput" type="file" accept=".m3u,.m3u8,.txt,application/vnd.apple.mpegurl,audio/x-mpegurl,text/plain" multiple />
+                  <span>Dosya</span>
+                  <small>M3U/TXT</small>
+                </label>
+                <button id="toggleUrlFormButton" class="pill-action-button" type="button">URL</button>
               </div>
-              <label class="file-upload-card">
-                <input id="sourceFileInput" type="file" accept=".m3u,.m3u8,.txt,application/vnd.apple.mpegurl,audio/x-mpegurl,text/plain" multiple />
-                <span>Dosya Yukle</span>
-                <small>M3U, M3U8 veya TXT</small>
-              </label>
+              <div id="sourceUrlForm" class="source-url-form" hidden>
+                <input id="sourceNameInput" type="text" placeholder="Ad" autocomplete="off" />
+                <input id="sourceInput" type="url" placeholder="Yayin liste URL" />
+                <button id="saveSourceButton" type="button">Ekle</button>
+              </div>
             </div>
             <div id="sourceList" class="source-list"></div>
           </div>

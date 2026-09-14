@@ -21,6 +21,9 @@ const elements = {
   loginStatus: document.querySelector('#loginStatus'),
   loginButton: document.querySelector('#loginButton'),
   appShell: document.querySelector('#appShell'),
+  bottomPanel: document.querySelector('#bottomPanel'),
+  channelsView: document.querySelector('#channelsView'),
+  settingsView: document.querySelector('#settingsView'),
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
   refreshButton: document.querySelector('#refreshButton'),
@@ -36,6 +39,7 @@ const elements = {
   status: document.querySelector('#status'),
   channelList: document.querySelector('#channelList'),
   loadMoreButton: document.querySelector('#loadMoreButton'),
+  navButtons: document.querySelectorAll('.nav-button'),
 };
 
 function escapeHtml(value) {
@@ -92,6 +96,26 @@ function showApp() {
       setStatus(error.message, 'error');
     });
   }
+}
+
+function switchPanel(panelName) {
+  const isSettings = panelName === 'settings';
+  elements.channelsView.hidden = isSettings;
+  elements.settingsView.hidden = !isSettings;
+  elements.bottomPanel.dataset.open = panelName;
+
+  elements.navButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.panel === panelName);
+  });
+}
+
+async function toggleFullscreen() {
+  const target = elements.player;
+  if (!document.fullscreenElement && target.requestFullscreen) {
+    await target.requestFullscreen();
+    return;
+  }
+  if (document.exitFullscreen) await document.exitFullscreen();
 }
 
 async function login(adminPassword) {
@@ -181,7 +205,7 @@ async function loadSourceStatus() {
     setSourceStatus(`Kayitli yayin: ${data.url}`);
     elements.deleteSourceButton.disabled = false;
   } else {
-    setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
+    setSourceStatus('Kayitli yayin yok. Ayar panelinden URL yukleyin.', 'warning');
     elements.deleteSourceButton.disabled = true;
   }
 }
@@ -216,6 +240,7 @@ async function saveSource() {
 
   elements.sourceInput.value = '';
   setSourceStatus(`Kaydedildi: ${data.url}`);
+  switchPanel('channels');
   await loadChannels({ force: true, reset: true });
 }
 
@@ -245,7 +270,7 @@ async function deleteSource() {
   renderGroups();
   renderChannels();
   setStatus('Yayin silindi. Yeni yayin URL yukleyin.', 'warning');
-  setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
+  setSourceStatus('Kayitli yayin yok. Ayar panelinden URL yukleyin.', 'warning');
 }
 
 async function toggleFavorite(channelId) {
@@ -293,7 +318,7 @@ async function loadChannels({ force = false, reset = false } = {}) {
     state.hasMore = false;
     renderGroups();
     renderChannels();
-    setStatus('Kayitli yayin yok. Once yayin URL yukleyin.', 'warning');
+    setStatus('Kayitli yayin yok. Ayar panelinden yayin URL yukleyin.', 'warning');
     return;
   }
 
@@ -340,6 +365,13 @@ elements.loginForm.addEventListener('submit', (event) => {
   }
 
   login(adminPassword).catch((error) => setLoginStatus(error.message, 'error'));
+});
+
+elements.navButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    if (button.dataset.panel) switchPanel(button.dataset.panel);
+    if (button.dataset.action === 'fullscreen') toggleFullscreen().catch(() => setStatus('Tam ekran acilamadi.', 'warning'));
+  });
 });
 
 elements.channelList.addEventListener('click', (event) => {

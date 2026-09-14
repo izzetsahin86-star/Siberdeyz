@@ -80,7 +80,8 @@ h1 {
 
 #refreshButton,
 #saveSourceButton,
-.danger-button {
+.danger-button,
+.load-more {
   border: 0;
   border-radius: 8px;
   padding: 10px 14px;
@@ -89,7 +90,8 @@ h1 {
 }
 
 #refreshButton,
-#saveSourceButton {
+#saveSourceButton,
+.load-more {
   background: var(--brand);
   color: #052e16;
 }
@@ -256,6 +258,14 @@ select {
 
 .empty {
   color: var(--muted);
+}
+
+.load-more {
+  margin: 8px;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 @media (max-width: 860px) {

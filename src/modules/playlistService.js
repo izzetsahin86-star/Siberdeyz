@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { enrichChannel } from './channelClassifier.js';
 import { parseM3U } from './m3uParser.js';
 import { getPlaylistSource } from './sourceStorage.js';
 
@@ -45,7 +46,7 @@ export async function getChannels({ force = false } = {}) {
   }
 
   const text = await response.text();
-  const channels = parseM3U(text);
+  const channels = parseM3U(text).map(enrichChannel);
 
   cache = {
     loadedAt: Date.now(),

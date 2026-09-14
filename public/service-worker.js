@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260914-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260914-2';
 
 const APP_SHELL = [
   '/',
@@ -15,6 +15,15 @@ const APP_SHELL = [
   '/icons/icon-512.png',
   '/icons/maskable-512.png',
 ];
+
+const NETWORK_FIRST_ASSETS = new Set([
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/manifest.webmanifest',
+  '/offline.html',
+]);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -57,6 +66,18 @@ self.addEventListener('fetch', (event) => {
 
   const isAppAsset = APP_SHELL.includes(url.pathname) || url.pathname.startsWith('/icons/');
   if (!isAppAsset) return;
+
+  if (NETWORK_FIRST_ASSETS.has(url.pathname)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+          return response;
+        })
+        .catch(async () => (await caches.match(request)) || (await caches.match('/offline.html')))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cached) => {

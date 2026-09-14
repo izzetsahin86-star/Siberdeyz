@@ -1,5 +1,4 @@
 const PAGE_SIZE = 100;
-const ADMIN_SESSION_KEY = 'siberdeyz_admin_password';
 
 const state = {
   channels: [],
@@ -13,6 +12,7 @@ const state = {
   hasMore: false,
   loading: false,
   started: false,
+  adminPassword: '',
 };
 
 const elements = {
@@ -24,7 +24,6 @@ const elements = {
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
   refreshButton: document.querySelector('#refreshButton'),
-  logoutButton: document.querySelector('#logoutButton'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceInput: document.querySelector('#sourceInput'),
   sourceStatus: document.querySelector('#sourceStatus'),
@@ -65,7 +64,7 @@ function setLoginStatus(message, type = 'info') {
 }
 
 function getAdminPassword() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+  return state.adminPassword;
 }
 
 function setLoading(isLoading) {
@@ -95,15 +94,6 @@ function showApp() {
   }
 }
 
-function logout() {
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  resetPlayer();
-  elements.appShell.hidden = true;
-  elements.loginScreen.hidden = false;
-  elements.adminPasswordInput.value = '';
-  setLoginStatus('Cikis yapildi. Tekrar girmek icin sifre girin.');
-}
-
 async function login(adminPassword) {
   elements.loginButton.disabled = true;
   setLoginStatus('Sifre kontrol ediliyor...');
@@ -120,7 +110,8 @@ async function login(adminPassword) {
     throw new Error(data.error || 'Giris yapilamadi');
   }
 
-  sessionStorage.setItem(ADMIN_SESSION_KEY, adminPassword);
+  state.adminPassword = adminPassword;
+  elements.adminPasswordInput.value = '';
   showApp();
 }
 
@@ -351,8 +342,6 @@ elements.loginForm.addEventListener('submit', (event) => {
   login(adminPassword).catch((error) => setLoginStatus(error.message, 'error'));
 });
 
-elements.logoutButton.addEventListener('click', logout);
-
 elements.channelList.addEventListener('click', (event) => {
   const favoriteButton = event.target.closest('[data-favorite-id]');
   if (favoriteButton) {
@@ -409,7 +398,3 @@ elements.saveSourceButton.addEventListener('click', () => {
 elements.deleteSourceButton.addEventListener('click', () => {
   deleteSource().catch((error) => setSourceStatus(error.message, 'error'));
 });
-
-if (getAdminPassword()) {
-  showApp();
-}

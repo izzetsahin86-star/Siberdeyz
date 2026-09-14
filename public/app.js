@@ -1,7 +1,14 @@
+const PAGE_SIZE = 100;
+
 const state = {
   channels: [],
+  groups: ['Tumu'],
   group: 'Tumu',
   search: '',
+  total: 0,
+  allTotal: 0,
+  hasMore: false,
+  loading: false,
 };
 
 const elements = {
@@ -16,6 +23,7 @@ const elements = {
   groupSelect: document.querySelector('#groupSelect'),
   status: document.querySelector('#status'),
   channelList: document.querySelector('#channelList'),
+  loadMoreButton: document.querySelector('#loadMoreButton'),
 };
 
 function escapeHtml(value) {
@@ -38,6 +46,12 @@ function setSourceStatus(message, type = 'info') {
   elements.sourceStatus.dataset.type = type;
 }
 
+function setLoading(isLoading) {
+  state.loading = isLoading;
+  elements.refreshButton.disabled = isLoading;
+  elements.loadMoreButton.disabled = isLoading;
+}
+
 function resetPlayer() {
   elements.player.pause();
   elements.player.removeAttribute('src');
@@ -45,35 +59,26 @@ function resetPlayer() {
   elements.currentChannel.textContent = 'Henuz secilmedi';
 }
 
-function getGroups() {
-  return ['Tumu', ...new Set(state.channels.map((channel) => channel.group).sort())];
-}
-
 function renderGroups() {
-  elements.groupSelect.innerHTML = getGroups()
+  elements.groupSelect.innerHTML = state.groups
     .map((group) => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`)
     .join('');
   elements.groupSelect.value = state.group;
 }
 
-function getVisibleChannels() {
-  const search = state.search.toLocaleLowerCase('tr-TR');
-  return state.channels.filter((channel) => {
-    const groupMatches = state.group === 'Tumu' || channel.group === state.group;
-    const searchMatches = channel.name.toLocaleLowerCase('tr-TR').includes(search);
-    return groupMatches && searchMatches;
-  });
+function renderLoadMore() {
+  elements.loadMoreButton.hidden = !state.hasMore || state.channels.length === 0;
+  elements.loadMoreButton.textContent = `Daha fazla goster (${state.channels.length}/${state.total})`;
 }
 
 function renderChannels() {
-  const channels = getVisibleChannels();
-
-  if (channels.length === 0) {
+  if (state.channels.length === 0) {
     elements.channelList.innerHTML = '<div class="empty">Kanal bulunamadi.</div>';
+    renderLoadMore();
     return;
   }
 
-  elements.channelList.innerHTML = channels.map((channel) => `
+  elements.channelList.innerHTML = state.channels.map((channel) => `
     <button class="channel" type="button" data-id="${escapeHtml(channel.id)}">
       <span class="channel-logo">${channel.logo ? `<img src="${escapeHtml(channel.logo)}" alt="" loading="lazy" />` : escapeHtml(channel.name.slice(0, 1))}</span>
       <span>
@@ -82,6 +87,19 @@ function renderChannels() {
       </span>
     </button>
   `).join('');
+  renderLoadMore();
+}
+
+function buildChannelUrl({ force = false, offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(offset),
+    group: state.group,
+    q: state.search,
+  });
+
+  if (force) params.set('refresh', '1');
+  return `/api/channels?${params.toString()}`;
 }
 
 async function loadSourceStatus() {
@@ -109,7 +127,7 @@ async function saveSource() {
   }
 
   elements.saveSourceButton.disabled = true;
-  setSourceStatus('Yayin kaydediliyor...');
+  setSourceStatus('Yayin kaydedildi. Liste cekiliyor, ilk yukleme 10-20 saniye surebilir...');
 
   const response = await fetch('/api/source', {
     method: 'POST',
@@ -126,7 +144,7 @@ async function saveSource() {
 
   elements.sourceInput.value = '';
   setSourceStatus(`Kaydedildi: ${data.url}`);
-  await loadChannels(true);
+  await loadChannels({ force: true, reset: true });
 }
 
 async function deleteSource() {
@@ -141,7 +159,11 @@ async function deleteSource() {
   }
 
   state.channels = [];
+  state.groups = ['Tumu'];
   state.group = 'Tumu';
+  state.total = 0;
+  state.allTotal = 0;
+  state.hasMore = false;
   resetPlayer();
   renderGroups();
   renderChannels();
@@ -149,10 +171,20 @@ async function deleteSource() {
   setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
 }
 
-async function loadChannels(force = false) {
-  setStatus('Yayin listesi yukleniyor...');
-  const response = await fetch(`/api/channels${force ? '?refresh=1' : ''}`);
+async function loadChannels({ force = false, reset = false } = {}) {
+  if (state.loading) return;
+
+  const offset = reset ? 0 : state.channels.length;
+  const waitingText = offset === 0
+    ? 'Yayin listesi cekiliyor... Bu liste buyukse ilk sonuc 10-20 saniye surebilir.'
+    : 'Devam kanallari yukleniyor...';
+
+  setLoading(true);
+  setStatus(waitingText);
+
+  const response = await fetch(buildChannelUrl({ force, offset }));
   const data = await response.json();
+  setLoading(false);
 
   if (!response.ok) {
     throw new Error(data.error || 'Yayin listesi alinamadi');
@@ -160,16 +192,26 @@ async function loadChannels(force = false) {
 
   if (!data.sourceReady) {
     state.channels = [];
+    state.groups = ['Tumu'];
+    state.total = 0;
+    state.allTotal = 0;
+    state.hasMore = false;
     renderGroups();
     renderChannels();
     setStatus('Kayitli yayin yok. Once yayin URL yukleyin.', 'warning');
     return;
   }
 
-  state.channels = data.channels;
+  state.channels = reset ? data.channels : [...state.channels, ...data.channels];
+  state.groups = data.groups || ['Tumu'];
+  state.total = data.total || 0;
+  state.allTotal = data.allTotal || state.total;
+  state.hasMore = Boolean(data.hasMore);
   renderGroups();
   renderChannels();
-  setStatus(`${state.channels.length} yayin hazir.`);
+
+  const filterText = state.total === state.allTotal ? '' : `, filtre sonucu ${state.total}`;
+  setStatus(`${state.channels.length}/${state.total} kanal gosteriliyor. Toplam ${state.allTotal} yayin bulundu${filterText}.`);
 }
 
 function playChannel(channelId) {
@@ -183,6 +225,16 @@ function playChannel(channelId) {
   });
 }
 
+function reloadFilteredChannels() {
+  state.channels = [];
+  state.hasMore = false;
+  renderChannels();
+  loadChannels({ reset: true }).catch((error) => {
+    setLoading(false);
+    setStatus(error.message, 'error');
+  });
+}
+
 elements.channelList.addEventListener('click', (event) => {
   const button = event.target.closest('.channel');
   if (button) playChannel(button.dataset.id);
@@ -190,20 +242,34 @@ elements.channelList.addEventListener('click', (event) => {
 
 elements.searchInput.addEventListener('input', (event) => {
   state.search = event.target.value;
-  renderChannels();
+  reloadFilteredChannels();
 });
 
 elements.groupSelect.addEventListener('change', (event) => {
   state.group = event.target.value;
-  renderChannels();
+  reloadFilteredChannels();
 });
 
 elements.refreshButton.addEventListener('click', () => {
-  loadChannels(true).catch((error) => setStatus(error.message, 'error'));
+  loadChannels({ force: true, reset: true }).catch((error) => {
+    setLoading(false);
+    setStatus(error.message, 'error');
+  });
+});
+
+elements.loadMoreButton.addEventListener('click', () => {
+  loadChannels().catch((error) => {
+    setLoading(false);
+    setStatus(error.message, 'error');
+  });
 });
 
 elements.saveSourceButton.addEventListener('click', () => {
-  saveSource().catch((error) => setSourceStatus(error.message, 'error'));
+  saveSource().catch((error) => {
+    elements.saveSourceButton.disabled = false;
+    setLoading(false);
+    setSourceStatus(error.message, 'error');
+  });
 });
 
 elements.deleteSourceButton.addEventListener('click', () => {
@@ -211,4 +277,7 @@ elements.deleteSourceButton.addEventListener('click', () => {
 });
 
 loadSourceStatus().catch((error) => setSourceStatus(error.message, 'error'));
-loadChannels().catch((error) => setStatus(error.message, 'error'));
+loadChannels({ reset: true }).catch((error) => {
+  setLoading(false);
+  setStatus(error.message, 'error');
+});

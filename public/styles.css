@@ -34,6 +34,37 @@ button:disabled {
   opacity: 0.55;
 }
 
+.login-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.login-box {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 420px);
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.login-box h1 {
+  margin-bottom: 6px;
+}
+
+#loginButton {
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--brand);
+  color: #052e16;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -64,6 +95,11 @@ button:disabled {
   margin-bottom: 16px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--brand);
@@ -81,6 +117,7 @@ h1 {
 #refreshButton,
 #saveSourceButton,
 .danger-button,
+.secondary-button,
 .load-more {
   border: 0;
   border-radius: 8px;
@@ -94,6 +131,11 @@ h1 {
 .load-more {
   background: var(--brand);
   color: #052e16;
+}
+
+.secondary-button {
+  background: var(--panel-soft);
+  color: var(--text);
 }
 
 .danger-button {
@@ -142,7 +184,7 @@ video {
   width: 100%;
   flex: 1;
   min-height: 320px;
-  max-height: calc(100vh - 270px);
+  max-height: calc(100vh - 240px);
   background: #020617;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -253,7 +295,8 @@ select {
 }
 
 .channel:hover,
-.favorite-button:hover {
+.favorite-button:hover,
+.secondary-button:hover {
   background: var(--panel-soft);
 }
 
@@ -306,8 +349,14 @@ select {
     padding: 10px;
   }
 
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .topbar-actions,
   .source-row {
     grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   video {

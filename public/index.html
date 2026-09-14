@@ -78,16 +78,23 @@
               <div class="source-action-row">
                 <label class="file-upload-card">
                   <input id="sourceFileInput" type="file" accept=".m3u,.m3u8,.txt,application/vnd.apple.mpegurl,audio/x-mpegurl,text/plain" multiple />
-                  <span>Dosya</span>
-                  <small>M3U/TXT</small>
+                  <span>Dosya Ekle</span>
+                  <small>M3U / TXT</small>
                 </label>
-                <button id="toggleUrlFormButton" class="pill-action-button" type="button">URL</button>
+                <button id="toggleUrlFormButton" class="pill-action-button" type="button">URL Ekle</button>
               </div>
               <div id="sourceUrlForm" class="source-url-form" hidden>
-                <input id="sourceNameInput" type="text" placeholder="Ad" autocomplete="off" />
+                <input id="sourceNameInput" type="text" placeholder="Hesap adi" autocomplete="off" />
                 <input id="sourceInput" type="url" placeholder="Yayin liste URL" />
-                <button id="saveSourceButton" type="button">Ekle</button>
+                <button id="saveSourceButton" type="button">Kaydet</button>
               </div>
+            </div>
+            <div class="account-list-head">
+              <div class="account-list-title">
+                <strong>Hesaplarim</strong>
+                <span id="accountCount" class="account-count">0</span>
+              </div>
+              <button id="deleteAllSourcesButton" class="delete-all-sources" type="button" hidden>Hepsini Sil</button>
             </div>
             <div id="sourceList" class="source-list"></div>
           </div>

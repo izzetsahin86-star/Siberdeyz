@@ -66,6 +66,8 @@ const elements = {
   toggleUrlFormButton: document.querySelector('#toggleUrlFormButton'),
   sourceStatus: document.querySelector('#sourceStatus'),
   sourceList: document.querySelector('#sourceList'),
+  accountCount: document.querySelector('#accountCount'),
+  deleteAllSourcesButton: document.querySelector('#deleteAllSourcesButton'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
   soundToggleInput: document.querySelector('#soundToggleInput'),
   soundStatus: document.querySelector('#soundStatus'),
@@ -285,9 +287,17 @@ function renderChannels() {
   renderLoadMore();
 }
 
+function updateAccountsSummary() {
+  const count = state.sources.length;
+  elements.accountCount.textContent = String(count);
+  elements.deleteAllSourcesButton.hidden = count === 0;
+}
+
 function renderSources() {
+  updateAccountsSummary();
+
   if (state.sources.length === 0) {
-    elements.sourceList.innerHTML = '<div class="empty compact-empty">Kayitli hesap yok.</div>';
+    elements.sourceList.innerHTML = '<div class="empty compact-empty">Kayitli hesap yok. Dosya veya URL ekleyin.</div>';
     return;
   }
 
@@ -471,6 +481,42 @@ async function deleteSource(sourceId) {
   }
 
   await loadChannels({ force: true, reset: true });
+}
+
+async function deleteAllSources() {
+  if (state.sources.length === 0) return;
+
+  const total = state.sources.length;
+  const approved = window.confirm(total + ' hesabi ve iclerindeki tum yayinlari silmek istiyor musunuz? Bu islem geri alinamaz.');
+  if (!approved) return;
+
+  const adminPassword = getAdminPassword();
+  elements.deleteAllSourcesButton.disabled = true;
+  elements.sourceFileInput.disabled = true;
+  elements.toggleUrlFormButton.disabled = true;
+  setSourceStatus(total + ' hesap siliniyor...');
+
+  try {
+    const response = await fetch('/api/source', {
+      method: 'DELETE',
+      headers: { 'x-admin-password': adminPassword },
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Hesaplar silinemedi');
+    }
+
+    setSourceState(data);
+    stopPlayback({ message: 'Tum hesaplar silindi.', resetSound: false });
+    clearChannelState();
+    setStatus('Hesap yok. Hesaplardan yeni yayin ekleyin.', 'warning');
+    setSourceStatus('Tum hesaplar silindi.');
+  } finally {
+    elements.deleteAllSourcesButton.disabled = false;
+    elements.sourceFileInput.disabled = false;
+    elements.toggleUrlFormButton.disabled = false;
+  }
 }
 
 async function activateSource(sourceId) {
@@ -663,6 +709,10 @@ elements.channelList.addEventListener('click', (event) => {
 
   const button = event.target.closest('.channel');
   if (button) playChannel(button.dataset.id);
+});
+
+elements.deleteAllSourcesButton.addEventListener('click', () => {
+  deleteAllSources().catch((error) => setSourceStatus(error.message, 'error'));
 });
 
 elements.sourceList.addEventListener('click', (event) => {

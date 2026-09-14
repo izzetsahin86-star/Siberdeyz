@@ -95,11 +95,6 @@ button:disabled {
   margin-bottom: 16px;
 }
 
-.topbar-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .eyebrow {
   margin: 0 0 4px;
   color: var(--brand);
@@ -117,7 +112,6 @@ h1 {
 #refreshButton,
 #saveSourceButton,
 .danger-button,
-.secondary-button,
 .load-more {
   border: 0;
   border-radius: 8px;
@@ -131,11 +125,6 @@ h1 {
 .load-more {
   background: var(--brand);
   color: #052e16;
-}
-
-.secondary-button {
-  background: var(--panel-soft);
-  color: var(--text);
 }
 
 .danger-button {
@@ -295,8 +284,7 @@ select {
 }
 
 .channel:hover,
-.favorite-button:hover,
-.secondary-button:hover {
+.favorite-button:hover {
   background: var(--panel-soft);
 }
 
@@ -353,10 +341,8 @@ select {
     align-items: flex-start;
   }
 
-  .topbar-actions,
   .source-row {
     grid-template-columns: 1fr;
-    flex-direction: column;
   }
 
   video {

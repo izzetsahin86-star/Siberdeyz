@@ -57,27 +57,36 @@ function copyHeaders(upstream, res) {
   res.setHeader('x-accel-buffering', 'no');
 }
 
-async function pipeUpstream(upstream, req, res) {
+async function waitForDrain(res) {
+  if (res.destroyed || res.writableEnded) return;
+  await once(res, 'drain');
+}
+
+async function pipeUpstream(upstream, res) {
   if (!upstream.body) {
     res.end();
     return;
   }
 
   const reader = upstream.body.getReader();
-  req.on('close', () => {
+  res.on('close', () => {
     cancelBody(upstream.body);
   });
 
-  while (!res.destroyed) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (!res.destroyed && !res.writableEnded) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    if (!res.write(Buffer.from(value))) {
-      await once(res, 'drain');
+      if (!res.write(Buffer.from(value))) {
+        await waitForDrain(res);
+      }
     }
-  }
 
-  if (!res.destroyed) res.end();
+    if (!res.destroyed && !res.writableEnded) res.end();
+  } catch (error) {
+    if (!res.destroyed) res.destroy(error);
+  }
 }
 
 export async function proxyStream(req, res) {
@@ -89,7 +98,7 @@ export async function proxyStream(req, res) {
   }
 
   const controller = new AbortController();
-  req.on('close', () => controller.abort());
+  res.on('close', () => controller.abort());
 
   let upstream = await openUpstream(channel, req, controller, { includeRange: true });
 
@@ -112,5 +121,5 @@ export async function proxyStream(req, res) {
 
   res.status(upstream.status);
   copyHeaders(upstream, res);
-  await pipeUpstream(upstream, req, res);
+  await pipeUpstream(upstream, res);
 }

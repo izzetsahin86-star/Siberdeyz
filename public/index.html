@@ -18,42 +18,44 @@
     </section>
 
     <main id="appShell" class="tv-shell" hidden>
-      <header class="tv-header">
-        <div>
+      <header class="app-header">
+        <div class="brand-block">
           <p class="eyebrow">Siberdeyz</p>
-          <h1>Yayin Sistemi</h1>
+          <h1>Yayin Merkezi</h1>
         </div>
-        <div class="header-status">
-          <span id="sourceStatus">Yayin kaynagi kontrol ediliyor...</span>
-          <button id="refreshButton" type="button">Yenile</button>
-        </div>
+        <span id="headerSourceStatus" class="source-pill">Liste kontrol ediliyor...</span>
       </header>
 
+      <section class="group-panel" aria-label="Yayin gruplari">
+        <div class="type-strip" aria-label="Yayin turleri">
+          <button class="group-chip is-active" type="button" data-type-filter="all">Tumu</button>
+          <button class="group-chip" type="button" data-type-filter="live">Canli TV</button>
+          <button class="group-chip" type="button" data-type-filter="movie">Film</button>
+          <button class="group-chip" type="button" data-type-filter="series">Dizi</button>
+          <button class="group-chip favorite-chip" type="button" data-favorites-filter="1">Favoriler</button>
+        </div>
+        <div id="groupChips" class="group-strip" aria-label="Kategoriler"></div>
+      </section>
+
       <section class="watch-area">
-        <video id="player" controls playsinline></video>
+        <video id="player" controls playsinline muted></video>
         <div class="player-meta">
           <span>Secili yayin</span>
           <strong id="currentChannel">Henuz secilmedi</strong>
         </div>
       </section>
 
-      <section id="bottomPanel" class="bottom-panel" data-open="channels">
-        <div class="panel-handle"></div>
+      <section class="control-panel" aria-label="Ana kontroller">
+        <button class="control-button is-active" type="button" data-panel="channels">Kanallar</button>
+        <button class="control-button" type="button" data-panel="settings">Ayarlar</button>
+        <button class="control-button" type="button" data-action="fullscreen">Tam Ekran</button>
+        <button id="refreshButton" class="control-button" type="button">Yenile</button>
+      </section>
 
+      <section id="bottomPanel" class="content-panel" data-open="channels" data-compact="false">
         <div id="channelsView" class="panel-view">
-          <div class="filters">
-            <input id="searchInput" type="search" placeholder="Kanal ara" />
-            <select id="typeSelect" aria-label="Yayin turu sec">
-              <option value="all">Tumu</option>
-              <option value="live">Canli TV</option>
-              <option value="movie">Film</option>
-              <option value="series">Dizi</option>
-            </select>
-            <select id="groupSelect" aria-label="Kategori sec"></select>
-            <label class="checkbox-line">
-              <input id="favoritesOnlyInput" type="checkbox" />
-              Sadece favoriler
-            </label>
+          <div class="search-row">
+            <input id="searchInput" type="search" placeholder="Kanal, film veya dizi ara" />
           </div>
           <div id="status" class="status">Yayin listesi yukleniyor...</div>
           <div id="channelList" class="channel-list"></div>
@@ -61,28 +63,32 @@
         </div>
 
         <div id="settingsView" class="panel-view" hidden>
-          <div class="source-manager">
-            <label for="sourceInput">Yayin URL</label>
-            <div class="source-row">
-              <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
-              <button id="saveSourceButton" type="button">Yukle</button>
-              <button id="deleteSourceButton" class="danger-button" type="button">Sil</button>
-            </div>
+          <div class="settings-grid">
+            <section class="setting-card">
+              <div>
+                <h2>Ses Ayari</h2>
+                <p id="soundStatus">Video her acilista sessiz baslar.</p>
+              </div>
+              <label class="switch-line">
+                <input id="soundToggleInput" type="checkbox" />
+                <span>Sesi ac</span>
+              </label>
+            </section>
+
+            <section class="setting-card">
+              <div>
+                <h2>Liste Yukleme</h2>
+                <p id="sourceStatus" class="source-status">Yayin kaynagi kontrol ediliyor...</p>
+              </div>
+              <div class="source-row">
+                <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
+                <button id="saveSourceButton" type="button">Yukle</button>
+                <button id="deleteSourceButton" class="danger-button" type="button">Sil</button>
+              </div>
+            </section>
           </div>
         </div>
       </section>
-
-      <nav class="bottom-nav" aria-label="Ana kontroller">
-        <button class="nav-button is-active" type="button" data-panel="channels">
-          <span>Kanal</span>
-        </button>
-        <button class="nav-button" type="button" data-panel="settings">
-          <span>Ayar</span>
-        </button>
-        <button class="nav-button" type="button" data-action="fullscreen">
-          <span>Tam Ekran</span>
-        </button>
-      </nav>
     </main>
 
     <script src="/app.js" type="module"></script>

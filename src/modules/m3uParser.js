@@ -15,6 +15,18 @@ function parseTitle(line) {
   return commaIndex >= 0 ? line.slice(commaIndex + 1).trim() : 'Isimsiz Yayin';
 }
 
+function isValidHttpStreamUrl(value) {
+  const url = String(value || '').trim();
+  if (!/^https?:\/\//i.test(url)) return false;
+
+  try {
+    const parsed = new URL(url);
+    return Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function createCollector(transform) {
   const channels = [];
   let current = null;
@@ -37,8 +49,11 @@ function createCollector(transform) {
     }
 
     if (!line.startsWith('#') && current) {
-      current.url = line;
-      channels.push(transform(current));
+      if (isValidHttpStreamUrl(line)) {
+        current.url = line;
+        channels.push(transform(current));
+      }
+
       current = null;
     }
   }

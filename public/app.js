@@ -757,7 +757,10 @@ elements.player.addEventListener('error', () => {
 elements.toggleUrlFormButton.addEventListener('click', () => {
   elements.sourceUrlForm.hidden = !elements.sourceUrlForm.hidden;
   elements.toggleUrlFormButton.classList.toggle('is-active', !elements.sourceUrlForm.hidden);
-  if (!elements.sourceUrlForm.hidden) elements.sourceInput.focus();
+
+  if (!elements.sourceUrlForm.hidden && window.matchMedia('(min-width: 861px)').matches) {
+    elements.sourceInput.focus();
+  }
 });
 
 elements.sourceFileInput.addEventListener('change', () => {

@@ -4,6 +4,8 @@ const state = {
   channels: [],
   groups: ['Tumu'],
   group: 'Tumu',
+  type: 'all',
+  favoritesOnly: false,
   search: '',
   total: 0,
   allTotal: 0,
@@ -15,11 +17,14 @@ const elements = {
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
   refreshButton: document.querySelector('#refreshButton'),
+  adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceInput: document.querySelector('#sourceInput'),
   sourceStatus: document.querySelector('#sourceStatus'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
   deleteSourceButton: document.querySelector('#deleteSourceButton'),
   searchInput: document.querySelector('#searchInput'),
+  typeSelect: document.querySelector('#typeSelect'),
+  favoritesOnlyInput: document.querySelector('#favoritesOnlyInput'),
   groupSelect: document.querySelector('#groupSelect'),
   status: document.querySelector('#status'),
   channelList: document.querySelector('#channelList'),
@@ -44,6 +49,10 @@ function setStatus(message, type = 'info') {
 function setSourceStatus(message, type = 'info') {
   elements.sourceStatus.textContent = message;
   elements.sourceStatus.dataset.type = type;
+}
+
+function getAdminPassword() {
+  return elements.adminPasswordInput.value.trim();
 }
 
 function setLoading(isLoading) {
@@ -71,6 +80,10 @@ function renderLoadMore() {
   elements.loadMoreButton.textContent = `Daha fazla goster (${state.channels.length}/${state.total})`;
 }
 
+function typeLabel(type) {
+  return ({ live: 'Canli TV', movie: 'Film', series: 'Dizi' }[type] || 'Yayin');
+}
+
 function renderChannels() {
   if (state.channels.length === 0) {
     elements.channelList.innerHTML = '<div class="empty">Kanal bulunamadi.</div>';
@@ -79,13 +92,18 @@ function renderChannels() {
   }
 
   elements.channelList.innerHTML = state.channels.map((channel) => `
-    <button class="channel" type="button" data-id="${escapeHtml(channel.id)}">
-      <span class="channel-logo">${channel.logo ? `<img src="${escapeHtml(channel.logo)}" alt="" loading="lazy" />` : escapeHtml(channel.name.slice(0, 1))}</span>
-      <span>
-        <strong>${escapeHtml(channel.name)}</strong>
-        <small>${escapeHtml(channel.group)}</small>
-      </span>
-    </button>
+    <div class="channel-row">
+      <button class="favorite-button ${channel.favorite ? 'is-active' : ''}" type="button" data-favorite-id="${escapeHtml(channel.id)}" aria-label="Favori">
+        ${channel.favorite ? '★' : '☆'}
+      </button>
+      <button class="channel" type="button" data-id="${escapeHtml(channel.id)}">
+        <span class="channel-logo">${channel.logo ? `<img src="${escapeHtml(channel.logo)}" alt="" loading="lazy" />` : escapeHtml(channel.name.slice(0, 1))}</span>
+        <span>
+          <strong>${escapeHtml(channel.name)}</strong>
+          <small>${escapeHtml(typeLabel(channel.type))} / ${escapeHtml(channel.group)}</small>
+        </span>
+      </button>
+    </div>
   `).join('');
   renderLoadMore();
 }
@@ -95,6 +113,8 @@ function buildChannelUrl({ force = false, offset = 0 } = {}) {
     limit: String(PAGE_SIZE),
     offset: String(offset),
     group: state.group,
+    type: state.type,
+    favorites: state.favoritesOnly ? '1' : '0',
     q: state.search,
   });
 
@@ -114,13 +134,20 @@ async function loadSourceStatus() {
     setSourceStatus(`Kayitli yayin: ${data.url}`);
     elements.deleteSourceButton.disabled = false;
   } else {
-    setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
+    setSourceStatus('Kayitli yayin yok. URL girip admin sifresiyle Yukle tusuna basin.', 'warning');
     elements.deleteSourceButton.disabled = true;
   }
 }
 
 async function saveSource() {
   const url = elements.sourceInput.value.trim();
+  const adminPassword = getAdminPassword();
+
+  if (!adminPassword) {
+    setSourceStatus('Admin sifresi girin.', 'warning');
+    return;
+  }
+
   if (!url) {
     setSourceStatus('Once yayin URL girin.', 'warning');
     return;
@@ -131,7 +158,10 @@ async function saveSource() {
 
   const response = await fetch('/api/source', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      'x-admin-password': adminPassword,
+    },
     body: JSON.stringify({ url }),
   });
   const data = await response.json();
@@ -148,13 +178,24 @@ async function saveSource() {
 }
 
 async function deleteSource() {
+  const adminPassword = getAdminPassword();
+
+  if (!adminPassword) {
+    setSourceStatus('Admin sifresi girin.', 'warning');
+    return;
+  }
+
   elements.deleteSourceButton.disabled = true;
   setSourceStatus('Yayin siliniyor...');
 
-  const response = await fetch('/api/source', { method: 'DELETE' });
+  const response = await fetch('/api/source', {
+    method: 'DELETE',
+    headers: { 'x-admin-password': adminPassword },
+  });
   const data = await response.json();
 
   if (!response.ok) {
+    elements.deleteSourceButton.disabled = false;
     throw new Error(data.error || 'Yayin silinemedi');
   }
 
@@ -168,7 +209,25 @@ async function deleteSource() {
   renderGroups();
   renderChannels();
   setStatus('Yayin silindi. Yeni yayin URL yukleyin.', 'warning');
-  setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
+  setSourceStatus('Kayitli yayin yok. URL girip admin sifresiyle Yukle tusuna basin.', 'warning');
+}
+
+async function toggleFavorite(channelId) {
+  const channel = state.channels.find((item) => item.id === channelId);
+  if (!channel) return;
+
+  const response = await fetch(`/api/favorites/${channelId}`, {
+    method: channel.favorite ? 'DELETE' : 'POST',
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Favori guncellenemedi');
+  }
+
+  const favoriteIds = data.ids || [];
+  state.channels = state.channels.map((item) => ({ ...item, favorite: favoriteIds.includes(item.id) }));
+  renderChannels();
 }
 
 async function loadChannels({ force = false, reset = false } = {}) {
@@ -214,7 +273,7 @@ async function loadChannels({ force = false, reset = false } = {}) {
   setStatus(`${state.channels.length}/${state.total} kanal gosteriliyor. Toplam ${state.allTotal} yayin bulundu${filterText}.`);
 }
 
-function playChannel(channelId) {
+async function playChannel(channelId) {
   const channel = state.channels.find((item) => item.id === channelId);
   if (!channel) return;
 
@@ -236,12 +295,28 @@ function reloadFilteredChannels() {
 }
 
 elements.channelList.addEventListener('click', (event) => {
+  const favoriteButton = event.target.closest('[data-favorite-id]');
+  if (favoriteButton) {
+    toggleFavorite(favoriteButton.dataset.favoriteId).catch((error) => setStatus(error.message, 'error'));
+    return;
+  }
+
   const button = event.target.closest('.channel');
   if (button) playChannel(button.dataset.id);
 });
 
 elements.searchInput.addEventListener('input', (event) => {
   state.search = event.target.value;
+  reloadFilteredChannels();
+});
+
+elements.typeSelect.addEventListener('change', (event) => {
+  state.type = event.target.value;
+  reloadFilteredChannels();
+});
+
+elements.favoritesOnlyInput.addEventListener('change', (event) => {
+  state.favoritesOnly = event.target.checked;
   reloadFilteredChannels();
 });
 

@@ -37,12 +37,16 @@ function toPlaylistSourceUrl(url) {
     const path = parsed.pathname.toLocaleLowerCase('tr-TR');
     const params = parsed.searchParams;
     const hasLogin = params.has('username') && params.has('password');
-    const isXtreamEndpoint = hasLogin && /(\/get\.php|\/player_api\.php|\/xmltv\.php)$/i.test(path);
+    const isGetPhp = hasLogin && /\/get\.php$/i.test(path);
+    const isConvertibleXtreamEndpoint = hasLogin && /\/(?:player_api|xmltv)\.php$/i.test(path);
 
-    if (isXtreamEndpoint) {
-      parsed.pathname = parsed.pathname.replace(/\/(?:get|player_api|xmltv)\.php$/i, '/get.php');
+    // TXT icindeki get.php hesap linki, URL Ekle ile girilmis gibi
+    // hic degistirilmeden saklanmali. Provider'a ait query parametrelerine dokunma.
+    if (isGetPhp) return url;
+
+    if (isConvertibleXtreamEndpoint) {
+      parsed.pathname = parsed.pathname.replace(/\/(?:player_api|xmltv)\.php$/i, '/get.php');
       if (!params.has('type')) params.set('type', 'm3u_plus');
-      if (!params.has('output')) params.set('output', 'ts');
       return parsed.toString();
     }
 
@@ -90,7 +94,15 @@ function parsePlaylistSources(text, fileName) {
       if (!sourceUrl || looksLikeDirectStream(match.url) || seen.has(sourceUrl)) continue;
 
       seen.add(sourceUrl);
-      const label = cleanName(line.slice(0, match.index)) || nameFromUrl(sourceUrl, fallback + ' ' + (sources.length + 1));
+      let defaultLabel = fallback + ' ' + (sources.length + 1);
+
+      try {
+        defaultLabel = new URL(sourceUrl).hostname.replace(/^www\./i, '') || defaultLabel;
+      } catch {
+        // URL zaten dogrulandi; sadece etiket geri dususu.
+      }
+
+      const label = cleanName(line.slice(0, match.index)) || defaultLabel;
       sources.push({ url: sourceUrl, label });
     }
   }

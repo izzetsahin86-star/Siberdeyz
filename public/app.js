@@ -491,37 +491,27 @@ async function deleteAllSources() {
   if (!approved) return;
 
   const adminPassword = getAdminPassword();
-  const sourceIds = state.sources.map((source) => source.id);
-  let latestData = null;
-
   elements.deleteAllSourcesButton.disabled = true;
   elements.sourceFileInput.disabled = true;
   elements.toggleUrlFormButton.disabled = true;
   setSourceStatus(total + ' hesap siliniyor...');
 
   try {
-    for (let index = 0; index < sourceIds.length; index += 1) {
-      setSourceStatus('Hesaplar siliniyor... ' + (index + 1) + '/' + total);
+    const response = await fetch('/api/source', {
+      method: 'DELETE',
+      headers: { 'x-admin-password': adminPassword },
+    });
+    const data = await response.json();
 
-      const response = await fetch('/api/source/' + encodeURIComponent(sourceIds[index]), {
-        method: 'DELETE',
-        headers: { 'x-admin-password': adminPassword },
-      });
-      latestData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(latestData.error || 'Hesaplarin tamami silinemedi');
-      }
+    if (!response.ok) {
+      throw new Error(data.error || 'Hesaplar silinemedi');
     }
 
-    setSourceState(latestData || { sources: [], activeSourceId: '', hasSource: false });
+    setSourceState(data);
     stopPlayback({ message: 'Tum hesaplar silindi.', resetSound: false });
     clearChannelState();
     setStatus('Hesap yok. Hesaplardan yeni yayin ekleyin.', 'warning');
     setSourceStatus('Tum hesaplar silindi.');
-  } catch (error) {
-    await loadSourceStatus().catch(() => {});
-    throw error;
   } finally {
     elements.deleteAllSourcesButton.disabled = false;
     elements.sourceFileInput.disabled = false;

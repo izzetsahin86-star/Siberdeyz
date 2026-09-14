@@ -1,11 +1,40 @@
 import { Router } from 'express';
-import { getChannels } from '../modules/playlistService.js';
+import { clearChannelCache, getChannels } from '../modules/playlistService.js';
+import { deletePlaylistSource, getSourceStatus, savePlaylistSource } from '../modules/sourceStorage.js';
 import { proxyStream } from '../modules/streamProxy.js';
 
 export const apiRouter = Router();
 
 apiRouter.get('/health', (req, res) => {
   res.json({ ok: true, name: 'Siberdeyz IPTV Player' });
+});
+
+apiRouter.get('/source', async (req, res, next) => {
+  try {
+    res.json(await getSourceStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/source', async (req, res, next) => {
+  try {
+    const status = await savePlaylistSource(req.body?.url);
+    clearChannelCache();
+    res.status(201).json(status);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/source', async (req, res, next) => {
+  try {
+    const status = await deletePlaylistSource();
+    clearChannelCache();
+    res.json(status);
+  } catch (error) {
+    next(error);
+  }
 });
 
 apiRouter.get('/channels', async (req, res, next) => {

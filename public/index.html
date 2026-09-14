@@ -69,7 +69,7 @@
             <span id="liveIndicator" class="live-indicator" hidden>CANLI</span>
           </div>
 
-          <div class="player-actions">
+          <div class="player-actions" aria-label="Dokunmatik oynatma kontrolleri">
             <button id="rewindButton" class="player-control-button seek-button" type="button" aria-label="10 saniye geri" disabled>
               <span aria-hidden="true">−10</span>
             </button>
@@ -79,16 +79,11 @@
             <button id="forwardButton" class="player-control-button seek-button" type="button" aria-label="10 saniye ileri" disabled>
               <span aria-hidden="true">+10</span>
             </button>
-
-            <span class="player-action-spacer"></span>
-
-            <button id="muteButton" class="player-control-button utility-button" type="button" aria-label="Sesi ac veya kapat">
-              <span id="muteIcon" aria-hidden="true">Sessiz</span>
-            </button>
-            <button id="fullscreenButton" class="player-control-button utility-button" type="button" aria-label="Tam ekran">
-              <span aria-hidden="true">⛶</span>
-            </button>
           </div>
+
+          <button id="fullscreenButton" class="player-control-button fullscreen-control" type="button" aria-label="Tam ekran">
+            <span aria-hidden="true">⛶</span>
+          </button>
         </div>
 
         <div class="player-meta">

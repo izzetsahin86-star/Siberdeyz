@@ -22,6 +22,7 @@ const state = {
 
 let searchTimer;
 let playbackFallbackHandler = null;
+let playerOverlayTimer = null;
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -68,8 +69,6 @@ const elements = {
   playPauseButton: document.querySelector('#playPauseButton'),
   playPauseIcon: document.querySelector('#playPauseIcon'),
   forwardButton: document.querySelector('#forwardButton'),
-  muteButton: document.querySelector('#muteButton'),
-  muteIcon: document.querySelector('#muteIcon'),
   fullscreenButton: document.querySelector('#fullscreenButton'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
@@ -135,17 +134,6 @@ function applySoundSetting() {
   elements.soundStatus.textContent = state.soundEnabled
     ? 'Ses acik. Uygulama kapaninca tekrar sessiz baslar.'
     : 'Video her acilista sessiz baslar.';
-
-  if (elements.muteIcon) {
-    elements.muteIcon.textContent = state.soundEnabled ? 'Ses' : 'Sessiz';
-  }
-
-  if (elements.muteButton) {
-    elements.muteButton.setAttribute(
-      'aria-label',
-      state.soundEnabled ? 'Sesi kapat' : 'Sesi ac'
-    );
-  }
 }
 
 function formatPlaybackTime(value) {
@@ -169,6 +157,37 @@ function formatPlaybackTime(value) {
 function getPlayableDuration() {
   const duration = Number(elements.player.duration);
   return Number.isFinite(duration) && duration > 0 ? duration : 0;
+}
+
+function clearPlayerOverlayTimer() {
+  if (!playerOverlayTimer) return;
+  clearTimeout(playerOverlayTimer);
+  playerOverlayTimer = null;
+}
+
+function hidePlayerOverlay() {
+  clearPlayerOverlayTimer();
+  elements.playerControls.classList.remove('is-visible');
+}
+
+function showPlayerOverlay({ autoHide = true } = {}) {
+  clearPlayerOverlayTimer();
+  elements.playerControls.classList.add('is-visible');
+
+  if (!autoHide) return;
+
+  const delay = elements.player.paused ? 4000 : 2400;
+  playerOverlayTimer = setTimeout(hidePlayerOverlay, delay);
+}
+
+function togglePlayerOverlay() {
+  if (!state.currentChannelId) return;
+
+  if (elements.playerControls.classList.contains('is-visible')) {
+    hidePlayerOverlay();
+  } else {
+    showPlayerOverlay();
+  }
 }
 
 function updatePlayerControls() {
@@ -318,6 +337,7 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
+  hidePlayerOverlay();
   updatePlayerControls();
   if (resetSound) {
     state.soundEnabled = false;
@@ -803,6 +823,7 @@ async function playChannel(channelId) {
   elements.player.muted = !state.soundEnabled;
   setPlaybackSource(channel);
   updatePlayerControls();
+  showPlayerOverlay();
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
@@ -936,9 +957,31 @@ elements.soundToggleInput.addEventListener('change', (event) => {
   applySoundSetting();
 });
 
-elements.playPauseButton.addEventListener('click', togglePlayerPlayback);
-elements.rewindButton.addEventListener('click', () => seekRelative(-10));
-elements.forwardButton.addEventListener('click', () => seekRelative(10));
+elements.player.addEventListener('click', () => {
+  togglePlayerOverlay();
+});
+
+elements.playPauseButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  togglePlayerPlayback();
+  showPlayerOverlay();
+});
+
+elements.rewindButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  seekRelative(-10);
+  showPlayerOverlay();
+});
+
+elements.forwardButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  seekRelative(10);
+  showPlayerOverlay();
+});
+
+elements.seekSlider.addEventListener('pointerdown', () => {
+  clearPlayerOverlayTimer();
+});
 
 elements.seekSlider.addEventListener('input', (event) => {
   const duration = getPlayableDuration();
@@ -957,20 +1000,24 @@ elements.seekSlider.addEventListener('change', (event) => {
   const progress = Number(event.target.value) || 0;
   elements.player.currentTime = (progress / 1000) * duration;
   updatePlayerControls();
+  showPlayerOverlay();
 });
 
-elements.muteButton.addEventListener('click', () => {
-  state.soundEnabled = !state.soundEnabled;
-  applySoundSetting();
-});
-
-elements.fullscreenButton.addEventListener('click', () => {
+elements.fullscreenButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  showPlayerOverlay();
   togglePlayerFullscreen();
 });
 
 ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended', 'emptied', 'canplay']
   .forEach((eventName) => {
-    elements.player.addEventListener(eventName, updatePlayerControls);
+    elements.player.addEventListener(eventName, () => {
+      updatePlayerControls();
+
+      if (eventName === 'pause') showPlayerOverlay({ autoHide: false });
+      if (eventName === 'play') showPlayerOverlay();
+      if (eventName === 'ended') showPlayerOverlay({ autoHide: false });
+    });
   });
 
 elements.player.addEventListener('webkitendfullscreen', () => {

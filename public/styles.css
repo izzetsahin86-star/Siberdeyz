@@ -363,29 +363,28 @@ video {
 .player-controls {
   position: absolute;
   z-index: 5;
-  left: 12px;
-  right: 12px;
-  bottom: 64px;
-  display: grid;
-  gap: 9px;
-  padding: 10px;
-  border: 1px solid rgba(255,255,255,.11);
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(30,30,34,.72), rgba(18,18,20,.88));
-  box-shadow:
-    0 12px 34px rgba(0,0,0,.34),
-    inset 0 1px rgba(255,255,255,.05);
-  -webkit-backdrop-filter: blur(24px) saturate(155%);
-  backdrop-filter: blur(24px) saturate(155%);
+  inset: 0 0 52px;
+  pointer-events: none;
 }
 
 .player-timeline {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 9px;
   min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  background: rgba(18,18,20,.66);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  pointer-events: auto;
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
 }
 
 .time-label {
@@ -482,13 +481,24 @@ video {
 }
 
 .player-actions {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -44%) scale(.94);
+  transition:
+    opacity 160ms ease,
+    transform 180ms cubic-bezier(.2,.8,.2,1);
 }
 
-.player-action-spacer {
-  flex: 1 1 auto;
+.player-controls.is-visible .player-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .player-control-button {
@@ -522,18 +532,45 @@ video {
 }
 
 .play-pause-button {
-  min-width: 46px;
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: 50%;
   color: #fff;
-  background: #0a84ff;
-  border-color: rgba(255,255,255,.12);
+  background: rgba(10,132,255,.94);
+  border-color: rgba(255,255,255,.16);
   box-shadow:
-    inset 0 1px rgba(255,255,255,.18),
-    0 6px 16px rgba(10,132,255,.22);
+    inset 0 1px rgba(255,255,255,.20),
+    0 10px 28px rgba(10,132,255,.30);
+  font-size: 15px;
 }
 
-.utility-button {
-  min-width: 52px;
-  color: #d1d1d6;
+.seek-button {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  background: rgba(18,18,20,.66);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.fullscreen-control {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(18,18,20,.62);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.player-controls.is-visible .fullscreen-control {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .watch-area:fullscreen {
@@ -543,9 +580,22 @@ video {
 }
 
 .watch-area:fullscreen .player-controls {
-  left: max(18px, env(safe-area-inset-left));
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(24px, env(safe-area-inset-bottom));
+  inset:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+.watch-area:fullscreen .player-timeline {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+}
+
+.watch-area:fullscreen .fullscreen-control {
+  top: 10px;
+  right: 10px;
 }
 
 .player-meta {
@@ -1321,16 +1371,15 @@ select:focus {
   }
 
   .player-controls {
-    left: 7px;
-    right: 7px;
-    bottom: 56px;
-    gap: 7px;
-    padding: 8px;
-    border-radius: 16px;
+    inset: 0 0 48px;
   }
 
   .player-timeline {
+    left: 7px;
+    right: 7px;
+    bottom: 7px;
     gap: 6px;
+    padding: 6px 8px;
   }
 
   .time-label {
@@ -1339,23 +1388,31 @@ select:focus {
   }
 
   .player-actions {
-    gap: 5px;
+    gap: 12px;
   }
 
   .player-control-button {
-    min-width: 36px;
-    min-height: 34px;
-    padding: 7px 8px;
-    border-radius: 11px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 7px;
     font-size: 10px;
   }
 
-  .play-pause-button {
-    min-width: 42px;
+  .seek-button {
+    min-width: 46px;
+    min-height: 46px;
   }
 
-  .utility-button {
-    min-width: 46px;
+  .play-pause-button {
+    min-width: 54px;
+    min-height: 54px;
+  }
+
+  .fullscreen-control {
+    top: 8px;
+    right: 8px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .player-meta {

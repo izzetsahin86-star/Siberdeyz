@@ -14,26 +14,44 @@ function toSafeNumber(value, fallback, max) {
   return Math.min(Math.floor(number), max);
 }
 
-function filterChannels(channels, query, favoriteIds) {
+function createChannelMatcher(query, favoriteIds) {
+  const favoriteSet = new Set(favoriteIds);
   const search = String(query.q || '').trim().toLocaleLowerCase('tr-TR');
   const group = String(query.group || 'Tumu');
   const type = String(query.type || 'all');
   const favoritesOnly = String(query.favorites || '') === '1';
 
-  return channels.filter((channel) => {
-    const groupMatches = group === 'Tumu' || channel.group === group;
-    const typeMatches = type === 'all' || channel.type === type;
-    const favoriteMatches = !favoritesOnly || favoriteIds.includes(channel.id);
-    const searchMatches = !search || channel.name.toLocaleLowerCase('tr-TR').includes(search);
-    return groupMatches && typeMatches && favoriteMatches && searchMatches;
-  });
+  return {
+    favoriteSet,
+    matches(channel) {
+      const groupMatches = group === 'Tumu' || channel.group === group;
+      const typeMatches = type === 'all' || channel.type === type;
+      const favoriteMatches = !favoritesOnly || favoriteSet.has(channel.id);
+      const searchMatches = !search || channel.name.toLocaleLowerCase('tr-TR').includes(search);
+      return groupMatches && typeMatches && favoriteMatches && searchMatches;
+    },
+  };
 }
 
-function withFavoriteState(channels, favoriteIds) {
-  return channels.map((channel) => ({
-    ...channel,
-    favorite: favoriteIds.includes(channel.id),
-  }));
+function selectChannelPage(channels, query, favoriteIds, offset, limit) {
+  const { favoriteSet, matches } = createChannelMatcher(query, favoriteIds);
+  const page = [];
+  let total = 0;
+
+  for (const channel of channels) {
+    if (!matches(channel)) continue;
+
+    if (total >= offset && page.length < limit) {
+      page.push({
+        ...channel,
+        favorite: favoriteSet.has(channel.id),
+      });
+    }
+
+    total += 1;
+  }
+
+  return { page, total };
 }
 
 apiRouter.get('/health', (req, res) => {
@@ -115,21 +133,20 @@ apiRouter.get('/channels', async (req, res, next) => {
       return;
     }
 
-    const groups = ['Tumu', ...new Set(result.channels.map((channel) => channel.group).sort())];
-    const filtered = filterChannels(result.channels, req.query, favoriteIds);
-    const page = withFavoriteState(filtered.slice(offset, offset + limit), favoriteIds);
+    const { page, total } = selectChannelPage(result.channels, req.query, favoriteIds, offset, limit);
 
     res.json({
       channels: page,
       sourceReady: true,
       cached: result.cached,
-      groups,
+      stale: result.stale,
+      groups: result.groups || ['Tumu'],
       types: { all: 'Tumu', live: 'Canli TV', movie: 'Film', series: 'Dizi' },
-      total: filtered.length,
+      total,
       allTotal: result.channels.length,
       offset,
       limit,
-      hasMore: offset + page.length < filtered.length,
+      hasMore: offset + page.length < total,
     });
   } catch (error) {
     next(error);

@@ -501,6 +501,14 @@ elements.loadMoreButton.addEventListener('click', () => {
   });
 });
 
+elements.player.addEventListener('playing', () => {
+  setStatus(`${elements.currentChannel.textContent} oynatiliyor.`);
+});
+
+elements.player.addEventListener('error', () => {
+  setStatus('Yayin acilamadi. Baska bir kanal deneyin veya listeyi yenileyin.', 'error');
+});
+
 elements.saveSourceButton.addEventListener('click', () => {
   saveSource().catch((error) => {
     elements.saveSourceButton.disabled = false;

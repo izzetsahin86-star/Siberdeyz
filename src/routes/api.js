@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin } from '../modules/authService.js';
+import { isAdminPassword, requireAdmin } from '../modules/authService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
@@ -38,6 +38,15 @@ function withFavoriteState(channels, favoriteIds) {
 
 apiRouter.get('/health', (req, res) => {
   res.json({ ok: true, name: 'Siberdeyz IPTV Player' });
+});
+
+apiRouter.post('/admin/login', (req, res) => {
+  if (!isAdminPassword(req.body?.adminPassword)) {
+    res.status(401).json({ error: 'Admin sifresi hatali.' });
+    return;
+  }
+
+  res.json({ ok: true });
 });
 
 apiRouter.get('/source', async (req, res, next) => {

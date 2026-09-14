@@ -8,15 +8,41 @@ const elements = {
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
   refreshButton: document.querySelector('#refreshButton'),
+  sourceInput: document.querySelector('#sourceInput'),
+  sourceStatus: document.querySelector('#sourceStatus'),
+  saveSourceButton: document.querySelector('#saveSourceButton'),
+  deleteSourceButton: document.querySelector('#deleteSourceButton'),
   searchInput: document.querySelector('#searchInput'),
   groupSelect: document.querySelector('#groupSelect'),
   status: document.querySelector('#status'),
   channelList: document.querySelector('#channelList'),
 };
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;',
+  }[char]));
+}
+
 function setStatus(message, type = 'info') {
   elements.status.textContent = message;
   elements.status.dataset.type = type;
+}
+
+function setSourceStatus(message, type = 'info') {
+  elements.sourceStatus.textContent = message;
+  elements.sourceStatus.dataset.type = type;
+}
+
+function resetPlayer() {
+  elements.player.pause();
+  elements.player.removeAttribute('src');
+  elements.player.load();
+  elements.currentChannel.textContent = 'Henuz secilmedi';
 }
 
 function getGroups() {
@@ -25,7 +51,7 @@ function getGroups() {
 
 function renderGroups() {
   elements.groupSelect.innerHTML = getGroups()
-    .map((group) => `<option value="${group}">${group}</option>`)
+    .map((group) => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`)
     .join('');
   elements.groupSelect.value = state.group;
 }
@@ -48,14 +74,79 @@ function renderChannels() {
   }
 
   elements.channelList.innerHTML = channels.map((channel) => `
-    <button class="channel" type="button" data-id="${channel.id}">
-      <span class="channel-logo">${channel.logo ? `<img src="${channel.logo}" alt="" loading="lazy" />` : channel.name.slice(0, 1)}</span>
+    <button class="channel" type="button" data-id="${escapeHtml(channel.id)}">
+      <span class="channel-logo">${channel.logo ? `<img src="${escapeHtml(channel.logo)}" alt="" loading="lazy" />` : escapeHtml(channel.name.slice(0, 1))}</span>
       <span>
-        <strong>${channel.name}</strong>
-        <small>${channel.group}</small>
+        <strong>${escapeHtml(channel.name)}</strong>
+        <small>${escapeHtml(channel.group)}</small>
       </span>
     </button>
   `).join('');
+}
+
+async function loadSourceStatus() {
+  const response = await fetch('/api/source');
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Yayin kaynagi okunamadi');
+  }
+
+  if (data.hasSource) {
+    setSourceStatus(`Kayitli yayin: ${data.url}`);
+    elements.deleteSourceButton.disabled = false;
+  } else {
+    setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
+    elements.deleteSourceButton.disabled = true;
+  }
+}
+
+async function saveSource() {
+  const url = elements.sourceInput.value.trim();
+  if (!url) {
+    setSourceStatus('Once yayin URL girin.', 'warning');
+    return;
+  }
+
+  elements.saveSourceButton.disabled = true;
+  setSourceStatus('Yayin kaydediliyor...');
+
+  const response = await fetch('/api/source', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  const data = await response.json();
+
+  elements.saveSourceButton.disabled = false;
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Yayin kaydedilemedi');
+  }
+
+  elements.sourceInput.value = '';
+  setSourceStatus(`Kaydedildi: ${data.url}`);
+  await loadChannels(true);
+}
+
+async function deleteSource() {
+  elements.deleteSourceButton.disabled = true;
+  setSourceStatus('Yayin siliniyor...');
+
+  const response = await fetch('/api/source', { method: 'DELETE' });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Yayin silinemedi');
+  }
+
+  state.channels = [];
+  state.group = 'Tumu';
+  resetPlayer();
+  renderGroups();
+  renderChannels();
+  setStatus('Yayin silindi. Yeni yayin URL yukleyin.', 'warning');
+  setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
 }
 
 async function loadChannels(force = false) {
@@ -71,7 +162,7 @@ async function loadChannels(force = false) {
     state.channels = [];
     renderGroups();
     renderChannels();
-    setStatus('Railway icin M3U_SOURCE_URL ayari girilmeli.', 'warning');
+    setStatus('Kayitli yayin yok. Once yayin URL yukleyin.', 'warning');
     return;
   }
 
@@ -111,4 +202,13 @@ elements.refreshButton.addEventListener('click', () => {
   loadChannels(true).catch((error) => setStatus(error.message, 'error'));
 });
 
+elements.saveSourceButton.addEventListener('click', () => {
+  saveSource().catch((error) => setSourceStatus(error.message, 'error'));
+});
+
+elements.deleteSourceButton.addEventListener('click', () => {
+  deleteSource().catch((error) => setSourceStatus(error.message, 'error'));
+});
+
+loadSourceStatus().catch((error) => setSourceStatus(error.message, 'error'));
 loadChannels().catch((error) => setStatus(error.message, 'error'));

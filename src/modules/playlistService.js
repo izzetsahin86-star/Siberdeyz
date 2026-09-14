@@ -1,26 +1,39 @@
-import { config, hasPlaylistSource } from '../config.js';
+import { config } from '../config.js';
 import { parseM3U } from './m3uParser.js';
+import { getPlaylistSource } from './sourceStorage.js';
 
 let cache = {
   loadedAt: 0,
+  sourceUrl: '',
   channels: [],
 };
 
-function isCacheFresh() {
+function isCacheFresh(sourceUrl) {
   const ageMs = Date.now() - cache.loadedAt;
-  return cache.channels.length > 0 && ageMs < config.cacheSeconds * 1000;
+  return cache.sourceUrl === sourceUrl && cache.channels.length > 0 && ageMs < config.cacheSeconds * 1000;
+}
+
+export function clearChannelCache() {
+  cache = {
+    loadedAt: 0,
+    sourceUrl: '',
+    channels: [],
+  };
 }
 
 export async function getChannels({ force = false } = {}) {
-  if (!hasPlaylistSource()) {
+  const sourceUrl = await getPlaylistSource();
+
+  if (!sourceUrl) {
+    clearChannelCache();
     return { channels: [], sourceReady: false, cached: false };
   }
 
-  if (!force && isCacheFresh()) {
+  if (!force && isCacheFresh(sourceUrl)) {
     return { channels: cache.channels, sourceReady: true, cached: true };
   }
 
-  const response = await fetch(config.playlistUrl, {
+  const response = await fetch(sourceUrl, {
     headers: {
       'user-agent': 'Siberdeyz-IPTV-Player/1.0',
       accept: 'application/x-mpegURL,text/plain,*/*',
@@ -36,6 +49,7 @@ export async function getChannels({ force = false } = {}) {
 
   cache = {
     loadedAt: Date.now(),
+    sourceUrl,
     channels,
   };
 

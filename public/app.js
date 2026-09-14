@@ -18,6 +18,24 @@ const state = {
 
 let searchTimer;
 
+function applyStandaloneClass() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  document.documentElement.classList.toggle('is-standalone', isStandalone);
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  });
+}
+
+function applyLaunchPanelPreference() {
+  const panel = new URLSearchParams(window.location.search).get('panel');
+  if (panel === 'channels' || panel === 'settings') switchPanel(panel);
+}
+
 const elements = {
   loginScreen: document.querySelector('#loginScreen'),
   loginForm: document.querySelector('#loginForm'),
@@ -108,6 +126,7 @@ function showApp() {
   elements.loginScreen.hidden = true;
   elements.appShell.hidden = false;
   applySoundSetting();
+  applyLaunchPanelPreference();
 
   if (!state.started) {
     state.started = true;
@@ -494,6 +513,8 @@ elements.deleteSourceButton.addEventListener('click', () => {
   deleteSource().catch((error) => setSourceStatus(error.message, 'error'));
 });
 
+applyStandaloneClass();
+registerServiceWorker();
 renderGroups();
 renderTypeFilters();
 applySoundSetting();

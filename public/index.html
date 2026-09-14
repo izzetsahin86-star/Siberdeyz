@@ -17,10 +17,20 @@
           <button id="refreshButton" type="button">Yenile</button>
         </div>
 
+        <div class="source-manager">
+          <label for="sourceInput">Yayin URL</label>
+          <div class="source-row">
+            <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
+            <button id="saveSourceButton" type="button">Yukle</button>
+            <button id="deleteSourceButton" class="danger-button" type="button">Sil</button>
+          </div>
+          <p id="sourceStatus" class="source-status">Yayin kaynagi kontrol ediliyor...</p>
+        </div>
+
         <video id="player" controls playsinline></video>
         <div class="now-playing">
           <span>Secili yayin</span>
-          <strong id="currentChannel">Henüz secilmedi</strong>
+          <strong id="currentChannel">Henuz secilmedi</strong>
         </div>
       </section>
 

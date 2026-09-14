@@ -3,7 +3,12 @@ import { isAdminPassword, requireAdmin } from '../modules/authService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
-import { deletePlaylistSource, getSourceStatus, savePlaylistSource } from '../modules/sourceStorage.js';
+import {
+  deletePlaylistSource,
+  getSourceStatus,
+  savePlaylistSource,
+  setActivePlaylistSource,
+} from '../modules/sourceStorage.js';
 import { proxyStream } from '../modules/streamProxy.js';
 
 export const apiRouter = Router();
@@ -77,10 +82,32 @@ apiRouter.get('/source', async (req, res, next) => {
 
 apiRouter.post('/source', requireAdmin, async (req, res, next) => {
   try {
-    const status = await savePlaylistSource(req.body?.url);
+    const status = await savePlaylistSource(req.body?.url, req.body?.label);
     clearChannelCache();
     await clearFavorites();
     res.status(201).json(status);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.put('/source/:id/active', requireAdmin, async (req, res, next) => {
+  try {
+    const status = await setActivePlaylistSource(req.params.id);
+    clearChannelCache();
+    await clearFavorites();
+    res.json(status);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const status = await deletePlaylistSource(req.params.id);
+    clearChannelCache();
+    await clearFavorites();
+    res.json(status);
   } catch (error) {
     next(error);
   }

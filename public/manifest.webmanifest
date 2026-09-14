@@ -66,9 +66,22 @@
       ]
     },
     {
+      "name": "Hesaplar",
+      "short_name": "Hesaplar",
+      "description": "Yayin hesaplarini ac.",
+      "url": "/?panel=accounts",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Ayarlar",
       "short_name": "Ayarlar",
-      "description": "Liste ve ses ayarlarini ac.",
+      "description": "Uygulama ayarlarini ac.",
       "url": "/?panel=settings",
       "icons": [
         {

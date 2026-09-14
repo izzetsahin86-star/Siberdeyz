@@ -26,7 +26,7 @@
         <h1>Admin Girisi</h1>
         <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" autocomplete="current-password" />
         <button id="loginButton" type="submit">Giris Yap</button>
-        <p id="loginStatus" class="source-status">Ana panele gecmek icin sifre girin.</p>
+        <p id="loginStatus" class="source-status" hidden></p>
       </form>
     </section>
 
@@ -34,9 +34,7 @@
       <header class="app-header">
         <div class="brand-block">
           <p class="eyebrow">Siberdeyz</p>
-          <h1>Yayin Merkezi</h1>
         </div>
-        <span id="headerSourceStatus" class="source-pill">Liste kontrol ediliyor...</span>
       </header>
 
       <section class="group-panel" aria-label="Yayin gruplari">
@@ -59,10 +57,12 @@
       </section>
 
       <section class="control-panel" aria-label="Ana kontroller">
+        <button class="control-button" type="button" data-action="stop">Yayini Kapat</button>
+        <button class="control-button" type="button" data-action="next">Sonraki</button>
+        <button class="control-button" type="button" data-action="reload">Yenile</button>
         <button class="control-button is-active" type="button" data-panel="channels">Kanallar</button>
+        <button class="control-button" type="button" data-panel="accounts">Hesaplar</button>
         <button class="control-button" type="button" data-panel="settings">Ayarlar</button>
-        <button class="control-button" type="button" data-action="fullscreen">Tam Ekran</button>
-        <button id="refreshButton" class="control-button" type="button">Yenile</button>
       </section>
 
       <section id="bottomPanel" class="content-panel" data-open="channels" data-compact="false">
@@ -75,7 +75,17 @@
           <button id="loadMoreButton" class="load-more" type="button" hidden>Daha fazla goster</button>
         </div>
 
-        <div id="settingsView" class="panel-view" hidden>
+        <div id="accountsView" class="panel-view accounts-view" hidden>
+          <div id="sourceStatus" class="source-status" hidden></div>
+          <div class="source-row">
+            <input id="sourceNameInput" type="text" placeholder="Hesap adi" autocomplete="off" />
+            <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
+            <button id="saveSourceButton" type="button">Yukle</button>
+          </div>
+          <div id="sourceList" class="source-list"></div>
+        </div>
+
+        <div id="settingsView" class="panel-view settings-view" hidden>
           <div class="settings-grid">
             <section class="setting-card">
               <div>
@@ -86,18 +96,6 @@
                 <input id="soundToggleInput" type="checkbox" />
                 <span>Sesi ac</span>
               </label>
-            </section>
-
-            <section class="setting-card">
-              <div>
-                <h2>Liste Yukleme</h2>
-                <p id="sourceStatus" class="source-status">Yayin kaynagi kontrol ediliyor...</p>
-              </div>
-              <div class="source-row">
-                <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
-                <button id="saveSourceButton" type="button">Yukle</button>
-                <button id="deleteSourceButton" class="danger-button" type="button">Sil</button>
-              </div>
             </section>
           </div>
         </div>

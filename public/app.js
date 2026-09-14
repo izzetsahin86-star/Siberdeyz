@@ -14,6 +14,9 @@ const state = {
   started: false,
   adminPassword: '',
   soundEnabled: false,
+  sources: [],
+  activeSourceId: '',
+  currentChannelId: '',
 };
 
 let searchTimer;
@@ -33,7 +36,7 @@ function registerServiceWorker() {
 
 function applyLaunchPanelPreference() {
   const panel = new URLSearchParams(window.location.search).get('panel');
-  if (panel === 'channels' || panel === 'settings') switchPanel(panel);
+  if (['channels', 'accounts', 'settings'].includes(panel)) switchPanel(panel);
 }
 
 const elements = {
@@ -44,20 +47,20 @@ const elements = {
   appShell: document.querySelector('#appShell'),
   bottomPanel: document.querySelector('#bottomPanel'),
   channelsView: document.querySelector('#channelsView'),
+  accountsView: document.querySelector('#accountsView'),
   settingsView: document.querySelector('#settingsView'),
-  headerSourceStatus: document.querySelector('#headerSourceStatus'),
   groupChips: document.querySelector('#groupChips'),
   typeButtons: document.querySelectorAll('[data-type-filter]'),
   favoritesFilterButton: document.querySelector('[data-favorites-filter]'),
   controlButtons: document.querySelectorAll('.control-button'),
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
-  refreshButton: document.querySelector('#refreshButton'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
+  sourceNameInput: document.querySelector('#sourceNameInput'),
   sourceInput: document.querySelector('#sourceInput'),
   sourceStatus: document.querySelector('#sourceStatus'),
+  sourceList: document.querySelector('#sourceList'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
-  deleteSourceButton: document.querySelector('#deleteSourceButton'),
   soundToggleInput: document.querySelector('#soundToggleInput'),
   soundStatus: document.querySelector('#soundStatus'),
   searchInput: document.querySelector('#searchInput'),
@@ -77,8 +80,10 @@ function escapeHtml(value) {
 }
 
 function setTextStatus(element, message, type = 'info') {
+  if (!element) return;
   element.textContent = message;
   element.dataset.type = type;
+  element.hidden = !message;
 }
 
 function setStatus(message, type = 'info') {
@@ -87,8 +92,6 @@ function setStatus(message, type = 'info') {
 
 function setSourceStatus(message, type = 'info') {
   setTextStatus(elements.sourceStatus, message, type);
-  elements.headerSourceStatus.textContent = message;
-  elements.headerSourceStatus.dataset.type = type;
 }
 
 function setLoginStatus(message, type = 'info') {
@@ -101,7 +104,6 @@ function getAdminPassword() {
 
 function setLoading(isLoading) {
   state.loading = isLoading;
-  elements.refreshButton.disabled = isLoading;
   elements.loadMoreButton.disabled = isLoading;
 }
 
@@ -113,13 +115,33 @@ function applySoundSetting() {
     : 'Video her acilista sessiz baslar.';
 }
 
-function resetPlayer() {
+function clearChannelState() {
+  state.channels = [];
+  state.groups = ['Tumu'];
+  state.group = 'Tumu';
+  state.total = 0;
+  state.allTotal = 0;
+  state.hasMore = false;
+  renderGroups();
+  renderChannels();
+}
+
+function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
   elements.player.pause();
   elements.player.removeAttribute('src');
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
-  state.soundEnabled = false;
-  applySoundSetting();
+  state.currentChannelId = '';
+  if (resetSound) {
+    state.soundEnabled = false;
+    applySoundSetting();
+  }
+  setPanelCompact(false);
+  if (message) setStatus(message);
+}
+
+function resetPlayer() {
+  stopPlayback({ message: '', resetSound: true });
 }
 
 function showApp() {
@@ -143,31 +165,24 @@ function setPanelCompact(isCompact) {
 }
 
 function switchPanel(panelName) {
-  const isSettings = panelName === 'settings';
-  elements.channelsView.hidden = isSettings;
-  elements.settingsView.hidden = !isSettings;
+  const panels = {
+    channels: elements.channelsView,
+    accounts: elements.accountsView,
+    settings: elements.settingsView,
+  };
+
+  if (!panels[panelName]) return;
+
+  Object.entries(panels).forEach(([name, panel]) => {
+    panel.hidden = name !== panelName;
+  });
+
   elements.bottomPanel.dataset.open = panelName;
   setPanelCompact(false);
 
   elements.controlButtons.forEach((button) => {
     button.classList.toggle('is-active', button.dataset.panel === panelName);
   });
-}
-
-async function toggleFullscreen() {
-  const target = elements.player;
-
-  if (target.webkitEnterFullscreen) {
-    target.webkitEnterFullscreen();
-    return;
-  }
-
-  if (!document.fullscreenElement && target.requestFullscreen) {
-    await target.requestFullscreen();
-    return;
-  }
-
-  if (document.exitFullscreen) await document.exitFullscreen();
 }
 
 async function login(adminPassword) {
@@ -188,6 +203,7 @@ async function login(adminPassword) {
 
   state.adminPassword = adminPassword;
   elements.adminPasswordInput.value = '';
+  setLoginStatus('');
   showApp();
 }
 
@@ -242,6 +258,38 @@ function renderChannels() {
   renderLoadMore();
 }
 
+function renderSources() {
+  if (state.sources.length === 0) {
+    elements.sourceList.innerHTML = '<div class="empty compact-empty">Kayitli hesap yok.</div>';
+    return;
+  }
+
+  elements.sourceList.innerHTML = state.sources.map((source, index) => `
+    <article class="source-item ${source.active ? 'is-active' : ''}">
+      <button class="source-select" type="button" data-source-active="${escapeHtml(source.id)}">
+        <span class="source-badge">${source.active ? 'Aktif' : `#${index + 1}`}</span>
+        <span class="source-copy">
+          <strong>${escapeHtml(source.label || `Hesap ${index + 1}`)}</strong>
+          <small>${escapeHtml(source.url || '')}</small>
+        </span>
+      </button>
+      <button class="mini-danger-button" type="button" data-source-delete="${escapeHtml(source.id)}">Sil</button>
+    </article>
+  `).join('');
+}
+
+function setSourceState(data) {
+  state.sources = data.sources || [];
+  state.activeSourceId = data.activeSourceId || state.sources.find((source) => source.active)?.id || '';
+  renderSources();
+
+  if (data.hasSource) {
+    setSourceStatus(`${state.sources.length} hesap kayitli.`);
+  } else {
+    setSourceStatus('Hesap yok. Yayin URL yukleyin.', 'warning');
+  }
+}
+
 function buildChannelUrl({ force = false, offset = 0 } = {}) {
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
@@ -264,17 +312,12 @@ async function loadSourceStatus() {
     throw new Error(data.error || 'Yayin kaynagi okunamadi');
   }
 
-  if (data.hasSource) {
-    setSourceStatus(`Kayitli liste: ${data.url}`);
-    elements.deleteSourceButton.disabled = false;
-  } else {
-    setSourceStatus('Liste yok. Ayarlardan URL yukleyin.', 'warning');
-    elements.deleteSourceButton.disabled = true;
-  }
+  setSourceState(data);
 }
 
 async function saveSource() {
   const url = elements.sourceInput.value.trim();
+  const label = elements.sourceNameInput.value.trim();
   const adminPassword = getAdminPassword();
 
   if (!url) {
@@ -283,7 +326,7 @@ async function saveSource() {
   }
 
   elements.saveSourceButton.disabled = true;
-  setSourceStatus('Liste kaydedildi. Kanallar cekiliyor...');
+  setSourceStatus('Hesap kaydediliyor...');
 
   const response = await fetch('/api/source', {
     method: 'POST',
@@ -291,7 +334,7 @@ async function saveSource() {
       'content-type': 'application/json',
       'x-admin-password': adminPassword,
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, label }),
   });
   const data = await response.json();
 
@@ -302,38 +345,59 @@ async function saveSource() {
   }
 
   elements.sourceInput.value = '';
-  setSourceStatus(`Kaydedildi: ${data.url}`);
+  elements.sourceNameInput.value = '';
+  setSourceState(data);
   switchPanel('channels');
+  stopPlayback({ message: '', resetSound: false });
   await loadChannels({ force: true, reset: true });
 }
 
-async function deleteSource() {
+async function deleteSource(sourceId) {
   const adminPassword = getAdminPassword();
-  elements.deleteSourceButton.disabled = true;
-  setSourceStatus('Liste siliniyor...');
+  setSourceStatus('Hesap siliniyor...');
 
-  const response = await fetch('/api/source', {
+  const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}`, {
     method: 'DELETE',
     headers: { 'x-admin-password': adminPassword },
   });
   const data = await response.json();
 
   if (!response.ok) {
-    elements.deleteSourceButton.disabled = false;
     throw new Error(data.error || 'Yayin silinemedi');
   }
 
-  state.channels = [];
-  state.groups = ['Tumu'];
-  state.group = 'Tumu';
-  state.total = 0;
-  state.allTotal = 0;
-  state.hasMore = false;
-  resetPlayer();
-  renderGroups();
-  renderChannels();
-  setStatus('Liste silindi. Yeni yayin URL yukleyin.', 'warning');
-  setSourceStatus('Liste yok. Ayarlardan URL yukleyin.', 'warning');
+  setSourceState(data);
+  stopPlayback({ message: 'Hesap silindi.', resetSound: false });
+
+  if (!data.hasSource) {
+    clearChannelState();
+    setStatus('Hesap yok. Hesaplardan yayin URL yukleyin.', 'warning');
+    return;
+  }
+
+  await loadChannels({ force: true, reset: true });
+}
+
+async function activateSource(sourceId) {
+  if (sourceId === state.activeSourceId) return;
+
+  const adminPassword = getAdminPassword();
+  setSourceStatus('Hesap aciliyor...');
+
+  const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}/active`, {
+    method: 'PUT',
+    headers: { 'x-admin-password': adminPassword },
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Hesap acilamadi');
+  }
+
+  setSourceState(data);
+  switchPanel('channels');
+  stopPlayback({ message: '', resetSound: false });
+  await loadChannels({ force: true, reset: true });
 }
 
 async function toggleFavorite(channelId) {
@@ -374,15 +438,8 @@ async function loadChannels({ force = false, reset = false } = {}) {
   }
 
   if (!data.sourceReady) {
-    state.channels = [];
-    state.groups = ['Tumu'];
-    state.group = 'Tumu';
-    state.total = 0;
-    state.allTotal = 0;
-    state.hasMore = false;
-    renderGroups();
-    renderChannels();
-    setStatus('Liste yok. Ayarlardan yayin URL yukleyin.', 'warning');
+    clearChannelState();
+    setStatus('Hesap yok. Hesaplardan yayin URL yukleyin.', 'warning');
     return;
   }
 
@@ -404,6 +461,7 @@ async function playChannel(channelId) {
   const channel = state.channels.find((item) => item.id === channelId);
   if (!channel) return;
 
+  state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
   elements.player.src = `/api/stream/${channel.id}`;
@@ -411,6 +469,30 @@ async function playChannel(channelId) {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
   setPanelCompact(true);
+}
+
+async function playNextChannel() {
+  if (state.channels.length === 0) {
+    await loadChannels({ reset: true });
+  }
+
+  if (state.channels.length === 0) {
+    setStatus('Sonraki yayin icin kanal yok.', 'warning');
+    return;
+  }
+
+  let nextIndex = 0;
+  const currentIndex = state.channels.findIndex((channel) => channel.id === state.currentChannelId);
+  if (currentIndex >= 0) nextIndex = currentIndex + 1;
+
+  if (nextIndex >= state.channels.length && state.hasMore) {
+    await loadChannels();
+  }
+
+  if (nextIndex >= state.channels.length) nextIndex = 0;
+  const next = state.channels[nextIndex];
+
+  if (next) await playChannel(next.id);
 }
 
 function reloadFilteredChannels() {
@@ -461,7 +543,10 @@ elements.favoritesFilterButton.addEventListener('click', () => {
 elements.controlButtons.forEach((button) => {
   button.addEventListener('click', () => {
     if (button.dataset.panel) switchPanel(button.dataset.panel);
-    if (button.dataset.action === 'fullscreen') toggleFullscreen().catch(() => setStatus('Tam ekran acilamadi.', 'warning'));
+
+    if (button.dataset.action === 'stop') stopPlayback();
+    if (button.dataset.action === 'next') playNextChannel().catch((error) => setStatus(error.message, 'error'));
+    if (button.dataset.action === 'reload') window.location.reload();
   });
 });
 
@@ -476,6 +561,19 @@ elements.channelList.addEventListener('click', (event) => {
   if (button) playChannel(button.dataset.id);
 });
 
+elements.sourceList.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-source-delete]');
+  if (deleteButton) {
+    deleteSource(deleteButton.dataset.sourceDelete).catch((error) => setSourceStatus(error.message, 'error'));
+    return;
+  }
+
+  const activeButton = event.target.closest('[data-source-active]');
+  if (activeButton) {
+    activateSource(activeButton.dataset.sourceActive).catch((error) => setSourceStatus(error.message, 'error'));
+  }
+});
+
 elements.searchInput.addEventListener('input', (event) => {
   state.search = event.target.value;
   clearTimeout(searchTimer);
@@ -485,13 +583,6 @@ elements.searchInput.addEventListener('input', (event) => {
 elements.soundToggleInput.addEventListener('change', (event) => {
   state.soundEnabled = event.target.checked;
   applySoundSetting();
-});
-
-elements.refreshButton.addEventListener('click', () => {
-  loadChannels({ force: true, reset: true }).catch((error) => {
-    setLoading(false);
-    setStatus(error.message, 'error');
-  });
 });
 
 elements.loadMoreButton.addEventListener('click', () => {
@@ -506,7 +597,7 @@ elements.player.addEventListener('playing', () => {
 });
 
 elements.player.addEventListener('error', () => {
-  setStatus('Yayin acilamadi. Baska bir kanal deneyin veya listeyi yenileyin.', 'error');
+  setStatus('Yayin acilamadi. Baska bir kanal deneyin veya sayfayi yenileyin.', 'error');
 });
 
 elements.saveSourceButton.addEventListener('click', () => {
@@ -517,12 +608,9 @@ elements.saveSourceButton.addEventListener('click', () => {
   });
 });
 
-elements.deleteSourceButton.addEventListener('click', () => {
-  deleteSource().catch((error) => setSourceStatus(error.message, 'error'));
-});
-
 applyStandaloneClass();
 registerServiceWorker();
 renderGroups();
 renderTypeFilters();
+renderSources();
 applySoundSetting();

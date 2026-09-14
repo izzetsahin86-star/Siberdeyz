@@ -1151,6 +1151,21 @@ select:focus {
     grid-template-columns: minmax(0, 1fr) 88px;
   }
 
+  .source-url-form {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    min-width: 0;
+  }
+
+  .source-url-form input {
+    min-width: 0;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .source-url-form #sourceNameInput {
+    grid-column: 1 / -1;
+  }
+
   .source-pill-item {
     flex: 1 1 100%;
     width: 100%;

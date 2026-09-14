@@ -7,6 +7,7 @@ import {
   deletePlaylistSource,
   getSourceStatus,
   savePlaylistSource,
+  savePlaylistSources,
   saveUploadedPlaylistSource,
   setActivePlaylistSource,
 } from '../modules/sourceStorage.js';
@@ -96,14 +97,22 @@ apiRouter.post('/source', requireAdmin, async (req, res, next) => {
 apiRouter.post('/source/file', requireAdmin, async (req, res, next) => {
   try {
     const parsed = parseUploadedPlaylist(req.body?.content, req.body?.fileName);
-    const status = await saveUploadedPlaylistSource({
-      label: req.body?.label,
-      fileName: req.body?.fileName,
-      channels: parsed.channels,
-    });
+    const status = parsed.kind === 'sources'
+      ? await savePlaylistSources(parsed.sources)
+      : await saveUploadedPlaylistSource({
+        label: req.body?.label,
+        fileName: req.body?.fileName,
+        channels: parsed.channels,
+      });
+
     clearChannelCache();
     await clearFavorites();
-    res.status(201).json({ ...status, imported: parsed.total });
+    res.status(201).json({
+      ...status,
+      imported: parsed.total,
+      importedSources: parsed.kind === 'sources' ? parsed.total : 0,
+      importedChannels: parsed.kind === 'channels' ? parsed.total : 0,
+    });
   } catch (error) {
     next(error);
   }

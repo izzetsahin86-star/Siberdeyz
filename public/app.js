@@ -432,7 +432,7 @@ async function uploadSourceFiles() {
     }
 
     elements.sourceNameInput.value = '';
-    setSourceStatus(files.length + ' dosya kaydedildi, ' + importedTotal + ' yayin eklendi.');
+    setSourceStatus(files.length + ' dosya kaydedildi, ' + importedTotal + ' kayit eklendi.');
     switchPanel('channels');
     stopPlayback({ message: '', resetSound: false });
     await loadChannels({ force: true, reset: true });

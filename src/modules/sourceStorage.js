@@ -229,6 +229,53 @@ export async function savePlaylistSource(url, label = '') {
   return getSourceStatus();
 }
 
+export async function savePlaylistSources(sources = []) {
+  const state = await readState();
+  const now = new Date().toISOString();
+  const imported = [];
+  const seen = new Set();
+
+  for (const entry of Array.isArray(sources) ? sources : []) {
+    const clean = cleanUrl(entry?.url);
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+
+    const id = createSourceId(clean);
+    const existing = state.sources.find((source) => source.id === id);
+    const label = String(entry?.label || getDefaultUrlLabel(clean, state.sources.length)).trim();
+
+    if (existing) {
+      existing.type = 'url';
+      existing.label = label || existing.label;
+      existing.url = clean;
+      existing.fileName = '';
+      existing.channels = [];
+      existing.updatedAt = now;
+    } else {
+      state.sources.push({
+        id,
+        type: 'url',
+        label: label || getDefaultUrlLabel(clean, state.sources.length),
+        url: clean,
+        fileName: '',
+        channels: [],
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    imported.push(id);
+  }
+
+  if (imported.length === 0) {
+    throw new Error('Dosyada kaydedilecek yayin hesabi bulunamadi.');
+  }
+
+  state.activeSourceId = imported[0];
+  await writeState(state);
+  return getSourceStatus();
+}
+
 export async function saveUploadedPlaylistSource({ label = '', fileName = '', channels = [] } = {}) {
   const normalizedChannels = normalizeStoredChannels(channels);
 

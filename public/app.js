@@ -555,6 +555,7 @@ async function activateSource(sourceId) {
 
   setSourceStatus('Hesap acildi. Kanallar yukleniyor...');
   await loadChannels({ force: !isAlreadyActive, reset: true });
+  setSourceStatus('Hesap aktif. Kanallar yuklendi.');
 }
 
 async function toggleFavorite(channelId) {

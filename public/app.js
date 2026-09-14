@@ -622,7 +622,7 @@ async function playChannel(channelId) {
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
-  elements.player.src = `/api/stream/${channel.id}`;
+  elements.player.src = `/api/play/${channel.id}`;
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });

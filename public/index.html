@@ -48,8 +48,49 @@
         <div id="groupChips" class="group-strip" aria-label="Kategoriler"></div>
       </section>
 
-      <section class="watch-area">
-        <video id="player" controls playsinline muted></video>
+      <section id="watchArea" class="watch-area">
+        <video id="player" playsinline muted></video>
+
+        <div id="playerControls" class="player-controls" aria-label="Video kontrolleri">
+          <div class="player-timeline">
+            <span id="currentTime" class="time-label">00:00</span>
+            <input
+              id="seekSlider"
+              class="seek-slider"
+              type="range"
+              min="0"
+              max="1000"
+              step="1"
+              value="0"
+              aria-label="Yayin suresi"
+              disabled
+            />
+            <span id="durationTime" class="time-label">--:--</span>
+            <span id="liveIndicator" class="live-indicator" hidden>CANLI</span>
+          </div>
+
+          <div class="player-actions">
+            <button id="rewindButton" class="player-control-button seek-button" type="button" aria-label="10 saniye geri" disabled>
+              <span aria-hidden="true">−10</span>
+            </button>
+            <button id="playPauseButton" class="player-control-button play-pause-button" type="button" aria-label="Oynat" disabled>
+              <span id="playPauseIcon" aria-hidden="true">▶</span>
+            </button>
+            <button id="forwardButton" class="player-control-button seek-button" type="button" aria-label="10 saniye ileri" disabled>
+              <span aria-hidden="true">+10</span>
+            </button>
+
+            <span class="player-action-spacer"></span>
+
+            <button id="muteButton" class="player-control-button utility-button" type="button" aria-label="Sesi ac veya kapat">
+              <span id="muteIcon" aria-hidden="true">Sessiz</span>
+            </button>
+            <button id="fullscreenButton" class="player-control-button utility-button" type="button" aria-label="Tam ekran">
+              <span aria-hidden="true">⛶</span>
+            </button>
+          </div>
+        </div>
+
         <div class="player-meta">
           <span>Secili yayin</span>
           <strong id="currentChannel">Henuz secilmedi</strong>

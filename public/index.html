@@ -56,49 +56,63 @@
         </div>
       </section>
 
+      <section id="bottomPanel" class="content-panel" data-open="none" data-compact="false" aria-hidden="true">
+        <div class="sheet-header">
+          <strong id="panelTitle">Kanallar</strong>
+          <button id="closePanelButton" class="sheet-close" type="button" aria-label="Paneli kapat">Kapat</button>
+        </div>
+
+        <div class="sheet-body">
+          <div id="channelsView" class="panel-view">
+            <div class="search-row">
+              <input id="searchInput" type="search" placeholder="Kanal, film veya dizi ara" />
+            </div>
+            <div id="status" class="status">Yayin listesi yukleniyor...</div>
+            <div id="channelList" class="channel-list"></div>
+            <button id="loadMoreButton" class="load-more" type="button" hidden>Daha fazla goster</button>
+          </div>
+
+          <div id="accountsView" class="panel-view accounts-view" hidden>
+            <div id="sourceStatus" class="source-status" hidden></div>
+            <div class="source-tools">
+              <div class="source-row">
+                <input id="sourceNameInput" type="text" placeholder="Hesap adi" autocomplete="off" />
+                <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
+                <button id="saveSourceButton" type="button">URL Yukle</button>
+              </div>
+              <label class="file-upload-card">
+                <input id="sourceFileInput" type="file" accept=".m3u,.m3u8,.txt,application/vnd.apple.mpegurl,audio/x-mpegurl,text/plain" multiple />
+                <span>Dosya Yukle</span>
+                <small>M3U, M3U8 veya TXT</small>
+              </label>
+            </div>
+            <div id="sourceList" class="source-list"></div>
+          </div>
+
+          <div id="settingsView" class="panel-view settings-view" hidden>
+            <div class="settings-grid">
+              <section class="setting-card">
+                <div>
+                  <h2>Ses Ayari</h2>
+                  <p id="soundStatus">Video her acilista sessiz baslar.</p>
+                </div>
+                <label class="switch-line">
+                  <input id="soundToggleInput" type="checkbox" />
+                  <span>Sesi ac</span>
+                </label>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="control-panel" aria-label="Ana kontroller">
         <button class="control-button" type="button" data-action="stop">Yayini Kapat</button>
         <button class="control-button" type="button" data-action="next">Sonraki</button>
         <button class="control-button" type="button" data-action="reload">Yenile</button>
-        <button class="control-button is-active" type="button" data-panel="channels">Kanallar</button>
+        <button class="control-button" type="button" data-panel="channels">Kanallar</button>
         <button class="control-button" type="button" data-panel="accounts">Hesaplar</button>
         <button class="control-button" type="button" data-panel="settings">Ayarlar</button>
-      </section>
-
-      <section id="bottomPanel" class="content-panel" data-open="channels" data-compact="false">
-        <div id="channelsView" class="panel-view">
-          <div class="search-row">
-            <input id="searchInput" type="search" placeholder="Kanal, film veya dizi ara" />
-          </div>
-          <div id="status" class="status">Yayin listesi yukleniyor...</div>
-          <div id="channelList" class="channel-list"></div>
-          <button id="loadMoreButton" class="load-more" type="button" hidden>Daha fazla goster</button>
-        </div>
-
-        <div id="accountsView" class="panel-view accounts-view" hidden>
-          <div id="sourceStatus" class="source-status" hidden></div>
-          <div class="source-row">
-            <input id="sourceNameInput" type="text" placeholder="Hesap adi" autocomplete="off" />
-            <input id="sourceInput" type="url" placeholder="http://.../get.php?username=...&password=...&type=m3u_plus" />
-            <button id="saveSourceButton" type="button">Yukle</button>
-          </div>
-          <div id="sourceList" class="source-list"></div>
-        </div>
-
-        <div id="settingsView" class="panel-view settings-view" hidden>
-          <div class="settings-grid">
-            <section class="setting-card">
-              <div>
-                <h2>Ses Ayari</h2>
-                <p id="soundStatus">Video her acilista sessiz baslar.</p>
-              </div>
-              <label class="switch-line">
-                <input id="soundToggleInput" type="checkbox" />
-                <span>Sesi ac</span>
-              </label>
-            </section>
-          </div>
-        </div>
       </section>
     </main>
 

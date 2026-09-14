@@ -7,8 +7,10 @@ import {
   deletePlaylistSource,
   getSourceStatus,
   savePlaylistSource,
+  saveUploadedPlaylistSource,
   setActivePlaylistSource,
 } from '../modules/sourceStorage.js';
+import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
 
 export const apiRouter = Router();
@@ -86,6 +88,22 @@ apiRouter.post('/source', requireAdmin, async (req, res, next) => {
     clearChannelCache();
     await clearFavorites();
     res.status(201).json(status);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/source/file', requireAdmin, async (req, res, next) => {
+  try {
+    const parsed = parseUploadedPlaylist(req.body?.content, req.body?.fileName);
+    const status = await saveUploadedPlaylistSource({
+      label: req.body?.label,
+      fileName: req.body?.fileName,
+      channels: parsed.channels,
+    });
+    clearChannelCache();
+    await clearFavorites();
+    res.status(201).json({ ...status, imported: parsed.total });
   } catch (error) {
     next(error);
   }

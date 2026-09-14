@@ -15,30 +15,94 @@ async function readSourceFile() {
   }
 }
 
-function createSourceId(url) {
-  return `src_${createHash('sha1').update(url).digest('hex').slice(0, 12)}`;
+function hashValue(value) {
+  return createHash('sha1').update(String(value || '')).digest('hex').slice(0, 12);
 }
 
-function getDefaultLabel(url, index) {
+function createSourceId(url) {
+  return 'src_' + hashValue(url);
+}
+
+function createFileSourceId(fileName, channels) {
+  const fingerprint = channels.map((channel) => channel.name + '|' + channel.url).join('\n');
+  return 'file_' + hashValue(String(fileName || 'dosya') + '\n' + fingerprint);
+}
+
+function getDefaultUrlLabel(url, index) {
   try {
     const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./i, '') || `Hesap ${index + 1}`;
+    return parsed.hostname.replace(/^www\./i, '') || 'Hesap ' + (index + 1);
   } catch {
-    return `Hesap ${index + 1}`;
+    return 'Hesap ' + (index + 1);
   }
 }
 
+function getDefaultFileLabel(fileName, index) {
+  const cleaned = String(fileName || '').replace(/\.[^.]+$/, '').trim();
+  return cleaned || 'Dosya ' + (index + 1);
+}
+
+function cleanStreamUrl(value) {
+  const url = String(value || '').trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+
+function normalizeStoredChannels(channels) {
+  const seen = new Set();
+  const normalized = [];
+
+  for (const channel of Array.isArray(channels) ? channels : []) {
+    const url = cleanStreamUrl(channel?.url);
+    if (!url || seen.has(url)) continue;
+
+    seen.add(url);
+    const index = normalized.length;
+    normalized.push({
+      id: String(index + 1),
+      name: String(channel?.name || 'Yayin ' + (index + 1)).trim() || 'Yayin ' + (index + 1),
+      logo: String(channel?.logo || '').trim(),
+      group: String(channel?.group || 'Genel').trim() || 'Genel',
+      tvgId: String(channel?.tvgId || '').trim(),
+      url,
+    });
+  }
+
+  return normalized;
+}
+
 function normalizeSource(source, index) {
+  const type = source?.type === 'file' ? 'file' : 'url';
+  const now = new Date().toISOString();
+
+  if (type === 'file') {
+    const channels = normalizeStoredChannels(source?.channels);
+    if (channels.length === 0) return null;
+
+    const fileName = String(source?.fileName || '').trim();
+    return {
+      id: String(source?.id || createFileSourceId(fileName, channels)),
+      type: 'file',
+      label: String(source?.label || getDefaultFileLabel(fileName, index)).trim() || 'Dosya ' + (index + 1),
+      url: '',
+      fileName,
+      channels,
+      createdAt: source?.createdAt || source?.updatedAt || now,
+      updatedAt: source?.updatedAt || now,
+    };
+  }
+
   const url = String(source?.url || '').trim();
   if (!url) return null;
 
-  const now = new Date().toISOString();
   return {
-    id: String(source.id || createSourceId(url)),
-    label: String(source.label || getDefaultLabel(url, index)).trim() || `Hesap ${index + 1}`,
+    id: String(source?.id || createSourceId(url)),
+    type: 'url',
+    label: String(source?.label || getDefaultUrlLabel(url, index)).trim() || 'Hesap ' + (index + 1),
     url,
-    createdAt: source.createdAt || source.updatedAt || now,
-    updatedAt: source.updatedAt || now,
+    fileName: '',
+    channels: [],
+    createdAt: source?.createdAt || source?.updatedAt || now,
+    updatedAt: source?.updatedAt || now,
   };
 }
 
@@ -54,7 +118,7 @@ function normalizeState(saved) {
     return { activeSourceId, sources };
   }
 
-  const legacy = normalizeSource(saved, 0);
+  const legacy = normalizeSource({ ...saved, type: 'url' }, 0);
   return {
     activeSourceId: legacy?.id || '',
     sources: legacy ? [legacy] : [],
@@ -91,19 +155,34 @@ function cleanUrl(value) {
 }
 
 function publicSource(source, activeSourceId) {
+  const isFile = source.type === 'file';
+
   return {
     id: source.id,
+    type: source.type,
     label: source.label,
-    url: maskUrl(source.url),
+    url: isFile ? '' : maskUrl(source.url),
+    fileName: source.fileName || '',
+    channelCount: isFile ? source.channels.length : 0,
     active: source.id === activeSourceId,
     updatedAt: source.updatedAt,
   };
 }
 
-export async function getPlaylistSource() {
+export async function getActivePlaylistSource() {
   const state = await readState();
   const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];
-  return active?.url || '';
+
+  if (!active) return null;
+  return {
+    ...active,
+    channels: active.channels || [],
+  };
+}
+
+export async function getPlaylistSource() {
+  const active = await getActivePlaylistSource();
+  return active?.type === 'url' ? active.url : '';
 }
 
 export async function getSourceStatus() {
@@ -112,7 +191,7 @@ export async function getSourceStatus() {
 
   return {
     hasSource: state.sources.length > 0,
-    url: active ? maskUrl(active.url) : '',
+    url: active && active.type === 'url' ? maskUrl(active.url) : '',
     activeSourceId: active?.id || '',
     sources: state.sources.map((source) => publicSource(source, active?.id || '')),
   };
@@ -126,14 +205,58 @@ export async function savePlaylistSource(url, label = '') {
   const existing = state.sources.find((source) => source.id === id);
 
   if (existing) {
-    existing.label = String(label || existing.label || getDefaultLabel(clean, state.sources.length)).trim();
+    existing.type = 'url';
+    existing.label = String(label || existing.label || getDefaultUrlLabel(clean, state.sources.length)).trim();
     existing.url = clean;
+    existing.fileName = '';
+    existing.channels = [];
     existing.updatedAt = now;
   } else {
     state.sources.push({
       id,
-      label: String(label || getDefaultLabel(clean, state.sources.length)).trim(),
+      type: 'url',
+      label: String(label || getDefaultUrlLabel(clean, state.sources.length)).trim(),
       url: clean,
+      fileName: '',
+      channels: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  state.activeSourceId = id;
+  await writeState(state);
+  return getSourceStatus();
+}
+
+export async function saveUploadedPlaylistSource({ label = '', fileName = '', channels = [] } = {}) {
+  const normalizedChannels = normalizeStoredChannels(channels);
+
+  if (normalizedChannels.length === 0) {
+    throw new Error('Dosyada kaydedilecek yayin bulunamadi.');
+  }
+
+  const state = await readState();
+  const now = new Date().toISOString();
+  const id = createFileSourceId(fileName, normalizedChannels);
+  const existing = state.sources.find((source) => source.id === id);
+  const sourceLabel = String(label || getDefaultFileLabel(fileName, state.sources.length)).trim();
+
+  if (existing) {
+    existing.type = 'file';
+    existing.label = sourceLabel || existing.label;
+    existing.url = '';
+    existing.fileName = String(fileName || existing.fileName || '').trim();
+    existing.channels = normalizedChannels;
+    existing.updatedAt = now;
+  } else {
+    state.sources.push({
+      id,
+      type: 'file',
+      label: sourceLabel || 'Dosya ' + (state.sources.length + 1),
+      url: '',
+      fileName: String(fileName || '').trim(),
+      channels: normalizedChannels,
       createdAt: now,
       updatedAt: now,
     });

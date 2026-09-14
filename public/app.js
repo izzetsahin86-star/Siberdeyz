@@ -17,6 +17,7 @@ const state = {
   sources: [],
   activeSourceId: '',
   currentChannelId: '',
+  activePanel: '',
 };
 
 let searchTimer;
@@ -46,6 +47,8 @@ const elements = {
   loginButton: document.querySelector('#loginButton'),
   appShell: document.querySelector('#appShell'),
   bottomPanel: document.querySelector('#bottomPanel'),
+  panelTitle: document.querySelector('#panelTitle'),
+  closePanelButton: document.querySelector('#closePanelButton'),
   channelsView: document.querySelector('#channelsView'),
   accountsView: document.querySelector('#accountsView'),
   settingsView: document.querySelector('#settingsView'),
@@ -58,6 +61,7 @@ const elements = {
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
   sourceInput: document.querySelector('#sourceInput'),
+  sourceFileInput: document.querySelector('#sourceFileInput'),
   sourceStatus: document.querySelector('#sourceStatus'),
   sourceList: document.querySelector('#sourceList'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
@@ -160,8 +164,20 @@ function showApp() {
   }
 }
 
+function closePanel() {
+  state.activePanel = '';
+  elements.bottomPanel.dataset.open = 'none';
+  elements.bottomPanel.dataset.compact = 'false';
+  elements.bottomPanel.setAttribute('aria-hidden', 'true');
+
+  elements.controlButtons.forEach((button) => {
+    if (button.dataset.panel) button.classList.remove('is-active');
+  });
+}
+
 function setPanelCompact(isCompact) {
   elements.bottomPanel.dataset.compact = isCompact ? 'true' : 'false';
+  if (isCompact) closePanel();
 }
 
 function switchPanel(panelName) {
@@ -171,14 +187,23 @@ function switchPanel(panelName) {
     settings: elements.settingsView,
   };
 
+  const titles = {
+    channels: 'Kanallar',
+    accounts: 'Hesaplar',
+    settings: 'Ayarlar',
+  };
+
   if (!panels[panelName]) return;
 
   Object.entries(panels).forEach(([name, panel]) => {
     panel.hidden = name !== panelName;
   });
 
+  state.activePanel = panelName;
+  elements.panelTitle.textContent = titles[panelName] || 'Panel';
   elements.bottomPanel.dataset.open = panelName;
-  setPanelCompact(false);
+  elements.bottomPanel.dataset.compact = 'false';
+  elements.bottomPanel.setAttribute('aria-hidden', 'false');
 
   elements.controlButtons.forEach((button) => {
     button.classList.toggle('is-active', button.dataset.panel === panelName);
@@ -264,18 +289,27 @@ function renderSources() {
     return;
   }
 
-  elements.sourceList.innerHTML = state.sources.map((source, index) => `
-    <article class="source-item ${source.active ? 'is-active' : ''}">
-      <button class="source-select" type="button" data-source-active="${escapeHtml(source.id)}">
-        <span class="source-badge">${source.active ? 'Aktif' : `#${index + 1}`}</span>
-        <span class="source-copy">
-          <strong>${escapeHtml(source.label || `Hesap ${index + 1}`)}</strong>
-          <small>${escapeHtml(source.url || '')}</small>
-        </span>
-      </button>
-      <button class="mini-danger-button" type="button" data-source-delete="${escapeHtml(source.id)}">Sil</button>
-    </article>
-  `).join('');
+  elements.sourceList.innerHTML = state.sources.map((source, index) => {
+    const isFile = source.type === 'file';
+    const badge = source.active ? 'Aktif' : (isFile ? 'Dosya' : '#' + (index + 1));
+    const title = source.label || 'Hesap ' + (index + 1);
+    const meta = isFile
+      ? ((source.channelCount || 0) + ' yayin - ' + (source.fileName || 'Dosya'))
+      : (source.url || '');
+
+    return [
+      '<article class="source-item ' + (source.active ? 'is-active' : '') + '">',
+      '<button class="source-select" type="button" data-source-active="' + escapeHtml(source.id) + '">',
+      '<span class="source-badge">' + escapeHtml(badge) + '</span>',
+      '<span class="source-copy">',
+      '<strong>' + escapeHtml(title) + '</strong>',
+      '<small>' + escapeHtml(meta) + '</small>',
+      '</span>',
+      '</button>',
+      '<button class="mini-danger-button" type="button" data-source-delete="' + escapeHtml(source.id) + '">Sil</button>',
+      '</article>',
+    ].join('');
+  }).join('');
 }
 
 function setSourceState(data) {
@@ -350,6 +384,63 @@ async function saveSource() {
   switchPanel('channels');
   stopPlayback({ message: '', resetSound: false });
   await loadChannels({ force: true, reset: true });
+}
+
+async function uploadSourceFiles() {
+  const files = Array.from(elements.sourceFileInput.files || []);
+
+  if (files.length === 0) return;
+
+  const adminPassword = getAdminPassword();
+  const manualLabel = files.length === 1 ? elements.sourceNameInput.value.trim() : '';
+  let importedTotal = 0;
+
+  elements.sourceFileInput.disabled = true;
+  elements.saveSourceButton.disabled = true;
+
+  try {
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+
+      if (file.size > 45 * 1024 * 1024) {
+        throw new Error(file.name + ' cok buyuk. Dosyayi daha kucuk parcalara ayirin.');
+      }
+
+      setSourceStatus(file.name + ' yukleniyor... (' + (index + 1) + '/' + files.length + ')');
+      const content = await file.text();
+
+      const response = await fetch('/api/source/file', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-admin-password': adminPassword,
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          label: manualLabel,
+          content,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || file.name + ' yuklenemedi');
+      }
+
+      importedTotal += data.imported || 0;
+      setSourceState(data);
+    }
+
+    elements.sourceNameInput.value = '';
+    setSourceStatus(files.length + ' dosya kaydedildi, ' + importedTotal + ' yayin eklendi.');
+    switchPanel('channels');
+    stopPlayback({ message: '', resetSound: false });
+    await loadChannels({ force: true, reset: true });
+  } finally {
+    elements.sourceFileInput.value = '';
+    elements.sourceFileInput.disabled = false;
+    elements.saveSourceButton.disabled = false;
+  }
 }
 
 async function deleteSource(sourceId) {
@@ -468,7 +559,7 @@ async function playChannel(channelId) {
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
-  setPanelCompact(true);
+  closePanel();
 }
 
 async function playNextChannel() {
@@ -540,9 +631,18 @@ elements.favoritesFilterButton.addEventListener('click', () => {
   reloadFilteredChannels();
 });
 
+elements.closePanelButton.addEventListener('click', closePanel);
+
 elements.controlButtons.forEach((button) => {
   button.addEventListener('click', () => {
-    if (button.dataset.panel) switchPanel(button.dataset.panel);
+    if (button.dataset.panel) {
+      if (state.activePanel === button.dataset.panel && elements.bottomPanel.dataset.open !== 'none') {
+        closePanel();
+      } else {
+        switchPanel(button.dataset.panel);
+      }
+      return;
+    }
 
     if (button.dataset.action === 'stop') stopPlayback();
     if (button.dataset.action === 'next') playNextChannel().catch((error) => setStatus(error.message, 'error'));
@@ -598,6 +698,14 @@ elements.player.addEventListener('playing', () => {
 
 elements.player.addEventListener('error', () => {
   setStatus('Yayin acilamadi. Baska bir kanal deneyin veya sayfayi yenileyin.', 'error');
+});
+
+elements.sourceFileInput.addEventListener('change', () => {
+  uploadSourceFiles().catch((error) => {
+    elements.sourceFileInput.disabled = false;
+    elements.saveSourceButton.disabled = false;
+    setSourceStatus(error.message, 'error');
+  });
 });
 
 elements.saveSourceButton.addEventListener('click', () => {

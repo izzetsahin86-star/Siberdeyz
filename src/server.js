@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const publicDir = path.join(__dirname, '..', 'public');
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(publicDir));
 app.use('/api', apiRouter);
 
@@ -20,7 +20,8 @@ app.use((error, req, res, next) => {
     next(error);
     return;
   }
-  res.status(500).json({ error: error.message || 'Beklenmeyen hata' });
+  const status = Number(error.status || error.statusCode) || 500;
+  res.status(status).json({ error: error.message || 'Beklenmeyen hata' });
 });
 
 app.listen(config.port, () => {

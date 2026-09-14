@@ -1,25 +1,34 @@
 import { config } from '../config.js';
 import { enrichChannel } from './channelClassifier.js';
 import { parseM3U, parseM3UStream } from './m3uParser.js';
-import { getPlaylistSource } from './sourceStorage.js';
+import { getActivePlaylistSource } from './sourceStorage.js';
 
 let cache = {
   loadedAt: 0,
-  sourceUrl: '',
+  sourceKey: '',
   channels: [],
   groups: ['Tumu'],
 };
 
 let pendingLoad = null;
-let pendingSourceUrl = '';
+let pendingSourceKey = '';
 
-function hasUsableCache(sourceUrl) {
-  return cache.sourceUrl === sourceUrl && cache.channels.length > 0;
+function getSourceKey(source) {
+  if (!source) return '';
+  if (source.type === 'file') {
+    return [source.id, source.updatedAt || '', source.channels?.length || 0].join(':');
+  }
+
+  return source.url || '';
 }
 
-function isCacheFresh(sourceUrl) {
+function hasUsableCache(sourceKey) {
+  return cache.sourceKey === sourceKey && cache.channels.length > 0;
+}
+
+function isCacheFresh(sourceKey) {
   const ageMs = Date.now() - cache.loadedAt;
-  return hasUsableCache(sourceUrl) && ageMs < config.cacheSeconds * 1000;
+  return hasUsableCache(sourceKey) && ageMs < config.cacheSeconds * 1000;
 }
 
 function buildGroups(channels) {
@@ -34,8 +43,35 @@ function readPlaylist(response) {
   return response.text().then((text) => parseM3U(text, enrichChannel));
 }
 
-async function loadChannelsFromSource(sourceUrl) {
-  const response = await fetch(sourceUrl, {
+function readStoredPlaylist(source) {
+  return (source.channels || []).map((channel, index) => enrichChannel({
+    id: String(channel.id || index + 1),
+    name: channel.name,
+    logo: channel.logo || '',
+    group: channel.group || 'Genel',
+    tvgId: channel.tvgId || '',
+    url: channel.url,
+  }));
+}
+
+async function loadChannelsFromSource(source) {
+  const sourceKey = getSourceKey(source);
+
+  if (source.type === 'file') {
+    const channels = readStoredPlaylist(source);
+    const groups = buildGroups(channels);
+
+    cache = {
+      loadedAt: Date.now(),
+      sourceKey,
+      channels,
+      groups,
+    };
+
+    return { channels, groups, sourceReady: true, cached: false, stale: false };
+  }
+
+  const response = await fetch(source.url, {
     headers: {
       'user-agent': 'Siberdeyz-IPTV-Player/1.0',
       accept: 'application/x-mpegURL,text/plain,*/*',
@@ -43,7 +79,7 @@ async function loadChannelsFromSource(sourceUrl) {
   });
 
   if (!response.ok) {
-    throw new Error(`Yayin listesi alinamadi: HTTP ${response.status}`);
+    throw new Error('Yayin listesi alinamadi: HTTP ' + response.status);
   }
 
   const channels = await readPlaylist(response);
@@ -51,7 +87,7 @@ async function loadChannelsFromSource(sourceUrl) {
 
   cache = {
     loadedAt: Date.now(),
-    sourceUrl,
+    sourceKey,
     channels,
     groups,
   };
@@ -62,51 +98,53 @@ async function loadChannelsFromSource(sourceUrl) {
 export function clearChannelCache() {
   cache = {
     loadedAt: 0,
-    sourceUrl: '',
+    sourceKey: '',
     channels: [],
     groups: ['Tumu'],
   };
   pendingLoad = null;
-  pendingSourceUrl = '';
+  pendingSourceKey = '';
 }
 
 export async function getChannels({ force = false } = {}) {
-  const sourceUrl = await getPlaylistSource();
+  const source = await getActivePlaylistSource();
+  const sourceKey = getSourceKey(source);
 
-  if (!sourceUrl) {
+  if (!source || !sourceKey) {
     clearChannelCache();
     return { channels: [], groups: ['Tumu'], sourceReady: false, cached: false, stale: false };
   }
 
-  if (!force && hasUsableCache(sourceUrl)) {
+  if (!force && hasUsableCache(sourceKey)) {
     return {
       channels: cache.channels,
       groups: cache.groups,
       sourceReady: true,
       cached: true,
-      stale: !isCacheFresh(sourceUrl),
+      stale: !isCacheFresh(sourceKey),
     };
   }
 
-  if (!force && pendingLoad && pendingSourceUrl === sourceUrl) {
+  if (!force && pendingLoad && pendingSourceKey === sourceKey) {
     return pendingLoad;
   }
 
-  pendingSourceUrl = sourceUrl;
-  pendingLoad = loadChannelsFromSource(sourceUrl).finally(() => {
+  pendingSourceKey = sourceKey;
+  pendingLoad = loadChannelsFromSource(source).finally(() => {
     pendingLoad = null;
-    pendingSourceUrl = '';
+    pendingSourceKey = '';
   });
 
   return pendingLoad;
 }
 
 export async function findChannel(channelId) {
-  const sourceUrl = await getPlaylistSource();
+  const source = await getActivePlaylistSource();
+  const sourceKey = getSourceKey(source);
 
-  if (!sourceUrl) return null;
+  if (!source || !sourceKey) return null;
 
-  if (hasUsableCache(sourceUrl)) {
+  if (hasUsableCache(sourceKey)) {
     return cache.channels.find((channel) => channel.id === String(channelId));
   }
 

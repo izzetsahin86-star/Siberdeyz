@@ -13,6 +13,7 @@ import {
 } from '../modules/sourceStorage.js';
 import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
+import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
 
 export const apiRouter = Router();
 
@@ -215,6 +216,30 @@ apiRouter.get('/playback/:id', async (req, res, next) => {
       return;
     }
     res.json(getPlaybackInfo(channel));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/play/:id', async (req, res, next) => {
+  try {
+    await playUniversal(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/media/hls/:token', async (req, res, next) => {
+  try {
+    await playHlsResource(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/media/transcode/:session/:file', async (req, res, next) => {
+  try {
+    await playTranscodedResource(req, res);
   } catch (error) {
     next(error);
   }

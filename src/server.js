@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const publicDir = path.join(__dirname, '..', 'public');
 
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(publicDir));
 app.use('/api', apiRouter);
 

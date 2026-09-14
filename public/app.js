@@ -1,4 +1,5 @@
 const PAGE_SIZE = 100;
+const ADMIN_SESSION_KEY = 'siberdeyz_admin_password';
 
 const state = {
   channels: [],
@@ -11,12 +12,19 @@ const state = {
   allTotal: 0,
   hasMore: false,
   loading: false,
+  started: false,
 };
 
 const elements = {
+  loginScreen: document.querySelector('#loginScreen'),
+  loginForm: document.querySelector('#loginForm'),
+  loginStatus: document.querySelector('#loginStatus'),
+  loginButton: document.querySelector('#loginButton'),
+  appShell: document.querySelector('#appShell'),
   player: document.querySelector('#player'),
   currentChannel: document.querySelector('#currentChannel'),
   refreshButton: document.querySelector('#refreshButton'),
+  logoutButton: document.querySelector('#logoutButton'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceInput: document.querySelector('#sourceInput'),
   sourceStatus: document.querySelector('#sourceStatus'),
@@ -51,8 +59,13 @@ function setSourceStatus(message, type = 'info') {
   elements.sourceStatus.dataset.type = type;
 }
 
+function setLoginStatus(message, type = 'info') {
+  elements.loginStatus.textContent = message;
+  elements.loginStatus.dataset.type = type;
+}
+
 function getAdminPassword() {
-  return elements.adminPasswordInput.value.trim();
+  return sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
 }
 
 function setLoading(isLoading) {
@@ -66,6 +79,49 @@ function resetPlayer() {
   elements.player.removeAttribute('src');
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
+}
+
+function showApp() {
+  elements.loginScreen.hidden = true;
+  elements.appShell.hidden = false;
+
+  if (!state.started) {
+    state.started = true;
+    loadSourceStatus().catch((error) => setSourceStatus(error.message, 'error'));
+    loadChannels({ reset: true }).catch((error) => {
+      setLoading(false);
+      setStatus(error.message, 'error');
+    });
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  resetPlayer();
+  elements.appShell.hidden = true;
+  elements.loginScreen.hidden = false;
+  elements.adminPasswordInput.value = '';
+  setLoginStatus('Cikis yapildi. Tekrar girmek icin sifre girin.');
+}
+
+async function login(adminPassword) {
+  elements.loginButton.disabled = true;
+  setLoginStatus('Sifre kontrol ediliyor...');
+
+  const response = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ adminPassword }),
+  });
+  const data = await response.json();
+  elements.loginButton.disabled = false;
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Giris yapilamadi');
+  }
+
+  sessionStorage.setItem(ADMIN_SESSION_KEY, adminPassword);
+  showApp();
 }
 
 function renderGroups() {
@@ -134,7 +190,7 @@ async function loadSourceStatus() {
     setSourceStatus(`Kayitli yayin: ${data.url}`);
     elements.deleteSourceButton.disabled = false;
   } else {
-    setSourceStatus('Kayitli yayin yok. URL girip admin sifresiyle Yukle tusuna basin.', 'warning');
+    setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
     elements.deleteSourceButton.disabled = true;
   }
 }
@@ -142,11 +198,6 @@ async function loadSourceStatus() {
 async function saveSource() {
   const url = elements.sourceInput.value.trim();
   const adminPassword = getAdminPassword();
-
-  if (!adminPassword) {
-    setSourceStatus('Admin sifresi girin.', 'warning');
-    return;
-  }
 
   if (!url) {
     setSourceStatus('Once yayin URL girin.', 'warning');
@@ -179,12 +230,6 @@ async function saveSource() {
 
 async function deleteSource() {
   const adminPassword = getAdminPassword();
-
-  if (!adminPassword) {
-    setSourceStatus('Admin sifresi girin.', 'warning');
-    return;
-  }
-
   elements.deleteSourceButton.disabled = true;
   setSourceStatus('Yayin siliniyor...');
 
@@ -209,7 +254,7 @@ async function deleteSource() {
   renderGroups();
   renderChannels();
   setStatus('Yayin silindi. Yeni yayin URL yukleyin.', 'warning');
-  setSourceStatus('Kayitli yayin yok. URL girip admin sifresiyle Yukle tusuna basin.', 'warning');
+  setSourceStatus('Kayitli yayin yok. URL girip Yukle tusuna basin.', 'warning');
 }
 
 async function toggleFavorite(channelId) {
@@ -294,6 +339,20 @@ function reloadFilteredChannels() {
   });
 }
 
+elements.loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const adminPassword = elements.adminPasswordInput.value.trim();
+
+  if (!adminPassword) {
+    setLoginStatus('Sifre girin.', 'warning');
+    return;
+  }
+
+  login(adminPassword).catch((error) => setLoginStatus(error.message, 'error'));
+});
+
+elements.logoutButton.addEventListener('click', logout);
+
 elements.channelList.addEventListener('click', (event) => {
   const favoriteButton = event.target.closest('[data-favorite-id]');
   if (favoriteButton) {
@@ -351,8 +410,6 @@ elements.deleteSourceButton.addEventListener('click', () => {
   deleteSource().catch((error) => setSourceStatus(error.message, 'error'));
 });
 
-loadSourceStatus().catch((error) => setSourceStatus(error.message, 'error'));
-loadChannels({ reset: true }).catch((error) => {
-  setLoading(false);
-  setStatus(error.message, 'error');
-});
+if (getAdminPassword()) {
+  showApp();
+}

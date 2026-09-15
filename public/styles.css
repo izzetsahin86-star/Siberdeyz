@@ -2646,3 +2646,249 @@ select:focus {
 .watch-area::before {
   display: none;
 }
+
+
+/* Premium channels UI trial */
+.channels-view {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(10,132,255,.08), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,.015), transparent 24%);
+}
+
+.channels-view .channel-toolbar {
+  margin: 7px 8px 5px;
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.028));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.035),
+    0 7px 18px rgba(0,0,0,.10);
+}
+
+.channels-view .channel-toolbar input,
+.channels-view .channel-toolbar select {
+  border-color: rgba(255,255,255,.065);
+  background: rgba(15,16,20,.72);
+  box-shadow: inset 0 1px rgba(255,255,255,.02);
+}
+
+.channels-view .channel-toolbar input:focus,
+.channels-view .channel-toolbar select:focus {
+  border-color: rgba(10,132,255,.48);
+  background: rgba(18,20,25,.86);
+  box-shadow:
+    0 0 0 2px rgba(10,132,255,.10),
+    inset 0 1px rgba(255,255,255,.025);
+}
+
+.channels-view .channel-status {
+  margin: 0 9px 4px;
+  padding: 0 2px;
+  color: #8d98a8;
+}
+
+.channels-view .channel-list {
+  gap: 6px;
+  padding: 1px 8px 8px;
+}
+
+.channels-view .channel-card {
+  position: relative;
+  min-height: 44px;
+  overflow: hidden;
+  border-color: rgba(255,255,255,.07);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.052), rgba(255,255,255,.028));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.03),
+    0 5px 14px rgba(0,0,0,.07);
+  transition:
+    transform 120ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.channels-view .channel-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(10,132,255,.035), transparent 34%);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.channels-view .channel-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(10,132,255,.20);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.072), rgba(255,255,255,.038));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.04),
+    0 7px 18px rgba(0,0,0,.10);
+}
+
+.channels-view .channel-card:hover::after {
+  opacity: 1;
+}
+
+.channels-view .favorite-button {
+  position: relative;
+  z-index: 2;
+  min-width: 32px;
+  margin: 3px 0 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #747b87;
+  background: rgba(255,255,255,.015);
+  font-size: 16px;
+}
+
+.channels-view .favorite-button:hover {
+  border-color: rgba(255,255,255,.06);
+  color: #d9d9de;
+  background: rgba(255,255,255,.055);
+}
+
+.channels-view .favorite-button.is-active {
+  border-color: rgba(255,214,10,.12);
+  color: #ffd60a;
+  background: rgba(255,214,10,.07);
+  text-shadow: 0 0 12px rgba(255,214,10,.34);
+}
+
+.channels-view .channel {
+  position: relative;
+  z-index: 1;
+  min-height: 42px;
+  border-radius: 11px;
+  padding: 4px 8px 4px 4px;
+}
+
+.channels-view .channel:hover {
+  background: rgba(10,132,255,.055);
+}
+
+.channels-view .channel-logo {
+  border-color: rgba(255,255,255,.08);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(0,0,0,.38));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.04),
+    0 3px 8px rgba(0,0,0,.10);
+}
+
+.channels-view .channel-logo img {
+  padding: 2px;
+}
+
+.channels-view .channel strong {
+  color: #f3f4f7;
+  font-weight: 750;
+  letter-spacing: -.01em;
+}
+
+.channels-view .channel small {
+  align-items: center;
+  color: #7f8793;
+}
+
+.channels-view .channel small span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channels-view .channel small span:first-child {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border: 1px solid rgba(100,210,255,.09);
+  border-radius: 999px;
+  color: #8fdcff;
+  background: rgba(100,210,255,.06);
+  line-height: 1;
+}
+
+.channels-view .compact-load-more {
+  border-color: rgba(10,132,255,.16);
+  color: #b9d9ff;
+  background:
+    linear-gradient(180deg, rgba(10,132,255,.11), rgba(10,132,255,.06));
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+
+.channels-view .compact-load-more:hover {
+  border-color: rgba(10,132,255,.30);
+  background:
+    linear-gradient(180deg, rgba(10,132,255,.17), rgba(10,132,255,.09));
+}
+
+.channels-view .empty {
+  margin: 4px 8px 8px;
+  border: 1px dashed rgba(255,255,255,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+@media (max-width: 860px) {
+  .channels-view .channel-toolbar {
+    margin: 5px 6px 4px;
+    padding: 3px;
+    border-radius: 12px;
+  }
+
+  .channels-view .channel-list {
+    gap: 4px;
+    padding: 0 6px 6px;
+  }
+
+  .channels-view .channel-card {
+    min-height: 40px;
+    border-radius: 11px;
+    box-shadow:
+      inset 0 1px rgba(255,255,255,.025),
+      0 3px 9px rgba(0,0,0,.06);
+  }
+
+  .channels-view .channel-card:hover {
+    transform: none;
+  }
+
+  .channels-view .favorite-button {
+    min-width: 30px;
+    margin: 2px 0 2px 2px;
+    font-size: 15px;
+  }
+
+  .channels-view .channel {
+    min-height: 38px;
+    padding: 3px 6px 3px 3px;
+  }
+
+  .channels-view .channel-logo {
+    width: 31px;
+    height: 31px;
+  }
+
+  .channels-view .channel strong {
+    font-size: 10px;
+  }
+
+  .channels-view .channel small {
+    gap: 4px;
+    font-size: 7.5px;
+  }
+
+  .channels-view .channel-status {
+    margin-inline: 7px;
+    font-size: 8px;
+  }
+}

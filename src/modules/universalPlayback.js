@@ -6,6 +6,7 @@ import os from 'os';
 import path from 'path';
 import { findChannel } from './playlistService.js';
 import { proxyStream } from './streamProxy.js';
+import { getTenantId } from './tenantContext.js';
 
 const HLS_RESOURCE_TTL_MS = 15 * 60 * 1000;
 const TRANSCODE_IDLE_MS = 2 * 60 * 1000;
@@ -89,6 +90,7 @@ function rememberHlsResource(url) {
   const token = crypto.randomBytes(18).toString('hex');
   hlsResources.set(token, {
     url,
+    tenantId: getTenantId(),
     expiresAt: Date.now() + HLS_RESOURCE_TTL_MS,
   });
 
@@ -241,7 +243,7 @@ async function waitForPlaylist(session, timeoutMs = 12000) {
 async function removeSession(session) {
   if (!session) return;
 
-  sessionsByChannel.delete(session.channelId);
+  sessionsByChannel.delete(session.channelKey);
   sessionsById.delete(session.id);
 
   if (session.process && !session.exited) {
@@ -268,7 +270,9 @@ async function cleanupSessions() {
 async function getOrStartSession(channel, req) {
   await cleanupSessions();
 
-  const existing = sessionsByChannel.get(String(channel.id));
+  const tenantId = getTenantId();
+  const channelKey = tenantId + ':' + String(channel.id);
+  const existing = sessionsByChannel.get(channelKey);
   if (existing) {
     existing.lastAccess = Date.now();
     return existing;
@@ -297,7 +301,9 @@ async function getOrStartSession(channel, req) {
 
   const session = {
     id,
+    tenantId,
     channelId: String(channel.id),
+    channelKey,
     dir,
     playlistPath,
     process,
@@ -307,7 +313,7 @@ async function getOrStartSession(channel, req) {
     lastAccess: Date.now(),
   };
 
-  sessionsByChannel.set(session.channelId, session);
+  sessionsByChannel.set(session.channelKey, session);
   sessionsById.set(id, session);
 
   process.stderr.on('data', (chunk) => {
@@ -385,7 +391,7 @@ export async function playHlsResource(req, res) {
   cleanupHlsResources();
 
   const entry = hlsResources.get(String(req.params.token || ''));
-  if (!entry || entry.expiresAt <= Date.now()) {
+  if (!entry || entry.tenantId !== getTenantId() || entry.expiresAt <= Date.now()) {
     res.status(404).json({ error: 'HLS kaynagi bulunamadi veya suresi doldu' });
     return;
   }
@@ -398,7 +404,7 @@ export async function playTranscodedResource(req, res) {
   const session = sessionsById.get(String(req.params.session || ''));
   const file = String(req.params.file || '');
 
-  if (!session || !/^segment_\d+\.ts$/i.test(file)) {
+  if (!session || session.tenantId !== getTenantId() || !/^segment_\d+\.ts$/i.test(file)) {
     res.status(404).end();
     return;
   }

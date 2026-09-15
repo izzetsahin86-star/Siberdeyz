@@ -79,7 +79,7 @@ export function createAppSettingsController({
   }
 
   function save(patch) {
-    saveQueue = saveQueue.then(async () => {
+    saveQueue = saveQueue.catch(() => {}).then(async () => {
       setStatus('Kaydediliyor...');
       const response = await fetch('/api/settings', {
         method: 'PUT',

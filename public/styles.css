@@ -1107,6 +1107,23 @@ select:focus {
   cursor: default;
 }
 
+.delete-persistent-failed {
+  min-height: 30px;
+  border: 1px solid rgba(255,159,10,.28);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: #ffd08a;
+  background: rgba(255,159,10,.10);
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.delete-persistent-failed:disabled {
+  opacity: .48;
+  cursor: default;
+}
+
 .account-auto-scan-status {
   min-height: 28px;
   padding: 6px 9px;

@@ -412,7 +412,7 @@ function accountConnectionLabel(health) {
 
   const active = Number(health.activeConnections) || 0;
   const max = Number(health.maxConnections) || 0;
-  return active + '/' + (max > 0 ? max : '∞');
+  return (max > 0 ? max : '∞') + '/' + active;
 }
 
 function accountExpiryLabel(health) {
@@ -563,6 +563,12 @@ function renderSources() {
 function setSourceState(data) {
   state.sources = data.sources || [];
   state.activeSourceId = data.activeSourceId || state.sources.find((source) => source.active)?.id || '';
+
+  const validIds = new Set(state.sources.map((source) => source.id));
+  state.accountHealth = Object.fromEntries(
+    Object.entries(state.accountHealth).filter(([id]) => validIds.has(id))
+  );
+
   renderSources();
 
   if (data.hasSource) {

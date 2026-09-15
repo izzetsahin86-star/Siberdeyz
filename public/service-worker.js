@@ -30,10 +30,12 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/styles.css',
   '/settingsLayout.css',
   '/webScan.css',
+  '/fullSiteScan.css',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
+  '/fullSiteScan.js',
   '/manifest.webmanifest',
   '/offline.html',
 ]);

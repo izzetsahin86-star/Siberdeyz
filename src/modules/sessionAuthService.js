@@ -121,10 +121,13 @@ function verifyToken(token) {
     const expiresAt = Number(payload?.exp);
     if (!Number.isFinite(expiresAt) || expiresAt <= now()) return null;
 
-    const role = payload?.role === 'user' ? 'user' : 'admin';
+    if (!['admin', 'user'].includes(payload?.role)) return null;
+
+    const role = payload.role;
     const userId = role === 'admin' ? 'admin' : String(payload?.userId || '').trim();
     const tenantId = role === 'admin' ? 'admin' : String(payload?.tenantId || userId).trim();
 
+    if (role === 'admin' && (payload?.userId !== 'admin' || payload?.tenantId !== 'admin')) return null;
     if (role === 'user' && (!userId || !tenantId)) return null;
 
     return { role, userId, tenantId };

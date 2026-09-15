@@ -1,10 +1,11 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { verifyPlaylistStreams, verifyXtreamStreams } from './accountStreamVerifier.js';
 
 const storageDir = path.join(process.cwd(), 'data');
 const sourceFile = path.join(storageDir, 'source.json');
 const healthFile = path.join(storageDir, 'account-health.json');
-const SCAN_TIMEOUT_MS = 6000;
+const SCAN_TIMEOUT_MS = 9000;
 const MAX_BATCH_SIZE = 100;
 const SCAN_CONCURRENCY = 10;
 
@@ -133,6 +134,10 @@ async function scanXtreamSource(source, apiUrl) {
   const expiryMs = expiresAt ? Date.parse(expiresAt) : 0;
   const isExpired = normalizedStatus === 'expired' || (expiryMs > 0 && expiryMs <= Date.now());
   const isActive = normalizedStatus === 'active' && !isExpired;
+  const isAuthenticated = userInfo.auth === 1
+    || userInfo.auth === true
+    || String(userInfo.auth || '').trim() === '1';
+  const explicitlyBlocked = ['banned', 'disabled', 'expired'].includes(normalizedStatus);
 
   if (isExpired) {
     return makeRecord({
@@ -145,14 +150,40 @@ async function scanXtreamSource(source, apiUrl) {
     });
   }
 
-  if (isActive) {
+  if (isActive || (isAuthenticated && !explicitlyBlocked)) {
+    const verification = await verifyXtreamStreams(source);
+
+    if (verification.verified) {
+      return makeRecord({
+        status: 'active',
+        activeConnections,
+        maxConnections,
+        expiresAt,
+        protocol: 'xtream',
+        message: 'Hesap aktif ve gercek yayin dogrulandi.',
+      });
+    }
+
+    if (verification.definitiveFailure) {
+      return makeRecord({
+        status: 'failed',
+        activeConnections,
+        maxConnections,
+        expiresAt,
+        protocol: 'xtream',
+        message: 'Hesap API aktif ancak canli yayin erisimi reddedildi.',
+      });
+    }
+
     return makeRecord({
       status: 'active',
       activeConnections,
       maxConnections,
       expiresAt,
       protocol: 'xtream',
-      message: 'Hesap calisiyor.',
+      message: isActive
+        ? 'Hesap aktif; yayin dogrulamasi sonuc vermedi.'
+        : 'Hesap kimligi dogrulandi; yayin dogrulamasi sonuc vermedi.',
     });
   }
 
@@ -167,37 +198,36 @@ async function scanXtreamSource(source, apiUrl) {
 }
 
 async function scanGenericUrl(source) {
-  const response = await fetch(String(source?.url || ''), {
-    method: 'GET',
-    headers: {
-      'user-agent': 'Siberdeyz-IPTV-Account-Scanner/1.0',
-      range: 'bytes=0-1023',
-      accept: 'application/x-mpegURL,text/plain,*/*',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(SCAN_TIMEOUT_MS),
-  });
+  const verification = await verifyPlaylistStreams(source);
 
-  if (response.body) {
-    try {
-      await response.body.cancel();
-    } catch {
-      // Baslik kontrolu yeterli; govde iptali kritik degil.
-    }
-  }
-
-  if (response.ok || response.status === 206) {
+  if (verification.verified) {
     return makeRecord({
       status: 'active',
       protocol: 'playlist',
-      message: 'Liste URL erisilebilir.',
+      message: 'Liste ve gercek yayin dogrulandi.',
+    });
+  }
+
+  if (verification.definitiveFailure) {
+    return makeRecord({
+      status: 'failed',
+      protocol: 'playlist',
+      message: 'Liste veya yayin erisimi reddedildi.',
+    });
+  }
+
+  if (verification.playlistReachable) {
+    return makeRecord({
+      status: 'active',
+      protocol: 'playlist',
+      message: 'Liste erisilebilir; yayin dogrulamasi sonuc vermedi.',
     });
   }
 
   return makeRecord({
     status: 'failed',
     protocol: 'playlist',
-    message: 'HTTP ' + response.status,
+    message: verification.message || 'Listeye ulasilamadi.',
   });
 }
 

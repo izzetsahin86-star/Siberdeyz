@@ -292,7 +292,7 @@ function switchPanel(panelName) {
   });
 
   if (panelName === 'accounts') {
-    loadAccountAutoScanStatus();
+    loadAccountHealth().catch((error) => setSourceStatus(error.message, 'error'));
   }
 }
 

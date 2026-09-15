@@ -1535,6 +1535,10 @@ select:focus {
     padding: 8px 10px 10px;
   }
 
+  #accountSearchInput {
+    font-size: 16px;
+  }
+
   .source-action-row {
     grid-template-columns: minmax(0, 1fr) 88px;
     gap: 7px;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260915-deep-web-scan-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260915-player-stability-1';
 
 const APP_SHELL = [
   '/',

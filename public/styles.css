@@ -3549,3 +3549,238 @@ button:disabled {
     min-height: 150px;
   }
 }
+
+
+/* Settings module */
+.content-panel[data-open="settings"] {
+  height: min(68dvh, 620px);
+  min-height: 320px;
+  max-height: min(68dvh, 620px);
+}
+
+.settings-view {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.settings-status {
+  grid-column: 1 / -1;
+  margin: 0 2px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  color: #9ecbff;
+  background: rgba(10,132,255,.06);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.settings-status[data-type="error"] {
+  color: #ffaaa5;
+  border-color: rgba(255,69,58,.14);
+  background: rgba(255,69,58,.06);
+}
+
+.settings-status[data-type="success"] {
+  color: #9ee8b2;
+  border-color: rgba(48,209,88,.14);
+  background: rgba(48,209,88,.06);
+}
+
+.setting-card {
+  display: grid;
+}
+
+.setting-card-head {
+  display: grid;
+  gap: 3px;
+}
+
+.setting-card-head p,
+.setting-card #soundStatus {
+  margin: 0;
+  color: #8f99a8;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.setting-switch-row,
+.setting-select-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 14px;
+  color: #dfe3e8;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.024));
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.setting-switch-row > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.setting-switch-row strong,
+.setting-select-row > span {
+  color: #f1f1f4;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.setting-switch-row small {
+  color: #7f8997;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.setting-switch-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 47px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.045),
+    inset 0 1px 2px rgba(0,0,0,.18);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.setting-switch-row input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f5f5f7;
+  box-shadow: 0 2px 7px rgba(0,0,0,.34);
+  transition: transform 150ms ease;
+}
+
+.setting-switch-row input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, #39d667, #30b954);
+}
+
+.setting-switch-row input[type="checkbox"]:checked::after {
+  transform: translateX(19px);
+}
+
+.setting-select-row select {
+  flex: 0 0 auto;
+  width: min(180px, 46%);
+  min-height: 36px;
+  padding: 7px 28px 7px 9px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 10px;
+  color: #f1f1f4;
+  background: rgba(12,13,17,.76);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.setting-select-row select:disabled {
+  opacity: .46;
+}
+
+.setting-action-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.setting-action-button {
+  min-height: 42px;
+  border: 1px solid rgba(10,132,255,.18);
+  border-radius: 12px;
+  color: #b9d9ff;
+  background: rgba(10,132,255,.08);
+  font-weight: 750;
+}
+
+.setting-action-button.danger {
+  border-color: rgba(255,69,58,.18);
+  color: #ffaaa5;
+  background: rgba(255,69,58,.07);
+}
+
+html[data-channel-density="normal"] .channels-view .channel-card {
+  min-height: 54px;
+}
+
+html[data-channel-density="normal"] .channels-view .channel {
+  min-height: 52px;
+  padding-block: 7px;
+}
+
+html[data-channel-density="normal"] .channels-view .channel-logo {
+  width: 39px;
+  height: 39px;
+}
+
+html[data-channel-density="normal"] .channels-view .channel strong {
+  font-size: 12px;
+}
+
+html[data-channel-density="normal"] .channels-view .channel small {
+  font-size: 9px;
+}
+
+@media (max-width: 860px) {
+  .content-panel[data-open="settings"] {
+    height: min(72dvh, 560px);
+    min-height: 300px;
+    max-height: min(72dvh, 560px);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+    padding: 8px;
+  }
+
+  .setting-switch-row,
+  .setting-select-row {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  .setting-select-row select {
+    width: min(154px, 48%);
+  }
+
+  html[data-channel-density="normal"] .channels-view .channel-card {
+    min-height: 48px;
+  }
+
+  html[data-channel-density="normal"] .channels-view .channel {
+    min-height: 46px;
+  }
+
+  html[data-channel-density="normal"] .channels-view .channel-logo {
+    width: 35px;
+    height: 35px;
+  }
+}

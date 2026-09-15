@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260915-settings-layout-2';
+const CACHE_NAME = 'siberdeyz-pwa-20260915-multi-user-1';
 
 const APP_SHELL = [
   '/',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/settingsLayout.css',
   '/app.js',
   '/appSettings.js',
+  '/userAccessSettings.js',
   '/accountMultiConnection.js',
   '/manifest.webmanifest',
   '/offline.html',
@@ -25,6 +26,8 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/styles.css',
   '/settingsLayout.css',
   '/app.js',
+  '/appSettings.js',
+  '/userAccessSettings.js',
   '/manifest.webmanifest',
   '/offline.html',
 ]);

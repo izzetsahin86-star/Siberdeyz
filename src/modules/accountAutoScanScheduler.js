@@ -3,16 +3,27 @@ import path from 'path';
 import { scanAccounts } from './accountHealthService.js';
 import { recordAutomaticScanResults } from './accountFailureTracker.js';
 import { getAppSettings } from './appSettingsService.js';
+import { getTenantDataDir, getTenantId, runWithTenantId } from './tenantContext.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const sourceFile = path.join(storageDir, 'source.json');
-const statusFile = path.join(storageDir, 'account-auto-scan.json');
 const BATCH_SIZE = 100;
 const STARTUP_CATCHUP_DELAY_MS = 5000;
+const schedulers = new Map();
 
-let timer = null;
-let started = false;
-let running = false;
+function schedulerState() {
+  const tenantId = getTenantId();
+  if (!schedulers.has(tenantId)) {
+    schedulers.set(tenantId, { timer: null, started: false, running: false });
+  }
+  return schedulers.get(tenantId);
+}
+
+function getStatusFile() {
+  return path.join(getTenantDataDir(), 'account-auto-scan.json');
+}
+
+function getSourceFile() {
+  return path.join(getTenantDataDir(), 'source.json');
+}
 
 function defaultStatus() {
   return {
@@ -40,8 +51,7 @@ async function getScanConfig() {
 
 async function readJson(filePath, fallback) {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(await fs.readFile(filePath, 'utf-8'));
   } catch (error) {
     if (error.code === 'ENOENT') return fallback;
     throw error;
@@ -49,13 +59,14 @@ async function readJson(filePath, fallback) {
 }
 
 async function writeStatus(status) {
-  await fs.mkdir(storageDir, { recursive: true });
-  await fs.writeFile(statusFile, JSON.stringify(status, null, 2));
+  await fs.mkdir(getTenantDataDir(), { recursive: true });
+  await fs.writeFile(getStatusFile(), JSON.stringify(status, null, 2));
 }
 
 async function readStatus() {
+  const runtime = schedulerState();
   const [saved, config] = await Promise.all([
-    readJson(statusFile, defaultStatus()),
+    readJson(getStatusFile(), defaultStatus()),
     getScanConfig(),
   ]);
 
@@ -64,14 +75,13 @@ async function readStatus() {
     ...(saved && typeof saved === 'object' ? saved : {}),
     enabled: config.enabled,
     intervalMinutes: config.intervalMinutes,
-    running,
+    running: runtime.running,
   };
 }
 
 async function readUrlAccountIds() {
-  const saved = await readJson(sourceFile, null);
+  const saved = await readJson(getSourceFile(), null);
   if (!saved) return [];
-
   const sources = Array.isArray(saved.sources) ? saved.sources : (saved.id ? [saved] : []);
   return sources
     .filter((source) => source?.id && source.type === 'url')
@@ -79,23 +89,28 @@ async function readUrlAccountIds() {
 }
 
 function clearTimer() {
-  if (!timer) return;
-  clearTimeout(timer);
-  timer = null;
+  const runtime = schedulerState();
+  if (runtime.timer) clearTimeout(runtime.timer);
+  runtime.timer = null;
 }
 
 function scheduleAt(isoTime) {
+  const tenantId = getTenantId();
+  const runtime = schedulerState();
   clearTimer();
+
   const target = Date.parse(isoTime);
   const delay = Number.isFinite(target) ? Math.max(0, target - Date.now()) : 0;
 
-  timer = setTimeout(() => {
-    runAutomaticAccountScan().catch((error) => {
-      console.error('Automatic account scan failed:', error);
-    });
+  runtime.timer = setTimeout(() => {
+    runWithTenantId(tenantId, () => (
+      runAutomaticAccountScan().catch((error) => {
+        console.error('Automatic account scan failed:', error);
+      })
+    ));
   }, delay);
 
-  if (typeof timer.unref === 'function') timer.unref();
+  if (typeof runtime.timer.unref === 'function') runtime.timer.unref();
 }
 
 async function scheduleNextFrom(status, baseTime = Date.now()) {
@@ -129,7 +144,8 @@ async function scheduleNextFrom(status, baseTime = Date.now()) {
 }
 
 async function runAutomaticAccountScan() {
-  if (running) return;
+  const runtime = schedulerState();
+  if (runtime.running) return;
 
   const config = await getScanConfig();
   if (!config.enabled) {
@@ -137,7 +153,7 @@ async function runAutomaticAccountScan() {
     return;
   }
 
-  running = true;
+  runtime.running = true;
   clearTimer();
 
   const startedAtMs = Date.now();
@@ -163,13 +179,7 @@ async function runAutomaticAccountScan() {
     for (let offset = 0; offset < ids.length; offset += BATCH_SIZE) {
       const batch = ids.slice(offset, offset + BATCH_SIZE);
       const scanResult = await scanAccounts(batch);
-
-      try {
-        await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
-      } catch (error) {
-        console.error('Persistent failure tracker could not update:', error);
-      }
-
+      await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
       scannedCount += batch.length;
       status = { ...status, running: true, lastScannedCount: scannedCount };
       await writeStatus(status);
@@ -191,33 +201,29 @@ async function runAutomaticAccountScan() {
       lastError: String(error?.message || 'Otomatik tarama tamamlanamadi.'),
     };
   } finally {
-    running = false;
+    runtime.running = false;
     await scheduleNextFrom(status, Date.now());
   }
 }
 
 export async function reconfigureAccountAutoScanScheduler() {
   clearTimer();
-  const status = await readStatus();
-  return scheduleNextFrom(status, Date.now());
+  schedulerState().started = true;
+  return scheduleNextFrom(await readStatus(), Date.now());
 }
 
 export async function startAccountAutoScanScheduler() {
-  if (started) return getAccountAutoScanStatus();
-  started = true;
+  const runtime = schedulerState();
+  if (runtime.started) return getAccountAutoScanStatus();
+  runtime.started = true;
 
   const config = await getScanConfig();
   let status = await readStatus();
 
-  if (!config.enabled) {
-    return scheduleNextFrom(status);
-  }
+  if (!config.enabled) return scheduleNextFrom(status);
 
   const savedNext = Date.parse(status.nextRunAt);
-
-  if (!Number.isFinite(savedNext)) {
-    return scheduleNextFrom(status, Date.now());
-  }
+  if (!Number.isFinite(savedNext)) return scheduleNextFrom(status, Date.now());
 
   if (savedNext <= Date.now()) {
     const catchupAt = new Date(Date.now() + STARTUP_CATCHUP_DELAY_MS).toISOString();
@@ -233,24 +239,20 @@ export async function startAccountAutoScanScheduler() {
     return status;
   }
 
-  status = {
-    ...status,
-    enabled: true,
-    intervalMinutes: config.intervalMinutes,
-    running: false,
-  };
-  await writeStatus(status);
+  await writeStatus({ ...status, running: false });
   scheduleAt(status.nextRunAt);
   return status;
 }
 
 export async function getAccountAutoScanStatus() {
-  const [status, config] = await Promise.all([readStatus(), getScanConfig()]);
+  const runtime = schedulerState();
+  if (!runtime.started) await startAccountAutoScanScheduler();
 
+  const [status, config] = await Promise.all([readStatus(), getScanConfig()]);
   return {
     enabled: config.enabled,
     intervalMinutes: config.intervalMinutes,
-    running,
+    running: runtime.running,
     lastStartedAt: String(status.lastStartedAt || ''),
     lastCompletedAt: String(status.lastCompletedAt || ''),
     nextRunAt: config.enabled ? String(status.nextRunAt || '') : '',

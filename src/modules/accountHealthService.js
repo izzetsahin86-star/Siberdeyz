@@ -1,10 +1,19 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { getTenantDataDir } from './tenantContext.js';
 import { verifyPlaylistStreams, verifyXtreamStreams } from './accountStreamVerifier.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const sourceFile = path.join(storageDir, 'source.json');
-const healthFile = path.join(storageDir, 'account-health.json');
+function getStorageDir() {
+  return getTenantDataDir();
+}
+
+function getSourceFile() {
+  return path.join(getStorageDir(), 'source.json');
+}
+
+function getHealthFile() {
+  return path.join(getStorageDir(), 'account-health.json');
+}
 const SCAN_TIMEOUT_MS = 9000;
 const MAX_BATCH_SIZE = 100;
 const SCAN_CONCURRENCY = 10;
@@ -20,12 +29,12 @@ async function readJson(filePath, fallback) {
 }
 
 async function writeJson(filePath, value) {
-  await fs.mkdir(storageDir, { recursive: true });
+  await fs.mkdir(getStorageDir(), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(value, null, 2));
 }
 
 async function readSources() {
-  const saved = await readJson(sourceFile, null);
+  const saved = await readJson(getSourceFile(), null);
   if (!saved) return [];
 
   if (Array.isArray(saved.sources)) {
@@ -36,7 +45,7 @@ async function readSources() {
 }
 
 async function readHealthState() {
-  const saved = await readJson(healthFile, { accounts: {} });
+  const saved = await readJson(getHealthFile(), { accounts: {} });
   return {
     accounts: saved && typeof saved.accounts === 'object' && saved.accounts
       ? saved.accounts
@@ -288,7 +297,7 @@ export async function scanAccount(sourceId) {
   const record = await scanSource(source);
   const health = await readHealthState();
   health.accounts[id] = record;
-  await writeJson(healthFile, health);
+  await writeJson(getHealthFile(), health);
 
   return {
     id,
@@ -349,7 +358,7 @@ export async function scanAccounts(sourceIds = []) {
   for (const result of results) {
     health.accounts[result.id] = publicRecord(result.health);
   }
-  await writeJson(healthFile, health);
+  await writeJson(getHealthFile(), health);
 
   return {
     results: results.map((result) => ({
@@ -365,7 +374,7 @@ export async function removeAccountHealth(sourceId = '') {
 
   if (!id) {
     try {
-      await fs.unlink(healthFile);
+      await fs.unlink(getHealthFile());
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
@@ -377,5 +386,5 @@ export async function removeAccountHealth(sourceId = '') {
   if (!(id in health.accounts)) return;
 
   delete health.accounts[id];
-  await writeJson(healthFile, health);
+  await writeJson(getHealthFile(), health);
 }

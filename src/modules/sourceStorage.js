@@ -70,6 +70,12 @@ function normalizeStoredChannels(channels) {
       group: String(channel?.group || 'Genel').trim() || 'Genel',
       tvgId: String(channel?.tvgId || '').trim(),
       url,
+      webDurationSeconds: channel?.webDurationSeconds !== null
+        && channel?.webDurationSeconds !== undefined
+        && Number.isFinite(Number(channel.webDurationSeconds))
+        ? Number(channel.webDurationSeconds)
+        : null,
+      webDurationStatus: String(channel?.webDurationStatus || '').trim(),
     });
   }
 
@@ -92,6 +98,9 @@ function normalizeSource(source, index) {
       url: '',
       fileName,
       channels,
+      folder: String(source?.folder || '').trim(),
+      sourceKind: String(source?.sourceKind || '').trim(),
+      pageUrl: String(source?.pageUrl || '').trim(),
       createdAt: source?.createdAt || source?.updatedAt || now,
       updatedAt: source?.updatedAt || now,
     };
@@ -170,6 +179,8 @@ function publicSource(source, activeSourceId) {
     url: isFile ? '' : maskUrl(source.url),
     fileName: source.fileName || '',
     channelCount: isFile ? source.channels.length : 0,
+    folder: source.folder || '',
+    sourceKind: source.sourceKind || '',
     active: source.id === activeSourceId,
     updatedAt: source.updatedAt,
   };
@@ -310,6 +321,51 @@ export async function saveUploadedPlaylistSource({ label = '', fileName = '', ch
       url: '',
       fileName: String(fileName || '').trim(),
       channels: normalizedChannels,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  state.activeSourceId = id;
+  await writeState(state);
+  return getSourceStatus();
+}
+
+export async function saveWebScanPlaylistSource({ label = '', pageUrl = '', channels = [] } = {}) {
+  const normalizedChannels = normalizeStoredChannels(channels);
+
+  if (normalizedChannels.length === 0) {
+    throw new Error('Web taramasinda kaydedilecek yayin bulunamadi.');
+  }
+
+  const state = await readState();
+  const now = new Date().toISOString();
+  const fingerprint = normalizedChannels.map((channel) => channel.url).join('\n');
+  const id = 'webscan_' + hashValue(String(pageUrl || '') + '\n' + fingerprint);
+  const existing = state.sources.find((source) => source.id === id);
+  const sourceLabel = String(label || 'Web Tarama').trim() || 'Web Tarama';
+
+  if (existing) {
+    existing.type = 'file';
+    existing.label = sourceLabel;
+    existing.url = '';
+    existing.fileName = 'web-tarama.m3u';
+    existing.channels = normalizedChannels;
+    existing.folder = 'Web Tarama';
+    existing.sourceKind = 'web-scan';
+    existing.pageUrl = String(pageUrl || '').trim();
+    existing.updatedAt = now;
+  } else {
+    state.sources.push({
+      id,
+      type: 'file',
+      label: sourceLabel,
+      url: '',
+      fileName: 'web-tarama.m3u',
+      channels: normalizedChannels,
+      folder: 'Web Tarama',
+      sourceKind: 'web-scan',
+      pageUrl: String(pageUrl || '').trim(),
       createdAt: now,
       updatedAt: now,
     });

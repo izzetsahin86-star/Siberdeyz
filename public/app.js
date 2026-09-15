@@ -2,6 +2,7 @@ import { attachPlaybackTimeline } from './playerTimeline.js';
 import { sourceHasMultipleConnections } from './accountMultiConnection.js';
 import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
+import { createWebScanController } from './webScan.js';
 
 const PAGE_SIZE = 100;
 
@@ -54,6 +55,7 @@ let playbackRetryAttempt = 0;
 let playbackUsingCompatibility = false;
 let settingsController = null;
 let userAccessController = null;
+let webScanController = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -89,6 +91,7 @@ const elements = {
   closePanelButton: document.querySelector('#closePanelButton'),
   channelsView: document.querySelector('#channelsView'),
   accountsView: document.querySelector('#accountsView'),
+  webScanView: document.querySelector('#webScanView'),
   settingsView: document.querySelector('#settingsView'),
   groupChips: document.querySelector('#groupChips'),
   categoryToggle: document.querySelector('#categoryToggle'),
@@ -343,12 +346,14 @@ function switchPanel(panelName) {
   const panels = {
     channels: elements.channelsView,
     accounts: elements.accountsView,
+    webscan: elements.webScanView,
     settings: elements.settingsView,
   };
 
   const titles = {
     channels: 'Kanallar',
     accounts: 'Hesaplar',
+    webscan: 'Web Tarama',
     settings: 'Ayarlar',
   };
 
@@ -714,7 +719,10 @@ function renderSources() {
       const expiry = accountExpiryLabel(health);
       const isPersistentFailed = state.accountPersistentFailedIds.has(source.id);
       const failureRecord = state.accountFailureRecords[source.id];
-      const statusLabel = isPersistentFailed ? 'Kalici calismiyor' : accountStatusLabel(healthStatus);
+      const isWebScan = source.sourceKind === 'web-scan' || source.folder === 'Web Tarama';
+      const statusLabel = isWebScan
+        ? 'Web Tarama'
+        : (isPersistentFailed ? 'Kalici calismiyor' : accountStatusLabel(healthStatus));
       const metaParts = [];
 
       if (isPersistentFailed) {
@@ -726,6 +734,7 @@ function renderSources() {
 
       if (isFile) {
         metaParts.push((source.channelCount || 0) + ' yayin');
+        if (isWebScan) metaParts.push('Web Tarama klasoru');
       } else {
         if (connection) metaParts.push('Baglanti ' + connection);
         if (expiry) metaParts.push('Bitis ' + expiry);
@@ -1479,6 +1488,28 @@ elements.saveSourceButton.addEventListener('click', () => {
 });
 
 userAccessController = createUserAccessSettingsController();
+
+webScanController = createWebScanController({
+  async onSaved(data) {
+    setSourceState(data);
+    stopPlayback({ message: '', resetSound: false });
+    state.group = 'Tumu';
+    state.type = 'all';
+    state.favoritesOnly = false;
+    state.search = '';
+    state.channels = [];
+    state.hasMore = false;
+    elements.searchInput.value = '';
+    renderGroups();
+    renderChannels();
+
+    try {
+      await loadChannels({ force: true, reset: true });
+    } catch (error) {
+      setStatus(error.message, 'error');
+    }
+  },
+});
 
 settingsController = createAppSettingsController({
   onSettingsChange(settings, meta) {

@@ -19,6 +19,7 @@
     <link rel="mask-icon" href="/icons/mask-icon.svg" color="#22c55e" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/settingsLayout.css" />
+    <link rel="stylesheet" href="/webScan.css" />
   </head>
   <body>
     <div class="app-launch" aria-hidden="true">
@@ -143,6 +144,31 @@
 
             <div id="sourceList" class="source-list"></div>
             <div id="accountRenderHint" class="account-render-hint" hidden></div>
+          </div>
+
+          <div id="webScanView" class="panel-view web-scan-view" hidden>
+            <div class="web-scan-toolbar">
+              <input id="webScanUrl" type="url" placeholder="https://ornek-site.com/sayfa" autocomplete="off" inputmode="url" />
+              <button id="webScanButton" type="button">Siteyi Tara</button>
+            </div>
+
+            <div class="web-scan-info">
+              <div id="webScanStatus" class="web-scan-status" hidden></div>
+              <div id="webScanSummary" class="web-scan-summary" hidden></div>
+            </div>
+
+            <div class="web-scan-results-wrap">
+              <div class="web-scan-tools">
+                <button id="webScanSelectAll" type="button">Tumunu Sec</button>
+                <button id="webScanClearSelection" type="button">Secimi Temizle</button>
+              </div>
+              <div id="webScanResults" class="web-scan-results"></div>
+            </div>
+
+            <div id="webScanSaveBar" class="web-scan-save-bar" hidden>
+              <input id="webScanSaveLabel" type="text" maxlength="80" placeholder="Kayit adi (istege bagli)" autocomplete="off" />
+              <button id="webScanSaveButton" type="button">Secilenleri Kaydet</button>
+            </div>
           </div>
 
           <div id="settingsView" class="panel-view settings-view" hidden>
@@ -278,6 +304,7 @@
         <button class="control-button" type="button" data-action="reload">Yenile</button>
         <button class="control-button" type="button" data-panel="channels">Kanallar</button>
         <button class="control-button" type="button" data-panel="accounts">Hesaplar</button>
+        <button class="control-button" type="button" data-panel="webscan">Web Tarama</button>
         <button class="control-button" type="button" data-panel="settings">Ayarlar</button>
       </section>
     </main>

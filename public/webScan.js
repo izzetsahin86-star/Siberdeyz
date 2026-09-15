@@ -24,6 +24,13 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function normalizeWebAddress(value) {
+  const input = String(value || '').trim();
+  if (!input) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) return input;
+  return 'https://' + input.replace(/^\/+/, '');
+}
+
 async function readJson(response, fallbackMessage) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || fallbackMessage);
@@ -136,11 +143,13 @@ export function createWebScanController({ onSaved } = {}) {
   async function scan() {
     if (scanning) return;
 
-    const url = String(elements.url?.value || '').trim();
+    const url = normalizeWebAddress(elements.url?.value);
     if (!url) {
       setStatus('Taranacak web sitesi adresini girin.', 'warning');
       return;
     }
+
+    if (elements.url) elements.url.value = url;
 
     scanning = true;
     resetScan();
@@ -222,6 +231,12 @@ export function createWebScanController({ onSaved } = {}) {
     event.preventDefault();
     scan().catch(() => {});
   });
+
+  elements.url?.addEventListener('blur', () => {
+    const normalized = normalizeWebAddress(elements.url.value);
+    if (normalized) elements.url.value = normalized;
+  });
+
 
   elements.results?.addEventListener('change', (event) => {
     const checkbox = event.target.closest('[data-web-scan-select]');

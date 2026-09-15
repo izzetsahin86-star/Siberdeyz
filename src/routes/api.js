@@ -16,6 +16,7 @@ import { proxyStream } from '../modules/streamProxy.js';
 import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
 import { getAccountHealth, removeAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 import { deleteAccountsByIds } from '../modules/accountBulkDeleteService.js';
+import { getAccountAutoScanStatus } from '../modules/accountAutoScanScheduler.js';
 
 export const apiRouter = Router();
 
@@ -89,6 +90,14 @@ apiRouter.get('/source', async (req, res, next) => {
 apiRouter.get('/account-health', async (req, res, next) => {
   try {
     res.json(await getAccountHealth());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/account-auto-scan', async (req, res, next) => {
+  try {
+    res.json(await getAccountAutoScanStatus());
   } catch (error) {
     next(error);
   }

@@ -348,7 +348,7 @@ function extractMediaUrlsFromText(text, baseUrl) {
   const found = new Set();
   const normalized = String(text || '').replace(/\\\//g, '/');
 
-  const absolutePattern = /https?:\/\/[^"'<>\\s]+?\.(?:m3u8|mp4|m4v|mov|webm|mkv|mpd)(?:\?[^"'<>\\s]*)?/gi;
+  const absolutePattern = /https?:\/\/[^"'<>\s]+?\.(?:m3u8|mp4|m4v|mov|webm|mkv|mpd)(?:\?[^"'<>\s]*)?/gi;
   for (const match of normalized.matchAll(absolutePattern)) {
     try {
       found.add(new URL(match[0], baseUrl).toString());

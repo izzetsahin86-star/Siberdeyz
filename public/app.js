@@ -1,5 +1,4 @@
 import { attachPlaybackTimeline } from './playerTimeline.js';
-import { attachPlayerGestureSeek } from './playerGestureSeek.js';
 
 const PAGE_SIZE = 100;
 
@@ -67,9 +66,6 @@ const elements = {
   currentGroupLabel: document.querySelector('#currentGroupLabel'),
   controlButtons: document.querySelectorAll('.control-button'),
   player: document.querySelector('#player'),
-  gestureSeekOverlay: document.querySelector('#gestureSeekOverlay'),
-  gestureSeekDelta: document.querySelector('#gestureSeekDelta'),
-  gestureSeekTarget: document.querySelector('#gestureSeekTarget'),
   playbackTimeline: document.querySelector('#playbackTimeline'),
   playbackCurrentTime: document.querySelector('#playbackCurrentTime'),
   playbackDurationTime: document.querySelector('#playbackDurationTime'),
@@ -1211,10 +1207,4 @@ attachPlaybackTimeline(elements.player, {
   currentTime: elements.playbackCurrentTime,
   durationTime: elements.playbackDurationTime,
   progressFill: elements.playbackProgressFill,
-});
-
-attachPlayerGestureSeek(elements.player, {
-  root: elements.gestureSeekOverlay,
-  delta: elements.gestureSeekDelta,
-  target: elements.gestureSeekTarget,
 });

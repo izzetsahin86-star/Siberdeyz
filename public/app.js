@@ -1,3 +1,5 @@
+import { attachPlaybackTimeline } from './playerTimeline.js';
+
 const PAGE_SIZE = 100;
 
 const state = {
@@ -64,6 +66,10 @@ const elements = {
   currentGroupLabel: document.querySelector('#currentGroupLabel'),
   controlButtons: document.querySelectorAll('.control-button'),
   player: document.querySelector('#player'),
+  playbackTimeline: document.querySelector('#playbackTimeline'),
+  playbackCurrentTime: document.querySelector('#playbackCurrentTime'),
+  playbackDurationTime: document.querySelector('#playbackDurationTime'),
+  playbackProgressFill: document.querySelector('#playbackProgressFill'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
@@ -1195,3 +1201,10 @@ registerServiceWorker();
 renderGroups();
 renderSources();
 applySoundSetting();
+
+attachPlaybackTimeline(elements.player, {
+  root: elements.playbackTimeline,
+  currentTime: elements.playbackCurrentTime,
+  durationTime: elements.playbackDurationTime,
+  progressFill: elements.playbackProgressFill,
+});

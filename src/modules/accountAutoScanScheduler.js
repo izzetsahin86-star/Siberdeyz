@@ -2,11 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { scanAccounts } from './accountHealthService.js';
 import { recordAutomaticScanResults } from './accountFailureTracker.js';
+import { getAppSettings } from './appSettingsService.js';
 
 const storageDir = path.join(process.cwd(), 'data');
 const sourceFile = path.join(storageDir, 'source.json');
 const statusFile = path.join(storageDir, 'account-auto-scan.json');
-const INTERVAL_MS = 60 * 60 * 1000;
 const BATCH_SIZE = 100;
 const STARTUP_CATCHUP_DELAY_MS = 5000;
 
@@ -28,6 +28,16 @@ function defaultStatus() {
   };
 }
 
+async function getScanConfig() {
+  const settings = await getAppSettings();
+  const intervalMinutes = Number(settings.autoScanMinutes) || 0;
+  return {
+    enabled: intervalMinutes > 0,
+    intervalMinutes,
+    intervalMs: intervalMinutes * 60 * 1000,
+  };
+}
+
 async function readJson(filePath, fallback) {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
@@ -44,12 +54,16 @@ async function writeStatus(status) {
 }
 
 async function readStatus() {
-  const saved = await readJson(statusFile, defaultStatus());
+  const [saved, config] = await Promise.all([
+    readJson(statusFile, defaultStatus()),
+    getScanConfig(),
+  ]);
+
   return {
     ...defaultStatus(),
     ...(saved && typeof saved === 'object' ? saved : {}),
-    enabled: true,
-    intervalMinutes: 60,
+    enabled: config.enabled,
+    intervalMinutes: config.intervalMinutes,
     running,
   };
 }
@@ -58,10 +72,7 @@ async function readUrlAccountIds() {
   const saved = await readJson(sourceFile, null);
   if (!saved) return [];
 
-  const sources = Array.isArray(saved.sources)
-    ? saved.sources
-    : (saved.id ? [saved] : []);
-
+  const sources = Array.isArray(saved.sources) ? saved.sources : (saved.id ? [saved] : []);
   return sources
     .filter((source) => source?.id && source.type === 'url')
     .map((source) => String(source.id));
@@ -75,11 +86,8 @@ function clearTimer() {
 
 function scheduleAt(isoTime) {
   clearTimer();
-
   const target = Date.parse(isoTime);
-  const delay = Number.isFinite(target)
-    ? Math.max(0, target - Date.now())
-    : INTERVAL_MS;
+  const delay = Number.isFinite(target) ? Math.max(0, target - Date.now()) : 0;
 
   timer = setTimeout(() => {
     runAutomaticAccountScan().catch((error) => {
@@ -91,9 +99,26 @@ function scheduleAt(isoTime) {
 }
 
 async function scheduleNextFrom(status, baseTime = Date.now()) {
-  const nextRunAt = new Date(baseTime + INTERVAL_MS).toISOString();
+  const config = await getScanConfig();
+
+  if (!config.enabled) {
+    clearTimer();
+    const disabledStatus = {
+      ...status,
+      enabled: false,
+      intervalMinutes: 0,
+      running: false,
+      nextRunAt: '',
+    };
+    await writeStatus(disabledStatus);
+    return disabledStatus;
+  }
+
+  const nextRunAt = new Date(baseTime + config.intervalMs).toISOString();
   const nextStatus = {
     ...status,
+    enabled: true,
+    intervalMinutes: config.intervalMinutes,
     running: false,
     nextRunAt,
   };
@@ -106,6 +131,12 @@ async function scheduleNextFrom(status, baseTime = Date.now()) {
 async function runAutomaticAccountScan() {
   if (running) return;
 
+  const config = await getScanConfig();
+  if (!config.enabled) {
+    await scheduleNextFrom(await readStatus());
+    return;
+  }
+
   running = true;
   clearTimer();
 
@@ -115,9 +146,11 @@ async function runAutomaticAccountScan() {
 
   status = {
     ...status,
+    enabled: true,
+    intervalMinutes: config.intervalMinutes,
     running: true,
     lastStartedAt: new Date(startedAtMs).toISOString(),
-    nextRunAt: new Date(startedAtMs + INTERVAL_MS).toISOString(),
+    nextRunAt: new Date(startedAtMs + config.intervalMs).toISOString(),
     totalAccounts: ids.length,
     lastScannedCount: 0,
     lastError: '',
@@ -138,12 +171,7 @@ async function runAutomaticAccountScan() {
       }
 
       scannedCount += batch.length;
-
-      status = {
-        ...status,
-        running: true,
-        lastScannedCount: scannedCount,
-      };
+      status = { ...status, running: true, lastScannedCount: scannedCount };
       await writeStatus(status);
     }
 
@@ -164,32 +192,39 @@ async function runAutomaticAccountScan() {
     };
   } finally {
     running = false;
-
-    const plannedNext = Date.parse(status.nextRunAt);
-    const nextBase = Number.isFinite(plannedNext) && plannedNext > Date.now()
-      ? plannedNext - INTERVAL_MS
-      : Date.now();
-
-    await scheduleNextFrom(status, nextBase);
+    await scheduleNextFrom(status, Date.now());
   }
+}
+
+export async function reconfigureAccountAutoScanScheduler() {
+  clearTimer();
+  const status = await readStatus();
+  return scheduleNextFrom(status, Date.now());
 }
 
 export async function startAccountAutoScanScheduler() {
   if (started) return getAccountAutoScanStatus();
   started = true;
 
+  const config = await getScanConfig();
   let status = await readStatus();
+
+  if (!config.enabled) {
+    return scheduleNextFrom(status);
+  }
+
   const savedNext = Date.parse(status.nextRunAt);
 
   if (!Number.isFinite(savedNext)) {
-    status = await scheduleNextFrom(status, Date.now());
-    return status;
+    return scheduleNextFrom(status, Date.now());
   }
 
   if (savedNext <= Date.now()) {
     const catchupAt = new Date(Date.now() + STARTUP_CATCHUP_DELAY_MS).toISOString();
     status = {
       ...status,
+      enabled: true,
+      intervalMinutes: config.intervalMinutes,
       running: false,
       nextRunAt: catchupAt,
     };
@@ -200,6 +235,8 @@ export async function startAccountAutoScanScheduler() {
 
   status = {
     ...status,
+    enabled: true,
+    intervalMinutes: config.intervalMinutes,
     running: false,
   };
   await writeStatus(status);
@@ -208,15 +245,15 @@ export async function startAccountAutoScanScheduler() {
 }
 
 export async function getAccountAutoScanStatus() {
-  const status = await readStatus();
+  const [status, config] = await Promise.all([readStatus(), getScanConfig()]);
 
   return {
-    enabled: true,
-    intervalMinutes: 60,
+    enabled: config.enabled,
+    intervalMinutes: config.intervalMinutes,
     running,
     lastStartedAt: String(status.lastStartedAt || ''),
     lastCompletedAt: String(status.lastCompletedAt || ''),
-    nextRunAt: String(status.nextRunAt || ''),
+    nextRunAt: config.enabled ? String(status.nextRunAt || '') : '',
     lastScannedCount: Number(status.lastScannedCount) || 0,
     totalAccounts: Number(status.totalAccounts) || 0,
     lastError: String(status.lastError || ''),

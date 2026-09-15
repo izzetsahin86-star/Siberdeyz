@@ -1,12 +1,18 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { getTenantDataDir } from './tenantContext.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const favoritesFile = path.join(storageDir, 'favorites.json');
+function getStorageDir() {
+  return getTenantDataDir();
+}
+
+function getFavoritesFile() {
+  return path.join(getStorageDir(), 'favorites.json');
+}
 
 async function readFavorites() {
   try {
-    const content = await fs.readFile(favoritesFile, 'utf-8');
+    const content = await fs.readFile(getFavoritesFile(), 'utf-8');
     const parsed = JSON.parse(content);
     return Array.isArray(parsed.ids) ? parsed.ids.map(String) : [];
   } catch (error) {
@@ -16,8 +22,8 @@ async function readFavorites() {
 }
 
 async function writeFavorites(ids) {
-  await fs.mkdir(storageDir, { recursive: true });
-  await fs.writeFile(favoritesFile, JSON.stringify({ ids: [...new Set(ids.map(String))] }, null, 2));
+  await fs.mkdir(getStorageDir(), { recursive: true });
+  await fs.writeFile(getFavoritesFile(), JSON.stringify({ ids: [...new Set(ids.map(String))] }, null, 2));
 }
 
 export async function listFavorites() {

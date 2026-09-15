@@ -715,16 +715,19 @@ async function loadAccountHealth() {
 }
 
 async function loadAccountFailureStatus() {
-  const response = await fetch('/api/account-failures');
-  const data = await response.json();
+  try {
+    const response = await fetch('/api/account-failures');
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Kalici hesap durumu okunamadi');
+    if (!response.ok) return false;
+
+    state.accountFailureThreshold = Number(data.threshold) || 3;
+    state.accountFailureRecords = data.accounts || {};
+    state.accountPersistentFailedIds = new Set(data.persistentIds || []);
+    return true;
+  } catch {
+    return false;
   }
-
-  state.accountFailureThreshold = Number(data.threshold) || 3;
-  state.accountFailureRecords = data.accounts || {};
-  state.accountPersistentFailedIds = new Set(data.persistentIds || []);
 }
 
 async function scanSingleAccount(sourceId) {

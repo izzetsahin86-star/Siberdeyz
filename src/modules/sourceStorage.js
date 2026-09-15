@@ -1,13 +1,19 @@
 import { createHash } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import { getTenantDataDir } from './tenantContext.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const storageFile = path.join(storageDir, 'source.json');
+function getStorageDir() {
+  return getTenantDataDir();
+}
+
+function getStorageFile() {
+  return path.join(getStorageDir(), 'source.json');
+}
 
 async function readSourceFile() {
   try {
-    const content = await fs.readFile(storageFile, 'utf-8');
+    const content = await fs.readFile(getStorageFile(), 'utf-8');
     return JSON.parse(content);
   } catch (error) {
     if (error.code === 'ENOENT') return null;
@@ -130,18 +136,18 @@ async function readState() {
 }
 
 async function writeState(state) {
-  await fs.mkdir(storageDir, { recursive: true });
+  await fs.mkdir(getStorageDir(), { recursive: true });
 
   if (state.sources.length === 0) {
     try {
-      await fs.unlink(storageFile);
+      await fs.unlink(getStorageFile());
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
     return;
   }
 
-  await fs.writeFile(storageFile, JSON.stringify(state, null, 2));
+  await fs.writeFile(getStorageFile(), JSON.stringify(state, null, 2));
 }
 
 function cleanUrl(value) {

@@ -1161,7 +1161,6 @@ elements.saveSourceButton.addEventListener('click', () => {
 applyStandaloneClass();
 registerServiceWorker();
 renderGroups();
-renderTypeFilters();
 renderSources();
 applySoundSetting();
 updateSimpleTimeline();

@@ -68,9 +68,13 @@ function isPrivateIp(address) {
 
 async function assertPublicHttpUrl(value) {
   let parsed;
+  const input = String(value || '').trim();
+  const normalized = /^https?:\/\//i.test(input)
+    ? input
+    : ('https://' + input.replace(/^\/+/, ''));
 
   try {
-    parsed = new URL(String(value || '').trim());
+    parsed = new URL(normalized);
   } catch {
     const error = new Error('Gecerli bir web sitesi adresi girin.');
     error.status = 400;

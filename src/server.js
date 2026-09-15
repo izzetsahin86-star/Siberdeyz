@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { apiRouter } from './routes/api.js';
+import { startAccountAutoScanScheduler } from './modules/accountAutoScanScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,4 +27,8 @@ app.use((error, req, res, next) => {
 
 app.listen(config.port, () => {
   console.log(`Siberdeyz IPTV Player listening on ${config.port}`);
+
+  startAccountAutoScanScheduler().catch((error) => {
+    console.error('Automatic account scanner could not start:', error);
+  });
 });

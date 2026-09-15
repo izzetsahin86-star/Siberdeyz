@@ -964,7 +964,7 @@ select:focus {
 }
 
 .accounts-view {
-  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
   gap: 8px;
   padding: 10px 12px 12px;
 }
@@ -1105,6 +1105,24 @@ select:focus {
 .scan-all-accounts:disabled {
   opacity: .48;
   cursor: default;
+}
+
+.account-auto-scan-status {
+  min-height: 28px;
+  padding: 6px 9px;
+  border: 1px solid rgba(10,132,255,.18);
+  border-radius: 10px;
+  color: #9eb6cf;
+  background: rgba(10,132,255,.055);
+  font-size: 9px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-auto-scan-status[data-running="true"] {
+  color: #91efaa;
+  border-color: rgba(48,209,88,.22);
+  background: rgba(48,209,88,.07);
 }
 
 .account-search-row {

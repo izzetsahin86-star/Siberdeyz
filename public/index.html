@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/settingsLayout.css" />
     <link rel="stylesheet" href="/webScan.css" />
+    <link rel="stylesheet" href="/fullSiteScan.css" />
   </head>
   <body>
     <div class="app-launch" aria-hidden="true">
@@ -150,28 +151,74 @@
           </div>
 
           <div id="webScanView" class="panel-view web-scan-view" hidden>
-            <div class="web-scan-toolbar">
-              <input id="webScanUrl" type="url" placeholder="ornek-site.com/sayfa" autocomplete="off" inputmode="url" />
-              <button id="webScanButton" type="button">Siteyi Tara</button>
+            <div class="web-scan-mode-tabs" role="tablist" aria-label="Web tarama modu">
+              <button class="web-scan-mode-tab is-active" type="button" data-web-scan-mode="quick">Hizli Tarama</button>
+              <button class="web-scan-mode-tab" type="button" data-web-scan-mode="full">Tum Site</button>
             </div>
 
-            <div class="web-scan-info">
-              <div id="webScanStatus" class="web-scan-status" hidden></div>
-              <div id="webScanSummary" class="web-scan-summary" hidden></div>
-            </div>
-
-            <div class="web-scan-results-wrap">
-              <div class="web-scan-tools">
-                <button id="webScanSelectAll" type="button">Tumunu Sec</button>
-                <button id="webScanClearSelection" type="button">Secimi Temizle</button>
+            <section id="quickWebScanSection" class="web-scan-mode-section">
+              <div class="web-scan-toolbar">
+                <input id="webScanUrl" type="url" placeholder="ornek-site.com/sayfa" autocomplete="off" inputmode="url" />
+                <button id="webScanButton" type="button">Siteyi Tara</button>
               </div>
-              <div id="webScanResults" class="web-scan-results"></div>
-            </div>
 
-            <div id="webScanSaveBar" class="web-scan-save-bar" hidden>
-              <input id="webScanSaveLabel" type="text" maxlength="80" placeholder="Kayit adi (istege bagli)" autocomplete="off" />
-              <button id="webScanSaveButton" type="button">Secilenleri Kaydet</button>
-            </div>
+              <div class="web-scan-info">
+                <div id="webScanStatus" class="web-scan-status" hidden></div>
+                <div id="webScanSummary" class="web-scan-summary" hidden></div>
+              </div>
+
+              <div class="web-scan-results-wrap">
+                <div class="web-scan-tools">
+                  <button id="webScanSelectAll" type="button">Tumunu Sec</button>
+                  <button id="webScanClearSelection" type="button">Secimi Temizle</button>
+                </div>
+                <div id="webScanResults" class="web-scan-results"></div>
+              </div>
+
+              <div id="webScanSaveBar" class="web-scan-save-bar" hidden>
+                <input id="webScanSaveLabel" type="text" maxlength="80" placeholder="Kayit adi (istege bagli)" autocomplete="off" />
+                <button id="webScanSaveButton" type="button">Secilenleri Kaydet</button>
+              </div>
+            </section>
+
+            <section id="fullSiteScanSection" class="web-scan-mode-section full-site-scan-section" hidden>
+              <div class="full-site-toolbar">
+                <input id="fullSiteScanUrl" type="url" placeholder="ornek-site.com" autocomplete="off" inputmode="url" />
+                <select id="fullSiteScanLimit" aria-label="Taranacak sayfa limiti">
+                  <option value="50">50 sayfa</option>
+                  <option value="100">100 sayfa</option>
+                  <option value="200">200 sayfa</option>
+                </select>
+                <button id="fullSiteScanStart" type="button">Tum Siteyi Tara</button>
+              </div>
+
+              <div class="full-site-progress-wrap">
+                <div id="fullSiteScanStatus" class="full-site-status" hidden></div>
+                <div id="fullSiteScanProgress" class="full-site-progress" hidden>
+                  <i id="fullSiteScanProgressFill" class="full-site-progress-fill"></i>
+                  <span id="fullSiteScanProgressText">0%</span>
+                </div>
+                <div id="fullSiteScanStats" class="full-site-stats"></div>
+                <div class="full-site-actions">
+                  <button id="fullSiteScanPause" type="button" hidden>Duraklat</button>
+                  <button id="fullSiteScanResume" type="button" hidden>Devam Et</button>
+                  <button id="fullSiteScanStop" type="button" hidden>Durdur</button>
+                </div>
+              </div>
+
+              <div class="full-site-results-wrap">
+                <div class="full-site-tools">
+                  <button id="fullSiteScanSelectAll" type="button">Tumunu Sec</button>
+                  <button id="fullSiteScanClearSelection" type="button">Secimi Temizle</button>
+                </div>
+                <div id="fullSiteScanResults" class="full-site-results"></div>
+              </div>
+
+              <div id="fullSiteScanSaveBar" class="full-site-save-bar" hidden>
+                <input id="fullSiteScanSaveLabel" type="text" maxlength="80" placeholder="Kayit adi (istege bagli)" autocomplete="off" />
+                <button id="fullSiteScanSave" type="button">Secilenleri Kaydet</button>
+              </div>
+            </section>
           </div>
 
           <div id="settingsView" class="panel-view settings-view" hidden>

@@ -378,3 +378,11 @@
     font-size: 16px;
   }
 }
+
+
+/* Prevent iOS Safari from auto-zooming the user access name field on focus. */
+@media (max-width: 860px) {
+  .user-access-create input {
+    font-size: 16px !important;
+  }
+}

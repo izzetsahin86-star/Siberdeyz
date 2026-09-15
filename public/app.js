@@ -18,6 +18,11 @@ const state = {
   activeSourceId: '',
   currentChannelId: '',
   activePanel: '',
+  accountSearch: '',
+  accountStatus: 'all',
+  accountHealth: {},
+  accountScanningIds: new Set(),
+  accountScanningAll: false,
 };
 
 let searchTimer;
@@ -72,6 +77,11 @@ const elements = {
   sourceStatus: document.querySelector('#sourceStatus'),
   sourceList: document.querySelector('#sourceList'),
   accountCount: document.querySelector('#accountCount'),
+  accountSearchInput: document.querySelector('#accountSearchInput'),
+  accountStatusFilter: document.querySelector('#accountStatusFilter'),
+  accountScanSummary: document.querySelector('#accountScanSummary'),
+  accountRenderHint: document.querySelector('#accountRenderHint'),
+  scanAllAccountsButton: document.querySelector('#scanAllAccountsButton'),
   deleteAllSourcesButton: document.querySelector('#deleteAllSourcesButton'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
   soundToggleInput: document.querySelector('#soundToggleInput'),
@@ -253,7 +263,9 @@ function showApp() {
 
   if (!state.started) {
     state.started = true;
-    loadSourceStatus().catch((error) => setSourceStatus(error.message, 'error'));
+    loadSourceStatus()
+      .then(() => loadAccountHealth())
+      .catch((error) => setSourceStatus(error.message, 'error'));
     loadChannels({ reset: true }).catch((error) => {
       setLoading(false);
       setStatus(error.message, 'error');
@@ -380,10 +392,107 @@ function renderChannels() {
   renderLoadMore();
 }
 
+function accountHealthStatus(source) {
+  if (source.type === 'file') return 'unsupported';
+  return state.accountHealth[source.id]?.status || 'unscanned';
+}
+
+function accountStatusLabel(status) {
+  return ({
+    active: 'Aktif',
+    expired: 'Suresi bitmis',
+    failed: 'Calismiyor',
+    unsupported: 'Dosya',
+    unscanned: 'Taranmamis',
+  }[status] || 'Taranmamis');
+}
+
+function accountConnectionLabel(health) {
+  if (!health || health.protocol !== 'xtream') return '';
+
+  const active = Number(health.activeConnections) || 0;
+  const max = Number(health.maxConnections) || 0;
+  return (max > 0 ? max : '∞') + '/' + active;
+}
+
+function accountExpiryLabel(health) {
+  if (!health?.expiresAt) return '';
+
+  const timestamp = Date.parse(health.expiresAt);
+  if (!Number.isFinite(timestamp)) return '';
+
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(timestamp));
+}
+
+function updateAccountScanSummary() {
+  const counts = {
+    active: 0,
+    expired: 0,
+    failed: 0,
+    unscanned: 0,
+  };
+
+  for (const source of state.sources) {
+    if (source.type === 'file') continue;
+    const status = accountHealthStatus(source);
+    if (status in counts) counts[status] += 1;
+  }
+
+  for (const [status, count] of Object.entries(counts)) {
+    const element = elements.accountScanSummary?.querySelector('[data-account-stat="' + status + '"]');
+    if (!element) continue;
+
+    const label = ({
+      active: 'Aktif',
+      expired: 'Suresi biten',
+      failed: 'Calismayan',
+      unscanned: 'Taranmamis',
+    }[status]);
+
+    element.textContent = label + ' ' + count;
+    element.dataset.count = String(count);
+  }
+}
+
 function updateAccountsSummary() {
   const count = state.sources.length;
   elements.accountCount.textContent = String(count);
   elements.deleteAllSourcesButton.hidden = count === 0;
+  elements.scanAllAccountsButton.hidden = !state.sources.some((source) => source.type === 'url');
+  elements.scanAllAccountsButton.disabled = state.accountScanningAll;
+  elements.scanAllAccountsButton.textContent = state.accountScanningAll ? 'Taraniyor...' : 'Hesaplari Tara';
+  updateAccountScanSummary();
+}
+
+function getFilteredSources() {
+  const search = state.accountSearch.trim().toLocaleLowerCase('tr-TR');
+  const statusFilter = state.accountStatus;
+
+  return state.sources.filter((source) => {
+    const status = accountHealthStatus(source);
+    const statusMatches = statusFilter === 'all'
+      || (statusFilter === 'unscanned' && (status === 'unscanned' || status === 'unsupported'))
+      || status === statusFilter;
+
+    if (!statusMatches) return false;
+    if (!search) return true;
+
+    const haystack = [
+      source.label,
+      source.url,
+      source.fileName,
+      accountStatusLabel(status),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('tr-TR');
+
+    return haystack.includes(search);
+  });
 }
 
 function renderSources() {
@@ -391,35 +500,75 @@ function renderSources() {
 
   if (state.sources.length === 0) {
     elements.sourceList.innerHTML = '<div class="empty compact-empty">Kayitli hesap yok. Dosya veya URL ekleyin.</div>';
+    elements.accountRenderHint.hidden = true;
     return;
   }
 
-  elements.sourceList.innerHTML = state.sources.map((source, index) => {
-    const isFile = source.type === 'file';
-    const badge = source.active ? 'Aktif' : (isFile ? 'Dosya' : '#' + (index + 1));
-    const title = source.label || 'Hesap ' + (index + 1);
-    const meta = isFile
-      ? ((source.channelCount || 0) + ' yayin')
-      : 'Liste URL';
+  const filtered = getFilteredSources();
+  const visible = filtered.slice(0, 200);
 
-    return [
-      '<article class="source-pill-item ' + (source.active ? 'is-active' : '') + '">',
-      '<button class="source-pill-select" type="button" data-source-active="' + escapeHtml(source.id) + '">',
-      '<span class="source-pill-badge">' + escapeHtml(badge) + '</span>',
-      '<span class="source-pill-copy">',
-      '<strong>' + escapeHtml(title) + '</strong>',
-      '<small>' + escapeHtml(meta) + '</small>',
-      '</span>',
-      '</button>',
-      '<button class="source-pill-delete" type="button" data-source-delete="' + escapeHtml(source.id) + '" aria-label="Hesabi sil">Sil</button>',
-      '</article>',
-    ].join('');
-  }).join('');
+  if (visible.length === 0) {
+    elements.sourceList.innerHTML = '<div class="empty compact-empty">Aramaya uygun hesap bulunamadi.</div>';
+  } else {
+    elements.sourceList.innerHTML = visible.map((source, index) => {
+      const sourceIndex = state.sources.indexOf(source);
+      const isFile = source.type === 'file';
+      const health = state.accountHealth[source.id];
+      const healthStatus = accountHealthStatus(source);
+      const scanning = state.accountScanningIds.has(source.id);
+      const title = source.label || 'Hesap ' + (sourceIndex + 1);
+      const connection = accountConnectionLabel(health);
+      const expiry = accountExpiryLabel(health);
+      const statusLabel = accountStatusLabel(healthStatus);
+      const metaParts = [];
+
+      if (isFile) {
+        metaParts.push((source.channelCount || 0) + ' yayin');
+      } else {
+        if (connection) metaParts.push('Baglanti ' + connection);
+        if (expiry) metaParts.push('Bitis ' + expiry);
+        if (health?.checkedAt) metaParts.push('Tarandi');
+        if (metaParts.length === 0) metaParts.push('Liste URL');
+      }
+
+      const showManualScan = !isFile && healthStatus !== 'active';
+
+      return [
+        '<article class="source-pill-item ' + (source.active ? 'is-active ' : '') + 'health-' + escapeHtml(healthStatus) + '">',
+        '<button class="source-pill-select" type="button" data-source-active="' + escapeHtml(source.id) + '">',
+        '<span class="source-health-badge" data-health="' + escapeHtml(healthStatus) + '">' + escapeHtml(statusLabel) + '</span>',
+        '<span class="source-pill-copy">',
+        '<strong>' + escapeHtml(title) + '</strong>',
+        '<small>' + escapeHtml(metaParts.join(' · ')) + '</small>',
+        '</span>',
+        '</button>',
+        '<div class="source-pill-actions">',
+        showManualScan
+          ? '<button class="source-pill-scan" type="button" data-account-scan="' + escapeHtml(source.id) + '"' + (scanning ? ' disabled' : '') + '>' + (scanning ? '...' : 'Tara') + '</button>'
+          : '',
+        '<button class="source-pill-delete" type="button" data-source-delete="' + escapeHtml(source.id) + '" aria-label="Hesabi sil">Sil</button>',
+        '</div>',
+        '</article>',
+      ].join('');
+    }).join('');
+  }
+
+  const hiddenCount = Math.max(0, filtered.length - visible.length);
+  elements.accountRenderHint.hidden = hiddenCount === 0;
+  elements.accountRenderHint.textContent = hiddenCount > 0
+    ? filtered.length + ' sonuc bulundu. Performans icin ilk 200 hesap gosteriliyor; aramayi daraltin.'
+    : '';
 }
 
 function setSourceState(data) {
   state.sources = data.sources || [];
   state.activeSourceId = data.activeSourceId || state.sources.find((source) => source.active)?.id || '';
+
+  const validIds = new Set(state.sources.map((source) => source.id));
+  state.accountHealth = Object.fromEntries(
+    Object.entries(state.accountHealth).filter(([id]) => validIds.has(id))
+  );
+
   renderSources();
 
   if (data.hasSource) {
@@ -452,6 +601,97 @@ async function loadSourceStatus() {
   }
 
   setSourceState(data);
+}
+
+async function loadAccountHealth() {
+  const response = await fetch('/api/account-health');
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Hesap tarama bilgileri okunamadi');
+  }
+
+  state.accountHealth = data.accounts || {};
+  renderSources();
+}
+
+async function scanSingleAccount(sourceId) {
+  const adminPassword = getAdminPassword();
+  state.accountScanningIds.add(sourceId);
+  renderSources();
+
+  try {
+    const response = await fetch('/api/account-health/' + encodeURIComponent(sourceId) + '/scan', {
+      method: 'POST',
+      headers: { 'x-admin-password': adminPassword },
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Hesap taranamadi');
+    }
+
+    state.accountHealth[data.id] = data.health;
+    renderSources();
+    setSourceStatus('Hesap taramasi tamamlandi.');
+  } finally {
+    state.accountScanningIds.delete(sourceId);
+    renderSources();
+  }
+}
+
+async function scanAllAccounts() {
+  if (state.accountScanningAll) return;
+
+  const ids = state.sources
+    .filter((source) => source.type === 'url')
+    .map((source) => source.id);
+
+  if (ids.length === 0) return;
+
+  state.accountScanningAll = true;
+  updateAccountsSummary();
+  const adminPassword = getAdminPassword();
+
+  try {
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const batch = ids.slice(offset, offset + 100);
+      batch.forEach((id) => state.accountScanningIds.add(id));
+      renderSources();
+
+      setSourceStatus(
+        'Hesaplar taraniyor... ' + Math.min(offset + batch.length, ids.length) + '/' + ids.length
+      );
+
+      const response = await fetch('/api/account-health/scan', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-admin-password': adminPassword,
+        },
+        body: JSON.stringify({ ids: batch }),
+      });
+      const data = await response.json();
+
+      batch.forEach((id) => state.accountScanningIds.delete(id));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Hesap taramasi tamamlanamadi');
+      }
+
+      for (const result of data.results || []) {
+        state.accountHealth[result.id] = result.health;
+      }
+
+      renderSources();
+    }
+
+    setSourceStatus(ids.length + ' hesap tarandi.');
+  } finally {
+    state.accountScanningAll = false;
+    state.accountScanningIds.clear();
+    renderSources();
+  }
 }
 
 async function saveSource() {
@@ -827,6 +1067,13 @@ elements.deleteAllSourcesButton.addEventListener('click', () => {
 });
 
 elements.sourceList.addEventListener('click', (event) => {
+  const scanButton = event.target.closest('[data-account-scan]');
+  if (scanButton) {
+    scanSingleAccount(scanButton.dataset.accountScan)
+      .catch((error) => setSourceStatus(error.message, 'error'));
+    return;
+  }
+
   const deleteButton = event.target.closest('[data-source-delete]');
   if (deleteButton) {
     deleteSource(deleteButton.dataset.sourceDelete).catch((error) => setSourceStatus(error.message, 'error'));
@@ -843,6 +1090,20 @@ elements.searchInput.addEventListener('input', (event) => {
   state.search = event.target.value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(reloadFilteredChannels, 250);
+});
+
+elements.accountSearchInput.addEventListener('input', (event) => {
+  state.accountSearch = event.target.value;
+  renderSources();
+});
+
+elements.accountStatusFilter.addEventListener('change', (event) => {
+  state.accountStatus = event.target.value;
+  renderSources();
+});
+
+elements.scanAllAccountsButton.addEventListener('click', () => {
+  scanAllAccounts().catch((error) => setSourceStatus(error.message, 'error'));
 });
 
 elements.soundToggleInput.addEventListener('change', (event) => {

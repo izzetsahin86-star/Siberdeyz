@@ -14,6 +14,7 @@ import {
 import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
 import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
+import { getAccountHealth, removeAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 
 export const apiRouter = Router();
 
@@ -84,6 +85,30 @@ apiRouter.get('/source', async (req, res, next) => {
   }
 });
 
+apiRouter.get('/account-health', async (req, res, next) => {
+  try {
+    res.json(await getAccountHealth());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/account-health/:id/scan', requireAdmin, async (req, res, next) => {
+  try {
+    res.json(await scanAccount(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/account-health/scan', requireAdmin, async (req, res, next) => {
+  try {
+    res.json(await scanAccounts(req.body?.ids));
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.post('/source', requireAdmin, async (req, res, next) => {
   try {
     const status = await savePlaylistSource(req.body?.url, req.body?.label);
@@ -133,6 +158,7 @@ apiRouter.put('/source/:id/active', requireAdmin, async (req, res, next) => {
 apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
   try {
     const status = await deletePlaylistSource(req.params.id);
+    await removeAccountHealth(req.params.id);
     clearChannelCache();
     await clearFavorites();
     res.json(status);
@@ -144,6 +170,7 @@ apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
 apiRouter.delete('/source', requireAdmin, async (req, res, next) => {
   try {
     const status = await deletePlaylistSource();
+    await removeAccountHealth();
     clearChannelCache();
     await clearFavorites();
     res.json(status);

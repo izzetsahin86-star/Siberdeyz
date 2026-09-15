@@ -109,9 +109,32 @@
                 <strong>Hesaplarim</strong>
                 <span id="accountCount" class="account-count">0</span>
               </div>
-              <button id="deleteAllSourcesButton" class="delete-all-sources" type="button" hidden>Hepsini Sil</button>
+              <div class="account-head-actions">
+                <button id="scanAllAccountsButton" class="scan-all-accounts" type="button" hidden>Hesaplari Tara</button>
+                <button id="deleteAllSourcesButton" class="delete-all-sources" type="button" hidden>Hepsini Sil</button>
+              </div>
             </div>
+
+            <div class="account-search-row">
+              <input id="accountSearchInput" type="search" placeholder="Hesap ara..." autocomplete="off" />
+              <select id="accountStatusFilter" aria-label="Hesap durumu">
+                <option value="all">Tumu</option>
+                <option value="active">Aktif</option>
+                <option value="expired">Suresi biten</option>
+                <option value="failed">Calismayan</option>
+                <option value="unscanned">Taranmamis</option>
+              </select>
+            </div>
+
+            <div id="accountScanSummary" class="account-scan-summary">
+              <span data-account-stat="active">Aktif 0</span>
+              <span data-account-stat="expired">Suresi biten 0</span>
+              <span data-account-stat="failed">Calismayan 0</span>
+              <span data-account-stat="unscanned">Taranmamis 0</span>
+            </div>
+
             <div id="sourceList" class="source-list"></div>
+            <div id="accountRenderHint" class="account-render-hint" hidden></div>
           </div>
 
           <div id="settingsView" class="panel-view settings-view" hidden>

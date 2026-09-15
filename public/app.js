@@ -1294,6 +1294,11 @@ async function playChannel(channelId) {
   const channel = state.channels.find((item) => item.id === channelId);
   if (!channel) return;
 
+  const activeElement = document.activeElement;
+  if (activeElement && activeElement !== document.body && typeof activeElement.blur === 'function') {
+    activeElement.blur();
+  }
+
   setPanelCompact(true);
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;

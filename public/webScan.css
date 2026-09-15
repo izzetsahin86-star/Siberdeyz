@@ -287,3 +287,29 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Web Tarama adds one control without changing the existing controls. */
+.control-panel {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.control-button[data-panel="webscan"]::before {
+  content: "⌕";
+}
+
+@media (max-width: 860px) {
+  .control-panel {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .control-button[data-panel="webscan"] {
+    font-size: 8px;
+  }
+
+  .control-button[data-panel="webscan"]::before {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+  }
+}

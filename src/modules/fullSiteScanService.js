@@ -597,7 +597,17 @@ async function scanPageDynamically(job, browser, targetUrl, fallbackTitle = '') 
       }
 
       try {
-        await assertPublicHttpUrl(requestUrl);
+        const parsed = await assertPublicHttpUrl(requestUrl);
+
+        if (
+          request.isNavigationRequest()
+          && request.frame() === page.mainFrame()
+          && !isSameSite(job.rootHost, parsed.hostname)
+        ) {
+          request.abort().catch(() => {});
+          return;
+        }
+
         request.continue().catch(() => {});
       } catch {
         request.abort().catch(() => {});

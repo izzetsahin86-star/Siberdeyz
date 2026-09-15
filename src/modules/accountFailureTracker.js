@@ -1,10 +1,19 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { getAppSettings } from './appSettingsService.js';
+import { getTenantDataDir } from './tenantContext.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const sourceFile = path.join(storageDir, 'source.json');
-const trackerFile = path.join(storageDir, 'account-failure-tracker.json');
+function getStorageDir() {
+  return getTenantDataDir();
+}
+
+function getSourceFile() {
+  return path.join(getStorageDir(), 'source.json');
+}
+
+function getTrackerFile() {
+  return path.join(getStorageDir(), 'account-failure-tracker.json');
+}
 
 async function getFailureThreshold() {
   const settings = await getAppSettings();
@@ -12,10 +21,7 @@ async function getFailureThreshold() {
 }
 
 function emptyState(threshold) {
-  return {
-    threshold,
-    accounts: {},
-  };
+  return { threshold, accounts: {} };
 }
 
 async function readJson(filePath, fallback) {
@@ -29,30 +35,25 @@ async function readJson(filePath, fallback) {
 }
 
 async function writeState(state) {
-  await fs.mkdir(storageDir, { recursive: true });
-  await fs.writeFile(trackerFile, JSON.stringify(state, null, 2));
+  await fs.mkdir(getStorageDir(), { recursive: true });
+  await fs.writeFile(getTrackerFile(), JSON.stringify(state, null, 2));
 }
 
 async function readState() {
   const threshold = await getFailureThreshold();
-  const saved = await readJson(trackerFile, emptyState(threshold));
+  const saved = await readJson(getTrackerFile(), emptyState(threshold));
 
   return {
     threshold,
-    accounts: saved && typeof saved.accounts === 'object' && saved.accounts
-      ? saved.accounts
-      : {},
+    accounts: saved && typeof saved.accounts === 'object' && saved.accounts ? saved.accounts : {},
   };
 }
 
 async function readCurrentUrlIds() {
-  const saved = await readJson(sourceFile, null);
+  const saved = await readJson(getSourceFile(), null);
   if (!saved) return new Set();
 
-  const sources = Array.isArray(saved.sources)
-    ? saved.sources
-    : (saved.id ? [saved] : []);
-
+  const sources = Array.isArray(saved.sources) ? saved.sources : (saved.id ? [saved] : []);
   return new Set(
     sources
       .filter((source) => source?.id && source.type === 'url')
@@ -82,7 +83,6 @@ export async function recordAutomaticScanResults(results = [], scannedAt = new D
 
     if (status === 'failed') {
       const consecutiveFailures = previous.consecutiveFailures + 1;
-
       state.accounts[id] = {
         consecutiveFailures,
         lastStatus: status,
@@ -107,11 +107,7 @@ export async function recordAutomaticScanResults(results = [], scannedAt = new D
 }
 
 export async function getPersistentFailureStatus() {
-  const [state, validIds] = await Promise.all([
-    readState(),
-    readCurrentUrlIds(),
-  ]);
-
+  const [state, validIds] = await Promise.all([readState(), readCurrentUrlIds()]);
   const threshold = state.threshold;
   const accounts = {};
   let changed = false;
@@ -125,19 +121,13 @@ export async function getPersistentFailureStatus() {
 
     const record = publicRecord(rawRecord);
 
-    if (
-      record.lastStatus === 'failed'
-      && record.consecutiveFailures >= threshold
-      && !record.persistentFailedAt
-    ) {
+    if (record.lastStatus === 'failed' && record.consecutiveFailures >= threshold && !record.persistentFailedAt) {
       record.persistentFailedAt = record.lastAutomaticScanAt || new Date().toISOString();
       state.accounts[id] = record;
       changed = true;
     }
 
-    if (record.consecutiveFailures > 0 || record.persistentFailedAt) {
-      accounts[id] = record;
-    }
+    if (record.consecutiveFailures > 0 || record.persistentFailedAt) accounts[id] = record;
   }
 
   state.threshold = threshold;
@@ -151,10 +141,5 @@ export async function getPersistentFailureStatus() {
     ))
     .map(([id]) => id);
 
-  return {
-    threshold,
-    persistentIds,
-    count: persistentIds.length,
-    accounts,
-  };
+  return { threshold, persistentIds, count: persistentIds.length, accounts };
 }

@@ -1,5 +1,6 @@
 import { attachPlaybackTimeline } from './playerTimeline.js';
 import { sourceHasMultipleConnections } from './accountMultiConnection.js';
+import { createAppSettingsController } from './appSettings.js';
 
 const PAGE_SIZE = 100;
 
@@ -17,6 +18,16 @@ const state = {
   loading: false,
   started: false,
   soundEnabled: false,
+  appSettings: {
+    startupSound: false,
+    autoScanMinutes: 60,
+    failureThreshold: 3,
+    playbackMode: 'auto',
+    autoRetry: true,
+    retryCount: 3,
+    defaultPanel: 'channels',
+    channelDensity: 'compact',
+  },
   sources: [],
   activeSourceId: '',
   currentChannelId: '',
@@ -33,7 +44,11 @@ const state = {
 };
 
 let searchTimer;
-let playbackFallbackHandler = null;
+let playbackErrorHandler = null;
+let playbackRetryTimer = null;
+let playbackRetryAttempt = 0;
+let playbackUsingCompatibility = false;
+let settingsController = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -50,7 +65,11 @@ function registerServiceWorker() {
 }
 
 function applyLaunchPanelPreference() {
-  const panel = new URLSearchParams(window.location.search).get('panel');
+  const requestedPanel = new URLSearchParams(window.location.search).get('panel');
+  const panel = ['channels', 'accounts', 'settings'].includes(requestedPanel)
+    ? requestedPanel
+    : state.appSettings.defaultPanel;
+
   if (['channels', 'accounts', 'settings'].includes(panel)) switchPanel(panel);
 }
 
@@ -142,8 +161,25 @@ function applySoundSetting() {
   elements.player.muted = !state.soundEnabled;
   elements.soundToggleInput.checked = state.soundEnabled;
   elements.soundStatus.textContent = state.soundEnabled
-    ? 'Ses acik. Uygulama kapaninca tekrar sessiz baslar.'
-    : 'Video her acilista sessiz baslar.';
+    ? 'Oynatici sesi acik.'
+    : 'Oynatici sesi kapali.';
+}
+
+function applyAppSettings(settings, { initial = false } = {}) {
+  state.appSettings = {
+    ...state.appSettings,
+    ...(settings || {}),
+  };
+
+  document.documentElement.dataset.channelDensity = state.appSettings.channelDensity;
+
+  if (initial) {
+    state.soundEnabled = Boolean(state.appSettings.startupSound);
+    applySoundSetting();
+  }
+
+  loadAccountAutoScanStatus().catch(() => {});
+  loadAccountFailureStatus().then(() => renderSources()).catch(() => {});
 }
 
 function clearChannelState() {
@@ -158,9 +194,18 @@ function clearChannelState() {
 }
 
 function clearPlaybackFallback() {
-  if (!playbackFallbackHandler) return;
-  elements.player.removeEventListener('error', playbackFallbackHandler);
-  playbackFallbackHandler = null;
+  if (playbackErrorHandler) {
+    elements.player.removeEventListener('error', playbackErrorHandler);
+    playbackErrorHandler = null;
+  }
+
+  if (playbackRetryTimer) {
+    clearTimeout(playbackRetryTimer);
+    playbackRetryTimer = null;
+  }
+
+  playbackRetryAttempt = 0;
+  playbackUsingCompatibility = false;
 }
 
 function getDirectPlaybackUrl(channel) {
@@ -182,26 +227,52 @@ function setPlaybackSource(channel) {
 
   const fallbackUrl = `/api/play/${channel.id}`;
   const directUrl = getDirectPlaybackUrl(channel);
+  const mode = state.appSettings.playbackMode || 'auto';
 
-  if (!directUrl) {
-    elements.player.src = fallbackUrl;
-    return;
-  }
+  playbackUsingCompatibility = mode === 'compatibility' || !directUrl;
+  elements.player.src = playbackUsingCompatibility ? fallbackUrl : directUrl;
 
-  playbackFallbackHandler = () => {
+  playbackErrorHandler = () => {
     if (state.currentChannelId !== channel.id) return;
 
-    clearPlaybackFallback();
-    elements.player.pause();
-    elements.player.src = fallbackUrl;
-    elements.player.load();
-    elements.player.play().catch(() => {
-      setStatus('Yayin uyumluluk motoruyla acilmaya hazirlaniyor.', 'warning');
-    });
+    if (mode === 'auto' && !playbackUsingCompatibility) {
+      playbackUsingCompatibility = true;
+      playbackRetryAttempt = 0;
+      elements.player.pause();
+      elements.player.src = fallbackUrl;
+      elements.player.load();
+      elements.player.play().catch(() => {
+        setStatus('Yayin uyumluluk motoruyla acilmaya hazirlaniyor.', 'warning');
+      });
+      return;
+    }
+
+    const retryCount = Math.max(1, Number(state.appSettings.retryCount) || 3);
+
+    if (!state.appSettings.autoRetry || playbackRetryAttempt >= retryCount) {
+      setStatus('Yayin baglantisi kesildi.', 'error');
+      return;
+    }
+
+    playbackRetryAttempt += 1;
+    const retryUrl = playbackUsingCompatibility || !directUrl ? fallbackUrl : directUrl;
+    setStatus(
+      'Yayin yeniden baglaniyor... ' + playbackRetryAttempt + '/' + retryCount,
+      'warning'
+    );
+
+    clearTimeout(playbackRetryTimer);
+    playbackRetryTimer = setTimeout(() => {
+      if (state.currentChannelId !== channel.id) return;
+
+      elements.player.pause();
+      elements.player.src = retryUrl;
+      elements.player.load();
+      elements.player.play().catch(() => {});
+    }, 900);
   };
 
-  elements.player.addEventListener('error', playbackFallbackHandler, { once: true });
-  elements.player.src = directUrl;
+  elements.player.addEventListener('error', playbackErrorHandler);
 }
 
 function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
@@ -316,6 +387,13 @@ async function login(adminPassword) {
 
   elements.adminPasswordInput.value = '';
   setLoginStatus('');
+
+  try {
+    await settingsController?.load();
+  } catch {
+    applyAppSettings(state.appSettings, { initial: true });
+  }
+
   showApp();
 }
 
@@ -437,14 +515,20 @@ function renderAccountAutoScanStatus() {
   const status = state.accountAutoScanStatus;
 
   if (!status) {
-    elements.accountAutoScanStatus.textContent = 'Otomatik tarama: 60 dk · Durum okunuyor...';
+    elements.accountAutoScanStatus.textContent = 'Otomatik tarama: Durum okunuyor...';
+    elements.accountAutoScanStatus.dataset.running = 'false';
+    return;
+  }
+
+  if (!status.enabled) {
+    elements.accountAutoScanStatus.textContent = 'Otomatik tarama: Kapali';
     elements.accountAutoScanStatus.dataset.running = 'false';
     return;
   }
 
   const lastStarted = formatAccountAutoScanTime(status.lastStartedAt);
   const nextRun = formatAccountAutoScanTime(status.nextRunAt);
-  const parts = ['Otomatik tarama: 60 dk'];
+  const parts = ['Otomatik tarama: ' + String(status.intervalMinutes || 60) + ' dk'];
 
   if (status.running) {
     const progress = status.totalAccounts > 0
@@ -1378,6 +1462,21 @@ elements.saveSourceButton.addEventListener('click', () => {
     setLoading(false);
     setSourceStatus(error.message, 'error');
   });
+});
+
+settingsController = createAppSettingsController({
+  onSettingsChange(settings, meta) {
+    applyAppSettings(settings, meta);
+  },
+  async onCacheCleared() {
+    state.channels = [];
+    state.hasMore = false;
+    await loadChannels({ force: true, reset: true });
+  },
+  async onLogout() {
+    stopPlayback({ message: '', resetSound: true });
+    window.location.reload();
+  },
 });
 
 applyStandaloneClass();

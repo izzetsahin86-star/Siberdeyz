@@ -24,6 +24,7 @@ const state = {
   accountSearch: '',
   accountStatus: 'all',
   accountHealth: {},
+  accountAutoScanStatus: null,
   accountScanningIds: new Set(),
   accountScanningAll: false,
 };
@@ -84,6 +85,7 @@ const elements = {
   accountSearchInput: document.querySelector('#accountSearchInput'),
   accountStatusFilter: document.querySelector('#accountStatusFilter'),
   accountScanSummary: document.querySelector('#accountScanSummary'),
+  accountAutoScanStatus: document.querySelector('#accountAutoScanStatus'),
   accountRenderHint: document.querySelector('#accountRenderHint'),
   scanAllAccountsButton: document.querySelector('#scanAllAccountsButton'),
   deleteAllSourcesButton: document.querySelector('#deleteAllSourcesButton'),
@@ -288,6 +290,10 @@ function switchPanel(panelName) {
   elements.controlButtons.forEach((button) => {
     button.classList.toggle('is-active', button.dataset.panel === panelName);
   });
+
+  if (panelName === 'accounts') {
+    loadAccountAutoScanStatus();
+  }
 }
 
 async function login(adminPassword) {
@@ -400,6 +406,64 @@ function accountExpiryLabel(health) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(timestamp));
+}
+
+function formatAccountAutoScanTime(value) {
+  const timestamp = Date.parse(String(value || ''));
+  if (!Number.isFinite(timestamp)) return '';
+
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp));
+}
+
+function renderAccountAutoScanStatus() {
+  const status = state.accountAutoScanStatus;
+
+  if (!status) {
+    elements.accountAutoScanStatus.textContent = 'Otomatik tarama: 60 dk · Durum okunuyor...';
+    elements.accountAutoScanStatus.dataset.running = 'false';
+    return;
+  }
+
+  const lastStarted = formatAccountAutoScanTime(status.lastStartedAt);
+  const nextRun = formatAccountAutoScanTime(status.nextRunAt);
+  const parts = ['Otomatik tarama: 60 dk'];
+
+  if (status.running) {
+    const progress = status.totalAccounts > 0
+      ? String(status.lastScannedCount || 0) + '/' + String(status.totalAccounts)
+      : 'basladi';
+
+    parts.push('Taraniyor ' + progress);
+  } else if (lastStarted) {
+    parts.push('Son baslangic ' + lastStarted);
+  } else {
+    parts.push('Henuz otomatik tarama baslamadi');
+  }
+
+  if (nextRun) parts.push('Sonraki ' + nextRun);
+  if (status.lastError) parts.push('Son hata: ' + status.lastError);
+
+  elements.accountAutoScanStatus.textContent = parts.join(' · ');
+  elements.accountAutoScanStatus.dataset.running = status.running ? 'true' : 'false';
+}
+
+async function loadAccountAutoScanStatus() {
+  try {
+    const response = await fetch('/api/account-auto-scan');
+    const data = await response.json();
+
+    if (!response.ok) return;
+
+    state.accountAutoScanStatus = data;
+    renderAccountAutoScanStatus();
+  } catch {
+    // Otomatik tarama durum bilgisi ana hesap ekranini engellememeli.
+  }
 }
 
 function updateAccountScanSummary() {
@@ -622,6 +686,7 @@ async function loadAccountHealth() {
 
   state.accountHealth = data.accounts || {};
   renderSources();
+  await loadAccountAutoScanStatus();
 }
 
 async function scanSingleAccount(sourceId) {
@@ -1201,6 +1266,7 @@ applyStandaloneClass();
 registerServiceWorker();
 renderGroups();
 renderSources();
+renderAccountAutoScanStatus();
 applySoundSetting();
 
 attachPlaybackTimeline(elements.player, {

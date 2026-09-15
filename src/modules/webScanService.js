@@ -69,7 +69,7 @@ function isPrivateIp(address) {
 async function assertPublicHttpUrl(value) {
   let parsed;
   const input = String(value || '').trim();
-  const normalized = /^https?:\/\//i.test(input)
+  const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(input)
     ? input
     : ('https://' + input.replace(/^\/+/, ''));
 

@@ -2640,3 +2640,9 @@ select:focus {
     box-shadow: inset 0 1px rgba(255,255,255,.04);
   }
 }
+
+
+/* Keep decorative home glow behind the player, never over the video image. */
+.watch-area::before {
+  display: none;
+}

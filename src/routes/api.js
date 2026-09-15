@@ -20,6 +20,7 @@ import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler, stopAcco
 import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
+import { scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
 
 export const apiRouter = Router();
 
@@ -126,6 +127,29 @@ apiRouter.post('/settings/cache/clear', async (req, res, next) => {
   try {
     clearChannelCache();
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/web-scan', async (req, res, next) => {
+  try {
+    res.json(await scanWebPage(req.body?.url));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/web-scan/:scanId/save', async (req, res, next) => {
+  try {
+    const result = await saveWebScanSelection(
+      req.params.scanId,
+      req.body?.ids,
+      req.body?.label
+    );
+    clearChannelCache();
+    await clearFavorites();
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }

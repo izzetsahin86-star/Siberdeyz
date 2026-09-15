@@ -22,6 +22,14 @@ import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js'
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
 import { scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
+import {
+  getFullSiteScanStatus,
+  pauseFullSiteScan,
+  resumeFullSiteScan,
+  saveFullSiteScanSelection,
+  startFullSiteScan,
+  stopFullSiteScan,
+} from '../modules/fullSiteScanService.js';
 
 export const apiRouter = Router();
 
@@ -167,6 +175,61 @@ apiRouter.delete('/web-scan/channel/:id', async (req, res, next) => {
     }
 
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/full-site-scan/start', async (req, res, next) => {
+  try {
+    res.status(202).json(await startFullSiteScan(req.body?.url, req.body?.limit));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/full-site-scan/status', async (req, res, next) => {
+  try {
+    res.json(await getFullSiteScanStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/full-site-scan/pause', async (req, res, next) => {
+  try {
+    res.json(await pauseFullSiteScan());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/full-site-scan/resume', async (req, res, next) => {
+  try {
+    res.json(await resumeFullSiteScan());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/full-site-scan/stop', async (req, res, next) => {
+  try {
+    res.json(await stopFullSiteScan());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/full-site-scan/:jobId/save', async (req, res, next) => {
+  try {
+    const result = await saveFullSiteScanSelection(
+      req.params.jobId,
+      req.body?.ids,
+      req.body?.label
+    );
+    clearChannelCache();
+    await clearFavorites();
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-webscan-delete-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-full-site-scan-1';
 
 const APP_SHELL = [
   '/',
@@ -6,10 +6,12 @@ const APP_SHELL = [
   '/styles.css',
   '/settingsLayout.css',
   '/webScan.css',
+  '/fullSiteScan.css',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
+  '/fullSiteScan.js',
   '/accountMultiConnection.js',
   '/manifest.webmanifest',
   '/offline.html',
@@ -28,10 +30,12 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/styles.css',
   '/settingsLayout.css',
   '/webScan.css',
+  '/fullSiteScan.css',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
+  '/fullSiteScan.js',
   '/manifest.webmanifest',
   '/offline.html',
 ]);

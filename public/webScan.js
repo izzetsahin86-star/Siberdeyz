@@ -27,7 +27,7 @@ function escapeHtml(value) {
 function normalizeWebAddress(value) {
   const input = String(value || '').trim();
   if (!input) return '';
-  if (/^https?:\/\//i.test(input)) return input;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) return input;
   return 'https://' + input.replace(/^\/+/, '');
 }
 

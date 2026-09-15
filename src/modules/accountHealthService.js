@@ -328,3 +328,24 @@ export async function scanAccounts(sourceIds = []) {
     })),
   };
 }
+
+
+export async function removeAccountHealth(sourceId = '') {
+  const id = String(sourceId || '').trim();
+
+  if (!id) {
+    try {
+      await fs.unlink(healthFile);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    return;
+  }
+
+  const health = await readHealthState();
+  if (!(id in health.accounts)) return;
+
+  delete health.accounts[id];
+  await writeJson(healthFile, health);
+}

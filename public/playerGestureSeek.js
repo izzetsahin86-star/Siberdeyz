@@ -97,11 +97,6 @@ export function attachPlayerGestureSeek(player, overlay) {
       lastTarget: Number(player.currentTime) || 0,
     };
 
-    try {
-      player.setPointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture is optional on some Safari versions.
-    }
   }
 
   function onPointerMove(event) {
@@ -119,6 +114,12 @@ export function attachPlayerGestureSeek(player, overlay) {
       }
 
       gesture.active = true;
+
+      try {
+        player.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture is optional on some Safari versions.
+      }
     }
 
     event.preventDefault();

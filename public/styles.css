@@ -2562,6 +2562,14 @@ select:focus {
 }
 
 @media (max-width: 860px) {
+  .control-panel {
+    position: fixed;
+    z-index: 40;
+    left: calc(8px + var(--safe-left));
+    right: calc(8px + var(--safe-right));
+    bottom: calc(4px + var(--safe-bottom));
+  }
+
   .tv-shell::before {
     width: 74vw;
     height: 74vw;

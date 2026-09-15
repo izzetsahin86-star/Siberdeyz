@@ -858,19 +858,33 @@ export async function scanWebPage(rawUrl) {
   try {
     const pageUrl = (await assertPublicHttpUrl(rawUrl)).toString();
 
-    let browserDiscovery = { pageTitle: '', candidates: [] };
+    let browserDiscovery = {
+      pageTitle: '',
+      candidates: [],
+      diagnostics: {
+        pagesVisited: 0,
+        detailPagesVisited: 0,
+        detailLinksFound: 0,
+        iframeFramesSeen: 0,
+        responseBodiesScanned: 0,
+        protectionDetected: false,
+        pageErrors: 0,
+      },
+    };
     let staticDiscovery = { pageTitle: '', candidates: [] };
+    let browserFailed = false;
+    let staticFailed = false;
 
     try {
       browserDiscovery = await discoverWithBrowser(pageUrl);
     } catch {
-      // Bazi siteler headless tarayiciyi engelleyebilir; statik motor devam eder.
+      browserFailed = true;
     }
 
     try {
       staticDiscovery = await discoverStatically(pageUrl);
     } catch {
-      // Tarayici motoru sonuc verdiyse statik motor hatasi kritik degildir.
+      staticFailed = true;
     }
 
     const merged = new Map();
@@ -880,15 +894,16 @@ export async function scanWebPage(rawUrl) {
       }
     }
 
-    if (merged.size === 0) {
-      const error = new Error('Bu sayfada erisilebilir video veya yayin kaynagi bulunamadi.');
-      error.status = 404;
-      throw error;
-    }
+    const diagnostics = {
+      ...(browserDiscovery.diagnostics || {}),
+      browserFailed,
+      staticFailed,
+    };
 
     const discovery = {
       pageTitle: browserDiscovery.pageTitle || staticDiscovery.pageTitle || '',
       candidates: [...merged.values()],
+      diagnostics,
     };
     const detected = discovery.candidates.slice(0, MAX_CANDIDATES);
 
@@ -932,7 +947,24 @@ export async function scanWebPage(rawUrl) {
         shortRemoved: shortRemoved.length,
         failed: probed.filter((item) => !item.playable).length,
         unknownDuration: visible.filter((item) => item.durationStatus === 'unknown').length,
+        pagesVisited: Number(diagnostics.pagesVisited) || 0,
+        detailPagesVisited: Number(diagnostics.detailPagesVisited) || 0,
+        detailLinksFound: Number(diagnostics.detailLinksFound) || 0,
+        iframeFramesSeen: Number(diagnostics.iframeFramesSeen) || 0,
+        responseBodiesScanned: Number(diagnostics.responseBodiesScanned) || 0,
+        protectionDetected: Boolean(diagnostics.protectionDetected),
       },
+      message: visible.length > 0
+        ? ''
+        : (
+          diagnostics.protectionDetected
+            ? 'Site tarayici dogrulamasi veya koruma sayfasi gosteriyor. Koruma asilmaz.'
+            : (
+              detected.length > 0
+                ? 'Medya adaylari bulundu ancak testten gecen kaydedilebilir yayin kalmadi.'
+                : 'Ana sayfa ve uygun detay sayfalari tarandi; erisilebilir medya istegi yakalanamadi.'
+            )
+        ),
     };
 
     await writePending(scan);

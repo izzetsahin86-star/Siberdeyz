@@ -88,6 +88,7 @@ const elements = {
   soundToggleInput: document.querySelector('#soundToggleInput'),
   soundStatus: document.querySelector('#soundStatus'),
   searchInput: document.querySelector('#searchInput'),
+  channelCategorySelect: document.querySelector('#channelCategorySelect'),
   status: document.querySelector('#status'),
   channelList: document.querySelector('#channelList'),
   loadMoreButton: document.querySelector('#loadMoreButton'),
@@ -356,6 +357,10 @@ function renderGroups() {
     <button class="group-chip ${group === currentGroup ? 'is-active' : ''}" type="button" data-group-value="${escapeHtml(group)}">
       ${escapeHtml(group)}
     </button>
+  `).join('');
+
+  elements.channelCategorySelect.innerHTML = groups.map((group) => `
+    <option value="${escapeHtml(group)}"${group === currentGroup ? ' selected' : ''}>${escapeHtml(group)}</option>
   `).join('');
 }
 
@@ -1081,6 +1086,12 @@ elements.searchInput.addEventListener('input', (event) => {
   state.search = event.target.value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(reloadFilteredChannels, 250);
+});
+
+elements.channelCategorySelect.addEventListener('change', (event) => {
+  state.group = event.target.value || 'Tumu';
+  state.categoryOpen = false;
+  reloadFilteredChannels();
 });
 
 elements.accountSearchInput.addEventListener('input', (event) => {

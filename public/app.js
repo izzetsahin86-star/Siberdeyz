@@ -288,7 +288,13 @@ function closePanel() {
 
 function setPanelCompact(isCompact) {
   elements.bottomPanel.dataset.compact = isCompact ? 'true' : 'false';
-  if (isCompact) closePanel();
+
+  if (isCompact) {
+    elements.bottomPanel.classList.add('is-closing-for-playback');
+    closePanel();
+    void elements.bottomPanel.offsetHeight;
+    elements.bottomPanel.classList.remove('is-closing-for-playback');
+  }
 }
 
 function switchPanel(panelName) {
@@ -1039,6 +1045,7 @@ async function playChannel(channelId) {
   const channel = state.channels.find((item) => item.id === channelId);
   if (!channel) return;
 
+  setPanelCompact(true);
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
@@ -1047,7 +1054,6 @@ async function playChannel(channelId) {
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
-  setPanelCompact(true);
 }
 
 async function playNextChannel() {

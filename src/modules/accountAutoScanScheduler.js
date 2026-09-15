@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { scanAccounts } from './accountHealthService.js';
+import { recordAutomaticScanResults } from './accountFailureTracker.js';
 
 const storageDir = path.join(process.cwd(), 'data');
 const sourceFile = path.join(storageDir, 'source.json');
@@ -128,7 +129,8 @@ async function runAutomaticAccountScan() {
   try {
     for (let offset = 0; offset < ids.length; offset += BATCH_SIZE) {
       const batch = ids.slice(offset, offset + BATCH_SIZE);
-      await scanAccounts(batch);
+      const scanResult = await scanAccounts(batch);
+      await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
       scannedCount += batch.length;
 
       status = {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAdminSession, loginAdmin, logoutAdmin, requireAdminSession } from '../modules/sessionAuthService.js';
+import { loginAdmin, logoutAdmin, requireAdminSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
@@ -73,7 +73,6 @@ apiRouter.get('/health', (req, res) => {
 
 apiRouter.post('/admin/login', loginAdmin);
 apiRouter.post('/admin/logout', logoutAdmin);
-apiRouter.get('/admin/session', getAdminSession);
 
 apiRouter.use(requireAdminSession);
 

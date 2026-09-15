@@ -177,11 +177,6 @@ export function logoutAdmin(req, res) {
   res.json({ ok: true, authenticated: false });
 }
 
-export function getAdminSession(req, res) {
-  res.setHeader('cache-control', 'no-store');
-  res.json({ authenticated: hasAdminSession(req) });
-}
-
 export function requireAdminSession(req, res, next) {
   if (!hasAdminSession(req)) {
     res.setHeader('cache-control', 'no-store');

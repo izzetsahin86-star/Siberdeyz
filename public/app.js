@@ -28,6 +28,7 @@ const state = {
 
 let searchTimer;
 let playbackFallbackHandler = null;
+let simpleSeekDragging = false;
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -163,6 +164,7 @@ function updateSimpleTimeline() {
   elements.simpleTimeline.hidden = !isSeekable;
 
   if (!isSeekable) {
+    simpleSeekDragging = false;
     elements.simpleSeekSlider.value = '0';
     elements.simpleCurrentTime.textContent = '00:00';
     elements.simpleDurationTime.textContent = '--:--';
@@ -170,11 +172,14 @@ function updateSimpleTimeline() {
     return;
   }
 
+  elements.simpleDurationTime.textContent = formatSimpleTime(duration);
+
+  if (simpleSeekDragging) return;
+
   const currentTime = Math.min(Math.max(Number(elements.player.currentTime) || 0, 0), duration);
   const progress = Math.min(1000, Math.max(0, Math.round((currentTime / duration) * 1000)));
 
   elements.simpleCurrentTime.textContent = formatSimpleTime(currentTime);
-  elements.simpleDurationTime.textContent = formatSimpleTime(duration);
   elements.simpleSeekSlider.value = String(progress);
   elements.simpleSeekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
 }
@@ -1208,10 +1213,15 @@ elements.soundToggleInput.addEventListener('change', (event) => {
     elements.player.addEventListener(eventName, updateSimpleTimeline);
   });
 
+elements.simpleSeekSlider.addEventListener('pointerdown', () => {
+  simpleSeekDragging = true;
+});
+
 elements.simpleSeekSlider.addEventListener('input', (event) => {
   const duration = Number(elements.player.duration);
   if (!Number.isFinite(duration) || duration <= 0) return;
 
+  simpleSeekDragging = true;
   const progress = Number(event.target.value) || 0;
   const previewTime = (progress / 1000) * duration;
   elements.simpleCurrentTime.textContent = formatSimpleTime(previewTime);
@@ -1220,10 +1230,35 @@ elements.simpleSeekSlider.addEventListener('input', (event) => {
 
 elements.simpleSeekSlider.addEventListener('change', (event) => {
   const duration = Number(elements.player.duration);
-  if (!Number.isFinite(duration) || duration <= 0) return;
+  if (!Number.isFinite(duration) || duration <= 0) {
+    simpleSeekDragging = false;
+    return;
+  }
 
   const progress = Number(event.target.value) || 0;
-  elements.player.currentTime = (progress / 1000) * duration;
+  const targetTime = Math.min(duration, Math.max(0, (progress / 1000) * duration));
+
+  try {
+    if (typeof elements.player.fastSeek === 'function') {
+      elements.player.fastSeek(targetTime);
+    } else {
+      elements.player.currentTime = targetTime;
+    }
+  } catch {
+    elements.player.currentTime = targetTime;
+  }
+
+  simpleSeekDragging = false;
+  updateSimpleTimeline();
+});
+
+elements.simpleSeekSlider.addEventListener('pointercancel', () => {
+  simpleSeekDragging = false;
+  updateSimpleTimeline();
+});
+
+elements.simpleSeekSlider.addEventListener('blur', () => {
+  simpleSeekDragging = false;
   updateSimpleTimeline();
 });
 

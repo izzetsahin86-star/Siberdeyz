@@ -2029,3 +2029,268 @@ select:focus {
     min-height: 38px;
   }
 }
+
+
+/* Premium accounts UI trial */
+.accounts-view {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(10,132,255,.12), transparent 28%),
+    radial-gradient(circle at 92% 0%, rgba(48,209,88,.06), transparent 24%);
+}
+
+.accounts-view::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 1px rgba(255,255,255,.045);
+}
+
+.accounts-view .source-tools,
+.accounts-view .account-list-head,
+.accounts-view .account-auto-scan-status,
+.accounts-view .account-search-row,
+.accounts-view .account-scan-summary {
+  position: relative;
+  z-index: 1;
+}
+
+.accounts-view .source-action-row {
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.accounts-view .file-upload-card {
+  border-color: rgba(10,132,255,.26);
+  background:
+    linear-gradient(180deg, rgba(10,132,255,.15), rgba(10,132,255,.08));
+  box-shadow: inset 0 1px rgba(255,255,255,.05);
+}
+
+.accounts-view .file-upload-card:hover {
+  border-color: rgba(10,132,255,.44);
+  background:
+    linear-gradient(180deg, rgba(10,132,255,.21), rgba(10,132,255,.11));
+}
+
+.accounts-view .pill-action-button {
+  border-color: rgba(255,255,255,.09);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.045));
+}
+
+.accounts-view .account-list-head {
+  min-height: 30px;
+  padding: 2px 3px;
+}
+
+.accounts-view .account-list-title strong {
+  color: #f5f5f7;
+  font-size: 11px;
+  letter-spacing: -.01em;
+}
+
+.accounts-view .account-count {
+  border-color: rgba(10,132,255,.28);
+  color: #c6e1ff;
+  background: rgba(10,132,255,.14);
+  box-shadow: inset 0 1px rgba(255,255,255,.04);
+}
+
+.accounts-view .account-head-actions {
+  padding: 2px;
+  border-radius: 999px;
+}
+
+.accounts-view .scan-all-accounts,
+.accounts-view .delete-persistent-failed,
+.accounts-view .delete-all-sources {
+  border-width: 1px;
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+  transition: transform 120ms ease, filter 140ms ease, background 140ms ease;
+}
+
+.accounts-view .scan-all-accounts:hover,
+.accounts-view .delete-persistent-failed:hover,
+.accounts-view .delete-all-sources:hover {
+  filter: brightness(1.12);
+}
+
+.accounts-view .scan-all-accounts:active,
+.accounts-view .delete-persistent-failed:active,
+.accounts-view .delete-all-sources:active {
+  transform: scale(.97);
+}
+
+.accounts-view .account-auto-scan-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-color: rgba(10,132,255,.16);
+  color: #aac0d8;
+  background:
+    linear-gradient(90deg, rgba(10,132,255,.09), rgba(255,255,255,.025));
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.accounts-view .account-auto-scan-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64d2ff;
+  box-shadow: 0 0 0 3px rgba(100,210,255,.09);
+}
+
+.accounts-view .account-auto-scan-status[data-running="true"]::before {
+  background: #30d158;
+  box-shadow:
+    0 0 0 3px rgba(48,209,88,.10),
+    0 0 12px rgba(48,209,88,.32);
+}
+
+.accounts-view .account-search-row {
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+}
+
+.accounts-view .account-search-row input,
+.accounts-view .account-search-row select {
+  border-color: rgba(255,255,255,.075);
+  background: rgba(20,20,22,.72);
+  box-shadow: inset 0 1px rgba(255,255,255,.02);
+}
+
+.accounts-view .account-search-row input:focus,
+.accounts-view .account-search-row select:focus {
+  border-color: rgba(10,132,255,.48);
+  box-shadow: 0 0 0 2px rgba(10,132,255,.10);
+}
+
+.accounts-view .account-scan-summary {
+  padding: 2px 1px;
+}
+
+.accounts-view .account-scan-summary span {
+  border-color: rgba(255,255,255,.075);
+  background: rgba(255,255,255,.04);
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.accounts-view .source-list {
+  position: relative;
+  z-index: 1;
+  padding: 1px 1px 3px;
+}
+
+.accounts-view .source-pill-item,
+.accounts-view .source-item {
+  position: relative;
+  border-color: rgba(255,255,255,.07);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.052), rgba(255,255,255,.032));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.035),
+    0 5px 14px rgba(0,0,0,.08);
+  transition:
+    transform 120ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.accounts-view .source-pill-item:hover,
+.accounts-view .source-item:hover {
+  border-color: rgba(255,255,255,.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.045));
+}
+
+.accounts-view .source-pill-item.is-active,
+.accounts-view .source-item.is-active {
+  border-color: rgba(10,132,255,.42);
+  background:
+    linear-gradient(90deg, rgba(10,132,255,.17), rgba(10,132,255,.07) 38%, rgba(255,255,255,.035));
+  box-shadow:
+    inset 3px 0 #0a84ff,
+    inset 0 1px rgba(255,255,255,.05),
+    0 6px 16px rgba(10,132,255,.08);
+}
+
+.accounts-view .source-pill-item.health-failed {
+  border-color: rgba(255,69,58,.20);
+  box-shadow:
+    inset 2px 0 rgba(255,69,58,.52),
+    inset 0 1px rgba(255,255,255,.025);
+}
+
+.accounts-view .source-pill-item.health-expired {
+  border-color: rgba(255,214,10,.20);
+  box-shadow:
+    inset 2px 0 rgba(255,214,10,.50),
+    inset 0 1px rgba(255,255,255,.025);
+}
+
+.accounts-view .source-health-badge {
+  border: 1px solid rgba(255,255,255,.055);
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+
+.accounts-view .source-pill-copy strong,
+.accounts-view .source-copy strong {
+  color: #f2f2f7;
+  letter-spacing: -.01em;
+}
+
+.accounts-view .source-pill-copy small,
+.accounts-view .source-copy small {
+  color: #8f8f98;
+}
+
+.accounts-view .source-pill-actions {
+  border-left: 1px solid rgba(255,255,255,.055);
+}
+
+.accounts-view .source-pill-scan,
+.accounts-view .source-pill-delete {
+  transition: background 130ms ease, color 130ms ease;
+}
+
+.accounts-view .source-pill-scan:hover {
+  color: #bfeaff;
+  background: rgba(100,210,255,.10);
+}
+
+.accounts-view .source-pill-delete:hover {
+  color: #ffb6b1;
+  background: rgba(255,69,58,.14);
+}
+
+@media (max-width: 860px) {
+  .accounts-view {
+    border-radius: 14px;
+  }
+
+  .accounts-view .source-action-row,
+  .accounts-view .account-search-row {
+    border-radius: 11px;
+  }
+
+  .accounts-view .source-pill-item,
+  .accounts-view .source-item {
+    border-radius: 11px;
+    box-shadow:
+      inset 0 1px rgba(255,255,255,.03),
+      0 3px 10px rgba(0,0,0,.06);
+  }
+}

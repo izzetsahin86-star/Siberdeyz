@@ -197,7 +197,12 @@ export function createFullSiteScanController({ onSaved } = {}) {
   }
 
   function updateSaveButton() {
-    elements.save.disabled = saving || selected.size === 0 || !snapshot?.jobId;
+    elements.save.disabled = (
+      saving
+      || selected.size === 0
+      || !snapshot?.jobId
+      || isActiveStatus(snapshot?.status)
+    );
     elements.save.textContent = saving
       ? 'Kaydediliyor...'
       : ('Secilenleri Kaydet (' + selected.size + ')');

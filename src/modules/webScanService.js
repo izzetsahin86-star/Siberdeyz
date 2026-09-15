@@ -344,6 +344,53 @@ function makeCandidate(url, index, discoveredBy) {
   };
 }
 
+function extractMediaUrlsFromText(text, baseUrl) {
+  const found = new Set();
+  const normalized = String(text || '').replace(/\\\//g, '/');
+
+  const absolutePattern = /https?:\/\/[^"'<>\\s]+?\.(?:m3u8|mp4|m4v|mov|webm|mkv|mpd)(?:\?[^"'<>\\s]*)?/gi;
+  for (const match of normalized.matchAll(absolutePattern)) {
+    try {
+      found.add(new URL(match[0], baseUrl).toString());
+    } catch {
+      // Gecersiz URL yok sayilir.
+    }
+  }
+
+  const relativePattern = /(?:src|href|file|url)\s*[:=]\s*["']([^"']+\.(?:m3u8|mp4|m4v|mov|webm|mkv|mpd)(?:\?[^"']*)?)["']/gi;
+  for (const match of normalized.matchAll(relativePattern)) {
+    try {
+      found.add(new URL(match[1], baseUrl).toString());
+    } catch {
+      // Gecersiz URL yok sayilir.
+    }
+  }
+
+  return [...found].slice(0, MAX_CANDIDATES);
+}
+
+async function discoverStatically(pageUrl) {
+  const response = await safeFetch(pageUrl, {
+    signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
+    headers: {
+      accept: 'text/html,application/xhtml+xml,text/plain,*/*',
+    },
+  });
+
+  if (!response.ok) throw new Error('Web sayfasi acilamadi: HTTP ' + response.status);
+  const text = await readTextLimited(response, 2500000);
+  const titleMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const pageTitle = titleMatch
+    ? titleMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    : '';
+
+  return {
+    pageTitle,
+    candidates: extractMediaUrlsFromText(text, response.url || pageUrl)
+      .map((url, index) => makeCandidate(url, index + 1, 'html')),
+  };
+}
+
 async function discoverWithBrowser(pageUrl) {
   const browser = await puppeteer.launch({
     executablePath: getChromiumPath(),
@@ -531,7 +578,39 @@ export async function scanWebPage(rawUrl) {
 
   try {
     const pageUrl = (await assertPublicHttpUrl(rawUrl)).toString();
-    const discovery = await discoverWithBrowser(pageUrl);
+
+    let browserDiscovery = { pageTitle: '', candidates: [] };
+    let staticDiscovery = { pageTitle: '', candidates: [] };
+
+    try {
+      browserDiscovery = await discoverWithBrowser(pageUrl);
+    } catch {
+      // Bazi siteler headless tarayiciyi engelleyebilir; statik motor devam eder.
+    }
+
+    try {
+      staticDiscovery = await discoverStatically(pageUrl);
+    } catch {
+      // Tarayici motoru sonuc verdiyse statik motor hatasi kritik degildir.
+    }
+
+    const merged = new Map();
+    for (const candidate of [...browserDiscovery.candidates, ...staticDiscovery.candidates]) {
+      if (!merged.has(candidate.url) && merged.size < MAX_CANDIDATES) {
+        merged.set(candidate.url, candidate);
+      }
+    }
+
+    if (merged.size === 0) {
+      const error = new Error('Bu sayfada erisilebilir video veya yayin kaynagi bulunamadi.');
+      error.status = 404;
+      throw error;
+    }
+
+    const discovery = {
+      pageTitle: browserDiscovery.pageTitle || staticDiscovery.pageTitle || '',
+      candidates: [...merged.values()],
+    };
     const detected = discovery.candidates.slice(0, MAX_CANDIDATES);
 
     const probed = await mapWithConcurrency(detected, 4, async (candidate) => {

@@ -43,7 +43,7 @@ export function attachPlaybackTimeline(player, elements) {
 
     currentTime.textContent = formatTime(safeTime);
     durationTime.textContent = duration > 0 ? formatTime(duration) : '--:--';
-    progressFill.style.transform = `scaleX(${ratio})`;
+    progressFill.style.transform = `translateY(-50%) scaleX(${ratio})`;
     track.style.setProperty('--timeline-progress', `${ratio * 100}%`);
     track.setAttribute('aria-valuemax', String(Math.round(duration || 0)));
     track.setAttribute('aria-valuenow', String(Math.round(safeTime)));

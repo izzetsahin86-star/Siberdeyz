@@ -30,9 +30,9 @@
     <section id="loginScreen" class="login-screen">
       <form id="loginForm" class="login-box">
         <p class="eyebrow">Siberdeyz</p>
-        <h1>Admin Girisi</h1>
-        <p class="login-copy">Yayin merkezini yonetmek icin admin sifrenizle giris yapin.</p>
-        <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" autocomplete="current-password" />
+        <h1>Siberdeyz Girisi</h1>
+        <p class="login-copy">Yonetici veya kullanici sifrenizle giris yapin.</p>
+        <input id="adminPasswordInput" type="password" placeholder="Sifre" autocomplete="current-password" />
         <button id="loginButton" type="submit">Giris Yap</button>
         <p id="loginStatus" class="source-status" hidden></p>
       </form>
@@ -234,6 +234,27 @@
                     <option value="compact">Kompakt</option>
                   </select>
                 </label>
+              </section>
+
+              <section id="userAccessCard" class="setting-card user-access-card" hidden>
+                <div class="setting-card-head">
+                  <h2>Kullanici Erisimi</h2>
+                  <p>Kullanici sifresi uret. Bu sifreyle giren kisi yalnizca kendi yayinlarini gorur ve kendi listesini yukler.</p>
+                </div>
+                <div class="user-access-create">
+                  <input id="userAccessLabel" type="text" maxlength="80" placeholder="Kullanici adi (istege bagli)" autocomplete="off" />
+                  <button id="generateUserPasswordButton" class="setting-action-button" type="button">Sifre Uret</button>
+                </div>
+                <div id="generatedUserPasswordBox" class="generated-password-box" hidden>
+                  <span>Yeni kullanici sifresi</span>
+                  <div>
+                    <strong id="generatedUserPassword"></strong>
+                    <button id="copyGeneratedUserPasswordButton" type="button">Kopyala</button>
+                  </div>
+                  <small>Bu sifre tekrar gosterilmez. Kullaniciya simdi iletin.</small>
+                </div>
+                <div id="userAccessStatus" class="user-access-status" hidden></div>
+                <div id="userAccessList" class="user-access-list"></div>
               </section>
 
               <section class="setting-card setting-card-danger">

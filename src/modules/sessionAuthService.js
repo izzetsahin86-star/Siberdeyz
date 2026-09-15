@@ -129,7 +129,6 @@ function cookieOptions(req) {
     secure,
     sameSite: 'strict',
     path: '/',
-    maxAge: SESSION_TTL_MS,
   };
 }
 

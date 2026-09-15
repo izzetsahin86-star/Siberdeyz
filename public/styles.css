@@ -1795,3 +1795,237 @@ select:focus {
   outline: 2px solid rgba(10,132,255,.9);
   outline-offset: 2px;
 }
+
+
+/* Compact accounts panel */
+.accounts-view {
+  gap: 5px;
+  padding: 7px 9px 9px;
+}
+
+.accounts-view .source-status {
+  min-height: 0;
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.accounts-view .source-tools {
+  gap: 5px;
+}
+
+.accounts-view .source-action-row {
+  grid-template-columns: minmax(0, 1fr) 82px;
+  gap: 5px;
+}
+
+.accounts-view .file-upload-card,
+.accounts-view .pill-action-button {
+  min-height: 34px;
+  border-radius: 11px;
+}
+
+.accounts-view .file-upload-card {
+  gap: 5px;
+  padding: 5px 9px;
+}
+
+.accounts-view .file-upload-card span {
+  font-size: 11px;
+}
+
+.accounts-view .file-upload-card small {
+  font-size: 8px;
+}
+
+.accounts-view .pill-action-button {
+  font-size: 10px;
+}
+
+.accounts-view .source-url-form {
+  grid-template-columns: minmax(82px, .30fr) minmax(0, 1fr) 64px;
+  gap: 5px;
+}
+
+.accounts-view .source-url-form input {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.accounts-view .source-url-form #saveSourceButton {
+  min-height: 34px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.accounts-view .account-list-head {
+  min-height: 25px;
+  gap: 5px;
+  padding: 0;
+}
+
+.accounts-view .account-list-title {
+  gap: 5px;
+}
+
+.accounts-view .account-list-title strong {
+  font-size: 10px;
+}
+
+.accounts-view .account-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 9px;
+}
+
+.accounts-view .account-head-actions {
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.accounts-view .account-head-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.accounts-view .scan-all-accounts,
+.accounts-view .delete-persistent-failed,
+.accounts-view .delete-all-sources {
+  flex: 0 0 auto;
+  min-height: 25px;
+  padding: 4px 7px;
+  font-size: 8px;
+}
+
+.accounts-view .account-auto-scan-status {
+  min-height: 23px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  font-size: 8px;
+  line-height: 1.25;
+}
+
+.accounts-view .account-search-row {
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 5px;
+}
+
+.accounts-view .account-search-row input,
+.accounts-view .account-search-row select {
+  min-height: 32px;
+  border-radius: 9px;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.accounts-view .account-search-row select {
+  padding-right: 22px;
+}
+
+.accounts-view .account-scan-summary {
+  gap: 4px;
+}
+
+.accounts-view .account-scan-summary span {
+  min-height: 20px;
+  padding: 3px 6px;
+  font-size: 8px;
+}
+
+.accounts-view .source-list {
+  gap: 4px;
+  padding-bottom: 1px;
+}
+
+.accounts-view .source-pill-item,
+.accounts-view .source-item {
+  flex-basis: 220px;
+  max-width: 330px;
+  min-height: 38px;
+  border-radius: 12px;
+}
+
+.accounts-view .source-pill-select,
+.accounts-view .source-select {
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+.accounts-view .source-health-badge {
+  min-width: 60px;
+  max-width: 72px;
+  padding: 4px 5px;
+  font-size: 7px;
+}
+
+.accounts-view .source-pill-copy strong,
+.accounts-view .source-copy strong {
+  font-size: 10px;
+}
+
+.accounts-view .source-pill-copy small,
+.accounts-view .source-copy small {
+  margin-top: 1px;
+  font-size: 8px;
+}
+
+.accounts-view .source-pill-scan,
+.accounts-view .source-pill-delete {
+  min-width: 36px;
+  padding: 0 6px;
+  font-size: 8px;
+}
+
+.accounts-view .source-pill-delete,
+.accounts-view .mini-danger-button {
+  min-width: 38px;
+  padding: 0 7px;
+  font-size: 8px;
+}
+
+.accounts-view .account-render-hint {
+  padding: 1px 2px 0;
+  font-size: 8px;
+}
+
+@media (max-width: 860px) {
+  .accounts-view {
+    padding: 6px 7px 8px;
+  }
+
+  .accounts-view .source-action-row {
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 4px;
+  }
+
+  .accounts-view .source-url-form {
+    grid-template-columns: minmax(0, 1fr) 64px;
+    gap: 4px;
+  }
+
+  .accounts-view .source-url-form input,
+  .accounts-view #accountSearchInput {
+    font-size: 16px;
+  }
+
+  .accounts-view .account-search-row {
+    grid-template-columns: minmax(0, 1fr) 100px;
+    gap: 4px;
+  }
+
+  .accounts-view .account-search-row select {
+    font-size: 12px;
+  }
+
+  .accounts-view .source-pill-item,
+  .accounts-view .source-item {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    min-height: 38px;
+  }
+}

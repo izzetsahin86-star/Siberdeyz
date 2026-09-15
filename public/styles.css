@@ -3499,3 +3499,53 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr) 118px;
   }
 }
+
+
+/* Match Accounts panel height with Channels and enlarge the loaded accounts area. */
+@media (max-width: 860px) {
+  .content-panel[data-open="accounts"] {
+    height: min(58dvh, 480px);
+    min-height: 230px;
+    max-height: min(58dvh, 480px);
+  }
+
+  .accounts-view {
+    grid-template-rows:
+      auto
+      auto
+      auto
+      auto
+      auto
+      auto
+      minmax(min(24dvh, 190px), 1fr)
+      auto;
+  }
+
+  .accounts-view .source-list {
+    min-height: min(24dvh, 190px);
+  }
+}
+
+@media (min-width: 861px) {
+  .content-panel[data-open="accounts"] {
+    height: clamp(260px, 34dvh, 420px);
+    min-height: 260px;
+    max-height: 420px;
+  }
+
+  .accounts-view {
+    grid-template-rows:
+      auto
+      auto
+      auto
+      auto
+      auto
+      auto
+      minmax(150px, 1fr)
+      auto;
+  }
+
+  .accounts-view .source-list {
+    min-height: 150px;
+  }
+}

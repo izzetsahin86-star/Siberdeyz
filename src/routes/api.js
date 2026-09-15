@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { loginAdmin, logoutAdmin, requireAdminSession } from '../modules/sessionAuthService.js';
+import { loginSession, logoutSession, requireAdminSession, requireAppSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
@@ -19,6 +19,7 @@ import { deleteAccountsByIds } from '../modules/accountBulkDeleteService.js';
 import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler } from '../modules/accountAutoScanScheduler.js';
 import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
+import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
 
 export const apiRouter = Router();
 
@@ -72,10 +73,34 @@ apiRouter.get('/health', (req, res) => {
   res.json({ ok: true, name: 'Siberdeyz IPTV Player' });
 });
 
-apiRouter.post('/admin/login', loginAdmin);
-apiRouter.post('/admin/logout', logoutAdmin);
+apiRouter.post('/admin/login', loginSession);
+apiRouter.post('/admin/logout', logoutSession);
 
-apiRouter.use(requireAdminSession);
+apiRouter.use(requireAppSession);
+
+apiRouter.get('/admin/users', requireAdminSession, async (req, res, next) => {
+  try {
+    res.json(await listAccessUsers());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/admin/users', requireAdminSession, async (req, res, next) => {
+  try {
+    res.status(201).json(await createAccessUser(req.body?.label));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/admin/users/:id', requireAdminSession, async (req, res, next) => {
+  try {
+    res.json(await revokeAccessUser(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
 
 apiRouter.get('/settings', async (req, res, next) => {
   try {

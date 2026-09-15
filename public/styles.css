@@ -401,86 +401,6 @@ video {
   object-fit: contain;
 }
 
-.simple-timeline {
-  position: absolute;
-  z-index: 4;
-  left: 12px;
-  right: 12px;
-  bottom: 60px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 5px 8px;
-  border-radius: 999px;
-  color: #f5f5f7;
-  background: rgba(12,12,14,.72);
-  box-shadow: 0 5px 16px rgba(0,0,0,.24);
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-.simple-timeline[hidden] {
-  display: none;
-}
-
-.simple-timeline input[type="range"] {
-  width: 100%;
-  min-width: 0;
-  height: 18px;
-  margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  --seek-progress: 0%;
-}
-
-.simple-timeline input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background:
-    linear-gradient(
-      90deg,
-      #0a84ff 0 var(--seek-progress),
-      rgba(255,255,255,.24) var(--seek-progress) 100%
-    );
-}
-
-.simple-timeline input[type="range"]::-webkit-slider-thumb {
-  width: 13px;
-  height: 13px;
-  margin-top: -4.5px;
-  appearance: none;
-  -webkit-appearance: none;
-  border: 0;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 5px rgba(0,0,0,.32);
-}
-
-.simple-timeline input[type="range"]::-moz-range-track {
-  height: 4px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255,255,255,.24);
-}
-
-.simple-timeline input[type="range"]::-moz-range-progress {
-  height: 4px;
-  border-radius: 999px;
-  background: #0a84ff;
-}
-
-.simple-timeline input[type="range"]::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
-  border: 0;
-  border-radius: 50%;
-  background: #fff;
-}
-
 .player-meta {
   position: relative;
   z-index: 4;
@@ -1474,16 +1394,6 @@ select:focus {
   .watch-area {
     min-height: 0;
     border-radius: 26px;
-  }
-
-  .simple-timeline {
-    left: 8px;
-    right: 8px;
-    bottom: 54px;
-    min-height: 28px;
-    padding: 4px 7px;
-    gap: 6px;
-    font-size: 8px;
   }
 
   .player-meta {

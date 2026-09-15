@@ -70,6 +70,7 @@ const elements = {
   playbackCurrentTime: document.querySelector('#playbackCurrentTime'),
   playbackDurationTime: document.querySelector('#playbackDurationTime'),
   playbackProgressFill: document.querySelector('#playbackProgressFill'),
+  playbackTimelineTrack: document.querySelector('#playbackTimelineTrack'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
@@ -1207,4 +1208,5 @@ attachPlaybackTimeline(elements.player, {
   currentTime: elements.playbackCurrentTime,
   durationTime: elements.playbackDurationTime,
   progressFill: elements.playbackProgressFill,
+  track: elements.playbackTimelineTrack,
 });

@@ -1,6 +1,7 @@
 import { attachPlaybackTimeline } from './playerTimeline.js';
 import { sourceHasMultipleConnections } from './accountMultiConnection.js';
 import { createAppSettingsController } from './appSettings.js';
+import { createUserAccessSettingsController } from './userAccessSettings.js';
 
 const PAGE_SIZE = 100;
 
@@ -18,6 +19,9 @@ const state = {
   loading: false,
   started: false,
   soundEnabled: false,
+  sessionRole: '',
+  sessionUserId: '',
+  sessionLabel: '',
   appSettings: {
     startupSound: false,
     autoScanMinutes: 60,
@@ -49,6 +53,7 @@ let playbackRetryTimer = null;
 let playbackRetryAttempt = 0;
 let playbackUsingCompatibility = false;
 let settingsController = null;
+let userAccessController = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -385,6 +390,9 @@ async function login(adminPassword) {
     throw new Error(data.error || 'Giris yapilamadi');
   }
 
+  state.sessionRole = data.role || 'user';
+  state.sessionUserId = data.userId || '';
+  state.sessionLabel = data.label || '';
   elements.adminPasswordInput.value = '';
   setLoginStatus('');
 
@@ -392,6 +400,12 @@ async function login(adminPassword) {
     await settingsController?.load();
   } catch {
     applyAppSettings(state.appSettings, { initial: true });
+  }
+
+  try {
+    await userAccessController?.setSession(data);
+  } catch {
+    // Kullanici yonetimi ana uygulama girisini engellememeli.
   }
 
   showApp();
@@ -1463,6 +1477,8 @@ elements.saveSourceButton.addEventListener('click', () => {
     setSourceStatus(error.message, 'error');
   });
 });
+
+userAccessController = createUserAccessSettingsController();
 
 settingsController = createAppSettingsController({
   onSettingsChange(settings, meta) {

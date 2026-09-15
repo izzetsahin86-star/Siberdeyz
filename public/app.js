@@ -22,7 +22,6 @@ const state = {
 
 let searchTimer;
 let playbackFallbackHandler = null;
-let playerOverlayTimer = null;
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -58,18 +57,11 @@ const elements = {
   typeButtons: document.querySelectorAll('[data-type-filter]'),
   favoritesFilterButton: document.querySelector('[data-favorites-filter]'),
   controlButtons: document.querySelectorAll('.control-button'),
-  watchArea: document.querySelector('#watchArea'),
   player: document.querySelector('#player'),
-  playerControls: document.querySelector('#playerControls'),
-  currentTime: document.querySelector('#currentTime'),
-  durationTime: document.querySelector('#durationTime'),
-  seekSlider: document.querySelector('#seekSlider'),
-  liveIndicator: document.querySelector('#liveIndicator'),
-  rewindButton: document.querySelector('#rewindButton'),
-  playPauseButton: document.querySelector('#playPauseButton'),
-  playPauseIcon: document.querySelector('#playPauseIcon'),
-  forwardButton: document.querySelector('#forwardButton'),
-  fullscreenButton: document.querySelector('#fullscreenButton'),
+  simpleTimeline: document.querySelector('#simpleTimeline'),
+  simpleCurrentTime: document.querySelector('#simpleCurrentTime'),
+  simpleSeekSlider: document.querySelector('#simpleSeekSlider'),
+  simpleDurationTime: document.querySelector('#simpleDurationTime'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
@@ -136,140 +128,43 @@ function applySoundSetting() {
     : 'Video her acilista sessiz baslar.';
 }
 
-function formatPlaybackTime(value) {
+function formatSimpleTime(value) {
   const seconds = Number(value);
   if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
 
-  const wholeSeconds = Math.floor(seconds);
-  const hours = Math.floor(wholeSeconds / 3600);
-  const minutes = Math.floor((wholeSeconds % 3600) / 60);
-  const remainingSeconds = wholeSeconds % 60;
+  const total = Math.floor(seconds);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
 
   if (hours > 0) {
-    return [hours, minutes, remainingSeconds]
-      .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, '0'))
-      .join(':');
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }
 
   return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-function getPlayableDuration() {
+function updateSimpleTimeline() {
   const duration = Number(elements.player.duration);
-  return Number.isFinite(duration) && duration > 0 ? duration : 0;
-}
+  const isSeekable = Number.isFinite(duration) && duration > 0;
 
-function clearPlayerOverlayTimer() {
-  if (!playerOverlayTimer) return;
-  clearTimeout(playerOverlayTimer);
-  playerOverlayTimer = null;
-}
+  elements.simpleTimeline.hidden = !isSeekable;
 
-function hidePlayerOverlay() {
-  clearPlayerOverlayTimer();
-  elements.playerControls.classList.remove('is-visible');
-}
-
-function showPlayerOverlay({ autoHide = true } = {}) {
-  clearPlayerOverlayTimer();
-  elements.playerControls.classList.add('is-visible');
-
-  if (!autoHide) return;
-
-  const delay = elements.player.paused ? 4000 : 2400;
-  playerOverlayTimer = setTimeout(hidePlayerOverlay, delay);
-}
-
-function togglePlayerOverlay() {
-  if (!state.currentChannelId) return;
-
-  if (elements.playerControls.classList.contains('is-visible')) {
-    hidePlayerOverlay();
-  } else {
-    showPlayerOverlay();
-  }
-}
-
-function updatePlayerControls() {
-  const hasSource = Boolean(
-    state.currentChannelId &&
-    (elements.player.currentSrc || elements.player.getAttribute('src'))
-  );
-  const duration = getPlayableDuration();
-  const isVod = hasSource && duration > 0;
-  const isLive = hasSource && elements.player.readyState >= 1 && !Number.isFinite(Number(elements.player.duration));
-
-  elements.playerControls.dataset.mode = isLive ? 'live' : (isVod ? 'vod' : 'idle');
-  elements.seekSlider.disabled = !isVod;
-  elements.rewindButton.disabled = !isVod;
-  elements.forwardButton.disabled = !isVod;
-  elements.playPauseButton.disabled = !hasSource;
-  elements.liveIndicator.hidden = !isLive;
-
-  if (isVod) {
-    const currentTime = Math.min(Math.max(Number(elements.player.currentTime) || 0, 0), duration);
-    const progress = duration > 0 ? Math.min(1000, Math.max(0, Math.round((currentTime / duration) * 1000))) : 0;
-
-    elements.currentTime.textContent = formatPlaybackTime(currentTime);
-    elements.durationTime.textContent = formatPlaybackTime(duration);
-    elements.seekSlider.value = String(progress);
-    elements.seekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
-  } else {
-    elements.currentTime.textContent = '00:00';
-    elements.durationTime.textContent = '--:--';
-    elements.seekSlider.value = '0';
-    elements.seekSlider.style.setProperty('--seek-progress', '0%');
+  if (!isSeekable) {
+    elements.simpleSeekSlider.value = '0';
+    elements.simpleCurrentTime.textContent = '00:00';
+    elements.simpleDurationTime.textContent = '--:--';
+    elements.simpleSeekSlider.style.setProperty('--seek-progress', '0%');
+    return;
   }
 
-  const paused = elements.player.paused || elements.player.ended;
-  elements.playPauseIcon.textContent = paused ? '▶' : '❚❚';
-  elements.playPauseButton.setAttribute('aria-label', paused ? 'Oynat' : 'Duraklat');
-}
+  const currentTime = Math.min(Math.max(Number(elements.player.currentTime) || 0, 0), duration);
+  const progress = Math.min(1000, Math.max(0, Math.round((currentTime / duration) * 1000)));
 
-function seekRelative(seconds) {
-  const duration = getPlayableDuration();
-  if (!duration) return;
-
-  const nextTime = Math.min(
-    duration,
-    Math.max(0, (Number(elements.player.currentTime) || 0) + seconds)
-  );
-
-  elements.player.currentTime = nextTime;
-  updatePlayerControls();
-}
-
-function togglePlayerPlayback() {
-  if (!state.currentChannelId) return;
-
-  if (elements.player.paused || elements.player.ended) {
-    elements.player.play().catch(() => {
-      setStatus('Oynatmak icin tekrar dokunun.', 'warning');
-    });
-  } else {
-    elements.player.pause();
-  }
-}
-
-async function togglePlayerFullscreen() {
-  try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-
-    if (elements.watchArea?.requestFullscreen) {
-      await elements.watchArea.requestFullscreen();
-      return;
-    }
-
-    if (typeof elements.player.webkitEnterFullscreen === 'function') {
-      elements.player.controls = true;
-      elements.player.webkitEnterFullscreen();
-    }
-  } catch {
-    setStatus('Tam ekran bu cihazda kullanilamiyor.', 'warning');
-  }
+  elements.simpleCurrentTime.textContent = formatSimpleTime(currentTime);
+  elements.simpleDurationTime.textContent = formatSimpleTime(duration);
+  elements.simpleSeekSlider.value = String(progress);
+  elements.simpleSeekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
 }
 
 function clearChannelState() {
@@ -337,8 +232,7 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
-  hidePlayerOverlay();
-  updatePlayerControls();
+  updateSimpleTimeline();
   if (resetSound) {
     state.soundEnabled = false;
     applySoundSetting();
@@ -822,8 +716,7 @@ async function playChannel(channelId) {
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
   setPlaybackSource(channel);
-  updatePlayerControls();
-  showPlayerOverlay();
+  updateSimpleTimeline();
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
@@ -957,79 +850,28 @@ elements.soundToggleInput.addEventListener('change', (event) => {
   applySoundSetting();
 });
 
-elements.player.addEventListener('click', () => {
-  togglePlayerOverlay();
-});
+['loadedmetadata', 'durationchange', 'timeupdate', 'emptied']
+  .forEach((eventName) => {
+    elements.player.addEventListener(eventName, updateSimpleTimeline);
+  });
 
-elements.playPauseButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-  togglePlayerPlayback();
-  showPlayerOverlay();
-});
-
-elements.rewindButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-  seekRelative(-10);
-  showPlayerOverlay();
-});
-
-elements.forwardButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-  seekRelative(10);
-  showPlayerOverlay();
-});
-
-elements.seekSlider.addEventListener('pointerdown', () => {
-  clearPlayerOverlayTimer();
-});
-
-elements.seekSlider.addEventListener('input', (event) => {
-  const duration = getPlayableDuration();
-  if (!duration) return;
+elements.simpleSeekSlider.addEventListener('input', (event) => {
+  const duration = Number(elements.player.duration);
+  if (!Number.isFinite(duration) || duration <= 0) return;
 
   const progress = Number(event.target.value) || 0;
   const previewTime = (progress / 1000) * duration;
-  elements.currentTime.textContent = formatPlaybackTime(previewTime);
-  elements.seekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
+  elements.simpleCurrentTime.textContent = formatSimpleTime(previewTime);
+  elements.simpleSeekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
 });
 
-elements.seekSlider.addEventListener('change', (event) => {
-  const duration = getPlayableDuration();
-  if (!duration) return;
+elements.simpleSeekSlider.addEventListener('change', (event) => {
+  const duration = Number(elements.player.duration);
+  if (!Number.isFinite(duration) || duration <= 0) return;
 
   const progress = Number(event.target.value) || 0;
   elements.player.currentTime = (progress / 1000) * duration;
-  updatePlayerControls();
-  showPlayerOverlay();
-});
-
-elements.fullscreenButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-  showPlayerOverlay();
-  togglePlayerFullscreen();
-});
-
-['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended', 'emptied', 'canplay']
-  .forEach((eventName) => {
-    elements.player.addEventListener(eventName, () => {
-      updatePlayerControls();
-
-      if (eventName === 'pause') showPlayerOverlay({ autoHide: false });
-      if (eventName === 'play') showPlayerOverlay();
-      if (eventName === 'ended') showPlayerOverlay({ autoHide: false });
-    });
-  });
-
-elements.player.addEventListener('webkitendfullscreen', () => {
-  elements.player.controls = false;
-  updatePlayerControls();
-});
-
-document.addEventListener('fullscreenchange', () => {
-  elements.fullscreenButton.setAttribute(
-    'aria-label',
-    document.fullscreenElement ? 'Tam ekrandan cik' : 'Tam ekran'
-  );
+  updateSimpleTimeline();
 });
 
 elements.loadMoreButton.addEventListener('click', () => {
@@ -1070,4 +912,4 @@ renderGroups();
 renderTypeFilters();
 renderSources();
 applySoundSetting();
-updatePlayerControls();
+updateSimpleTimeline();

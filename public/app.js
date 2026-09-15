@@ -105,6 +105,7 @@ const elements = {
   playbackProgressFill: document.querySelector('#playbackProgressFill'),
   playbackTimelineTrack: document.querySelector('#playbackTimelineTrack'),
   currentChannel: document.querySelector('#currentChannel'),
+  deleteSelectedWebScanButton: document.querySelector('#deleteSelectedWebScanButton'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
   sourceInput: document.querySelector('#sourceInput'),
@@ -159,6 +160,82 @@ function setSourceStatus(message, type = 'info') {
 
 function setLoginStatus(message, type = 'info') {
   setTextStatus(elements.loginStatus, message, type);
+}
+
+function getActiveSource() {
+  return state.sources.find((source) => source.id === state.activeSourceId)
+    || state.sources.find((source) => source.active)
+    || null;
+}
+
+function updateSelectedWebScanDeleteButton() {
+  if (!elements.deleteSelectedWebScanButton) return;
+
+  const source = getActiveSource();
+  const visible = Boolean(
+    state.currentChannelId
+    && source
+    && source.type === 'file'
+    && source.sourceKind === 'web-scan'
+  );
+
+  elements.deleteSelectedWebScanButton.hidden = !visible;
+
+  if (!visible) {
+    elements.deleteSelectedWebScanButton.disabled = false;
+    elements.deleteSelectedWebScanButton.textContent = 'Yayini Sil';
+  }
+}
+
+async function deleteSelectedWebScanChannel() {
+  const channelId = String(state.currentChannelId || '');
+  const source = getActiveSource();
+
+  if (!channelId || !source || source.sourceKind !== 'web-scan') return;
+
+  const channel = state.channels.find((item) => item.id === channelId);
+  const channelName = channel?.name || elements.currentChannel.textContent || 'Secili yayin';
+
+  if (!window.confirm('"' + channelName + '" Web Tarama hesabindan silinsin mi?')) return;
+
+  elements.deleteSelectedWebScanButton.disabled = true;
+  elements.deleteSelectedWebScanButton.textContent = 'Siliniyor...';
+
+  try {
+    const response = await fetch('/api/web-scan/channel/' + encodeURIComponent(channelId), {
+      method: 'DELETE',
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Yayin silinemedi.');
+    }
+
+    stopPlayback({ message: '', resetSound: false });
+    setSourceState(data);
+
+    state.group = 'Tumu';
+    state.type = 'all';
+    state.favoritesOnly = false;
+    state.search = '';
+    state.channels = [];
+    state.hasMore = false;
+    elements.searchInput.value = '';
+
+    if (data.hasSource) {
+      await loadChannels({ force: true, reset: true });
+    } else {
+      clearChannelState();
+    }
+
+    setStatus(
+      data.sourceRemoved
+        ? channelName + ' silindi. Bos Web Tarama hesabi da kaldirildi.'
+        : channelName + ' Web Tarama hesabindan silindi.'
+    );
+  } finally {
+    updateSelectedWebScanDeleteButton();
+  }
 }
 
 function setLoading(isLoading) {
@@ -292,6 +369,7 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
+  updateSelectedWebScanDeleteButton();
   if (resetSound) {
     state.soundEnabled = false;
     applySoundSetting();
@@ -789,6 +867,7 @@ function setSourceState(data) {
   );
 
   renderSources();
+  updateSelectedWebScanDeleteButton();
 
   if (data.hasSource) {
     setSourceStatus(`${state.sources.length} hesap kayitli.`);
@@ -1327,6 +1406,7 @@ async function playChannel(channelId) {
   setPanelCompact(true);
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
+  updateSelectedWebScanDeleteButton();
   elements.player.muted = !state.soundEnabled;
   setPlaybackSource(channel);
   elements.player.play().catch(() => {
@@ -1397,6 +1477,14 @@ elements.groupChips.addEventListener('click', (event) => {
 });
 
 elements.closePanelButton.addEventListener('click', closePanel);
+
+elements.deleteSelectedWebScanButton?.addEventListener('click', () => {
+  deleteSelectedWebScanChannel().catch((error) => {
+    setStatus(error.message, 'error');
+    updateSelectedWebScanDeleteButton();
+  });
+});
+
 
 elements.controlButtons.forEach((button) => {
   button.addEventListener('click', () => {

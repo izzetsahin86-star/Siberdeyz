@@ -28,7 +28,6 @@ const state = {
 
 let searchTimer;
 let playbackFallbackHandler = null;
-let simpleSeekDragging = false;
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -65,10 +64,6 @@ const elements = {
   currentGroupLabel: document.querySelector('#currentGroupLabel'),
   controlButtons: document.querySelectorAll('.control-button'),
   player: document.querySelector('#player'),
-  simpleTimeline: document.querySelector('#simpleTimeline'),
-  simpleCurrentTime: document.querySelector('#simpleCurrentTime'),
-  simpleSeekSlider: document.querySelector('#simpleSeekSlider'),
-  simpleDurationTime: document.querySelector('#simpleDurationTime'),
   currentChannel: document.querySelector('#currentChannel'),
   adminPasswordInput: document.querySelector('#adminPasswordInput'),
   sourceNameInput: document.querySelector('#sourceNameInput'),
@@ -141,49 +136,6 @@ function applySoundSetting() {
     : 'Video her acilista sessiz baslar.';
 }
 
-function formatSimpleTime(value) {
-  const seconds = Number(value);
-  if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
-
-  const total = Math.floor(seconds);
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const remainingSeconds = total % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-  }
-
-  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-}
-
-function updateSimpleTimeline() {
-  const duration = Number(elements.player.duration);
-  const isSeekable = Number.isFinite(duration) && duration > 0;
-
-  elements.simpleTimeline.hidden = !isSeekable;
-
-  if (!isSeekable) {
-    simpleSeekDragging = false;
-    elements.simpleSeekSlider.value = '0';
-    elements.simpleCurrentTime.textContent = '00:00';
-    elements.simpleDurationTime.textContent = '--:--';
-    elements.simpleSeekSlider.style.setProperty('--seek-progress', '0%');
-    return;
-  }
-
-  elements.simpleDurationTime.textContent = formatSimpleTime(duration);
-
-  if (simpleSeekDragging) return;
-
-  const currentTime = Math.min(Math.max(Number(elements.player.currentTime) || 0, 0), duration);
-  const progress = Math.min(1000, Math.max(0, Math.round((currentTime / duration) * 1000)));
-
-  elements.simpleCurrentTime.textContent = formatSimpleTime(currentTime);
-  elements.simpleSeekSlider.value = String(progress);
-  elements.simpleSeekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
-}
-
 function clearChannelState() {
   state.channels = [];
   state.groups = ['Tumu'];
@@ -249,7 +201,6 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
-  updateSimpleTimeline();
   if (resetSound) {
     state.soundEnabled = false;
     applySoundSetting();
@@ -1055,7 +1006,6 @@ async function playChannel(channelId) {
   elements.currentChannel.textContent = channel.name;
   elements.player.muted = !state.soundEnabled;
   setPlaybackSource(channel);
-  updateSimpleTimeline();
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });
@@ -1208,60 +1158,6 @@ elements.soundToggleInput.addEventListener('change', (event) => {
   applySoundSetting();
 });
 
-['loadedmetadata', 'durationchange', 'timeupdate', 'emptied']
-  .forEach((eventName) => {
-    elements.player.addEventListener(eventName, updateSimpleTimeline);
-  });
-
-elements.simpleSeekSlider.addEventListener('pointerdown', () => {
-  simpleSeekDragging = true;
-});
-
-elements.simpleSeekSlider.addEventListener('input', (event) => {
-  const duration = Number(elements.player.duration);
-  if (!Number.isFinite(duration) || duration <= 0) return;
-
-  simpleSeekDragging = true;
-  const progress = Number(event.target.value) || 0;
-  const previewTime = (progress / 1000) * duration;
-  elements.simpleCurrentTime.textContent = formatSimpleTime(previewTime);
-  elements.simpleSeekSlider.style.setProperty('--seek-progress', `${progress / 10}%`);
-});
-
-elements.simpleSeekSlider.addEventListener('change', (event) => {
-  const duration = Number(elements.player.duration);
-  if (!Number.isFinite(duration) || duration <= 0) {
-    simpleSeekDragging = false;
-    return;
-  }
-
-  const progress = Number(event.target.value) || 0;
-  const targetTime = Math.min(duration, Math.max(0, (progress / 1000) * duration));
-
-  try {
-    if (typeof elements.player.fastSeek === 'function') {
-      elements.player.fastSeek(targetTime);
-    } else {
-      elements.player.currentTime = targetTime;
-    }
-  } catch {
-    elements.player.currentTime = targetTime;
-  }
-
-  simpleSeekDragging = false;
-  updateSimpleTimeline();
-});
-
-elements.simpleSeekSlider.addEventListener('pointercancel', () => {
-  simpleSeekDragging = false;
-  updateSimpleTimeline();
-});
-
-elements.simpleSeekSlider.addEventListener('blur', () => {
-  simpleSeekDragging = false;
-  updateSimpleTimeline();
-});
-
 elements.loadMoreButton.addEventListener('click', () => {
   loadChannels().catch((error) => {
     setLoading(false);
@@ -1299,4 +1195,3 @@ registerServiceWorker();
 renderGroups();
 renderSources();
 applySoundSetting();
-updateSimpleTimeline();

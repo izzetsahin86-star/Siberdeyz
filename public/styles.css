@@ -401,6 +401,51 @@ video {
   object-fit: contain;
 }
 
+.playback-timeline {
+  position: absolute;
+  z-index: 4;
+  left: 12px;
+  right: 12px;
+  bottom: 60px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  padding: 4px 7px;
+  border-radius: 10px;
+  color: rgba(245,245,247,.92);
+  background: rgba(10,10,12,.42);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.playback-timeline[hidden] {
+  display: none;
+}
+
+.playback-timeline-track {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.22);
+}
+
+.playback-timeline-track i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #0a84ff;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
 .player-meta {
   position: relative;
   z-index: 4;
@@ -1394,6 +1439,16 @@ select:focus {
   .watch-area {
     min-height: 0;
     border-radius: 26px;
+  }
+
+  .playback-timeline {
+    left: 8px;
+    right: 8px;
+    bottom: 54px;
+    min-height: 22px;
+    padding: 3px 6px;
+    gap: 6px;
+    font-size: 7px;
   }
 
   .player-meta {

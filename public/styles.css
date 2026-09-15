@@ -496,6 +496,35 @@ video {
   backdrop-filter: blur(28px) saturate(155%);
 }
 
+.player-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.player-delete-web-scan {
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,69,58,.24);
+  border-radius: 999px;
+  color: #ffaaa5;
+  background: rgba(255,69,58,.09);
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.player-delete-web-scan:active {
+  transform: scale(.96);
+}
+
+.player-delete-web-scan:disabled {
+  opacity: .55;
+}
+
 .player-meta span {
   display: inline-flex;
   align-items: center;
@@ -524,6 +553,7 @@ video {
 }
 
 .player-meta strong {
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 72%;
   padding: 6px 10px;
@@ -1570,6 +1600,18 @@ select:focus {
     padding: 8px 10px;
   }
 
+  .player-meta-actions {
+    flex: 0 0 auto;
+    gap: 4px;
+    max-width: 52%;
+  }
+
+  .player-delete-web-scan {
+    min-height: 25px;
+    padding: 4px 7px;
+    font-size: 8px;
+  }
+
   .player-meta span {
     min-height: 26px;
     padding-inline: 8px;
@@ -1577,7 +1619,7 @@ select:focus {
   }
 
   .player-meta strong {
-    max-width: 68%;
+    max-width: 46%;
     padding: 5px 8px;
     font-size: 11px;
   }

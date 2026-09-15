@@ -4,6 +4,7 @@ import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../m
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
 import {
+  deleteActiveWebScanChannel,
   deletePlaylistSource,
   getSourceStatus,
   savePlaylistSource,
@@ -150,6 +151,22 @@ apiRouter.post('/web-scan/:scanId/save', async (req, res, next) => {
     clearChannelCache();
     await clearFavorites();
     res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/web-scan/channel/:id', async (req, res, next) => {
+  try {
+    const result = await deleteActiveWebScanChannel(req.params.id);
+    clearChannelCache();
+    await clearFavorites();
+
+    if (result.sourceRemoved) {
+      await removeAccountHealth(result.sourceId);
+    }
+
+    res.json(result);
   } catch (error) {
     next(error);
   }

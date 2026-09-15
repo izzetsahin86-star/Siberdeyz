@@ -376,6 +376,59 @@ export async function saveWebScanPlaylistSource({ label = '', pageUrl = '', chan
   return getSourceStatus();
 }
 
+export async function deleteActiveWebScanChannel(channelId = '') {
+  const state = await readState();
+  const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];
+
+  if (!active) {
+    const error = new Error('Aktif yayin hesabi bulunamadi.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (active.type !== 'file' || active.sourceKind !== 'web-scan') {
+    const error = new Error('Secili yayin Web Tarama hesabina ait degil.');
+    error.status = 400;
+    throw error;
+  }
+
+  const id = String(channelId || '').trim();
+  const channelIndex = active.channels.findIndex((channel) => String(channel.id) === id);
+
+  if (channelIndex < 0) {
+    const error = new Error('Silinecek Web Tarama yayini bulunamadi.');
+    error.status = 404;
+    throw error;
+  }
+
+  const [deletedChannel] = active.channels.splice(channelIndex, 1);
+  const sourceId = active.id;
+  let sourceRemoved = false;
+
+  if (active.channels.length === 0) {
+    state.sources = state.sources.filter((source) => source.id !== sourceId);
+    state.activeSourceId = state.sources[0]?.id || '';
+    sourceRemoved = true;
+  } else {
+    active.channels = normalizeStoredChannels(active.channels);
+    active.updatedAt = new Date().toISOString();
+    state.activeSourceId = active.id;
+  }
+
+  await writeState(state);
+  const status = await getSourceStatus();
+
+  return {
+    ...status,
+    deletedChannel: {
+      id,
+      name: String(deletedChannel?.name || 'Web Tarama yayini'),
+    },
+    sourceId,
+    sourceRemoved,
+  };
+}
+
 export async function setActivePlaylistSource(sourceId) {
   const state = await readState();
   const source = state.sources.find((item) => item.id === String(sourceId));

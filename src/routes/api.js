@@ -14,6 +14,7 @@ import {
 import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
 import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
+import { getAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 
 export const apiRouter = Router();
 
@@ -79,6 +80,30 @@ apiRouter.post('/admin/login', (req, res) => {
 apiRouter.get('/source', async (req, res, next) => {
   try {
     res.json(await getSourceStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/account-health', async (req, res, next) => {
+  try {
+    res.json(await getAccountHealth());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/account-health/:id/scan', requireAdmin, async (req, res, next) => {
+  try {
+    res.json(await scanAccount(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/account-health/scan', requireAdmin, async (req, res, next) => {
+  try {
+    res.json(await scanAccounts(req.body?.ids));
   } catch (error) {
     next(error);
   }

@@ -146,15 +146,104 @@
 
           <div id="settingsView" class="panel-view settings-view" hidden>
             <div class="settings-grid">
+              <div id="settingsStatus" class="settings-status" hidden></div>
+
               <section class="setting-card">
-                <div>
-                  <h2>Ses Ayari</h2>
+                <div class="setting-card-head">
+                  <h2>Ses</h2>
                   <p id="soundStatus">Video her acilista sessiz baslar.</p>
                 </div>
-                <label class="switch-line">
+                <label class="setting-switch-row">
+                  <span><strong>Su anki ses</strong><small>Oynaticinin sesini hemen ac veya kapat.</small></span>
                   <input id="soundToggleInput" type="checkbox" />
-                  <span>Sesi ac</span>
                 </label>
+                <label class="setting-switch-row">
+                  <span><strong>Baslangicta sesli</strong><small>Yeni giriste oynatici sesli baslasin.</small></span>
+                  <input id="startupSoundSetting" type="checkbox" />
+                </label>
+              </section>
+
+              <section class="setting-card">
+                <div class="setting-card-head">
+                  <h2>Hesap Tarama</h2>
+                  <p>Otomatik kontrol sikligini ve kalici hata esigini belirle.</p>
+                </div>
+                <label class="setting-select-row">
+                  <span>Otomatik tarama</span>
+                  <select id="autoScanMinutesSetting">
+                    <option value="0">Kapali</option>
+                    <option value="30">30 dakika</option>
+                    <option value="60">60 dakika</option>
+                    <option value="120">2 saat</option>
+                  </select>
+                </label>
+                <label class="setting-select-row">
+                  <span>Bozuk hesap esigi</span>
+                  <select id="failureThresholdSetting">
+                    <option value="2">2 hata</option>
+                    <option value="3">3 hata</option>
+                    <option value="5">5 hata</option>
+                  </select>
+                </label>
+              </section>
+
+              <section class="setting-card">
+                <div class="setting-card-head">
+                  <h2>Oynatici</h2>
+                  <p>Yayinin nasil acilacagini ve kopmada yeniden denemeyi ayarla.</p>
+                </div>
+                <label class="setting-select-row">
+                  <span>Oynatma modu</span>
+                  <select id="playbackModeSetting">
+                    <option value="auto">Otomatik</option>
+                    <option value="direct">Dogrudan</option>
+                    <option value="compatibility">Uyumluluk motoru</option>
+                  </select>
+                </label>
+                <label class="setting-switch-row">
+                  <span><strong>Yeniden baglan</strong><small>Yayin koparsa otomatik tekrar dene.</small></span>
+                  <input id="autoRetrySetting" type="checkbox" />
+                </label>
+                <label class="setting-select-row">
+                  <span>Deneme sayisi</span>
+                  <select id="retryCountSetting">
+                    <option value="1">1 kez</option>
+                    <option value="3">3 kez</option>
+                    <option value="5">5 kez</option>
+                  </select>
+                </label>
+              </section>
+
+              <section class="setting-card">
+                <div class="setting-card-head">
+                  <h2>Gorunum</h2>
+                  <p>Uygulamanin giriste acacagi bolumu ve kanal yogunlugunu sec.</p>
+                </div>
+                <label class="setting-select-row">
+                  <span>Baslangic ekrani</span>
+                  <select id="defaultPanelSetting">
+                    <option value="channels">Kanallar</option>
+                    <option value="accounts">Hesaplar</option>
+                  </select>
+                </label>
+                <label class="setting-select-row">
+                  <span>Kanal gorunumu</span>
+                  <select id="channelDensitySetting">
+                    <option value="normal">Normal</option>
+                    <option value="compact">Kompakt</option>
+                  </select>
+                </label>
+              </section>
+
+              <section class="setting-card setting-card-danger">
+                <div class="setting-card-head">
+                  <h2>Bakim ve Guvenlik</h2>
+                  <p>Liste onbellegini yenile veya mevcut oturumu kapat.</p>
+                </div>
+                <div class="setting-action-row">
+                  <button id="clearCacheButton" class="setting-action-button" type="button">Onbellegi Temizle</button>
+                  <button id="logoutButton" class="setting-action-button danger" type="button">Cikis Yap</button>
+                </div>
               </section>
             </div>
           </div>

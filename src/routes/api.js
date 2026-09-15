@@ -14,7 +14,7 @@ import {
 import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
 import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
-import { getAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
+import { getAccountHealth, removeAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 
 export const apiRouter = Router();
 
@@ -158,6 +158,7 @@ apiRouter.put('/source/:id/active', requireAdmin, async (req, res, next) => {
 apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
   try {
     const status = await deletePlaylistSource(req.params.id);
+    await removeAccountHealth(req.params.id);
     clearChannelCache();
     await clearFavorites();
     res.json(status);
@@ -169,6 +170,7 @@ apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
 apiRouter.delete('/source', requireAdmin, async (req, res, next) => {
   try {
     const status = await deletePlaylistSource();
+    await removeAccountHealth();
     clearChannelCache();
     await clearFavorites();
     res.json(status);

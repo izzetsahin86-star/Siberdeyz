@@ -70,7 +70,9 @@ function normalizeStoredChannels(channels) {
       group: String(channel?.group || 'Genel').trim() || 'Genel',
       tvgId: String(channel?.tvgId || '').trim(),
       url,
-      webDurationSeconds: Number.isFinite(Number(channel?.webDurationSeconds))
+      webDurationSeconds: channel?.webDurationSeconds !== null
+        && channel?.webDurationSeconds !== undefined
+        && Number.isFinite(Number(channel.webDurationSeconds))
         ? Number(channel.webDurationSeconds)
         : null,
       webDurationStatus: String(channel?.webDurationStatus || '').trim(),
@@ -179,7 +181,6 @@ function publicSource(source, activeSourceId) {
     channelCount: isFile ? source.channels.length : 0,
     folder: source.folder || '',
     sourceKind: source.sourceKind || '',
-    pageUrl: source.pageUrl || '',
     active: source.id === activeSourceId,
     updatedAt: source.updatedAt,
   };

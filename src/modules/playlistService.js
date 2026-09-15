@@ -3,33 +3,44 @@ import { enrichChannel } from './channelClassifier.js';
 import { parseM3U, parseM3UStream } from './m3uParser.js';
 import { getActivePlaylistSource } from './sourceStorage.js';
 import { getPlaylistFetchCandidates } from './playlistCompatibility.js';
+import { getTenantId } from './tenantContext.js';
 
-let cache = {
-  loadedAt: 0,
-  sourceKey: '',
-  channels: [],
-  groups: ['Tumu'],
-};
+const tenantCaches = new Map();
 
-let pendingLoad = null;
-let pendingSourceKey = '';
+function emptyRuntime() {
+  return {
+    cache: {
+      loadedAt: 0,
+      sourceKey: '',
+      channels: [],
+      groups: ['Tumu'],
+    },
+    pendingLoad: null,
+    pendingSourceKey: '',
+  };
+}
+
+function runtimeForCurrentTenant() {
+  const tenantId = getTenantId();
+  if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, emptyRuntime());
+  return tenantCaches.get(tenantId);
+}
 
 function getSourceKey(source) {
   if (!source) return '';
   if (source.type === 'file') {
     return [source.id, source.updatedAt || '', source.channels?.length || 0].join(':');
   }
-
   return source.url || '';
 }
 
-function hasUsableCache(sourceKey) {
-  return cache.sourceKey === sourceKey && cache.channels.length > 0;
+function hasUsableCache(runtime, sourceKey) {
+  return runtime.cache.sourceKey === sourceKey && runtime.cache.channels.length > 0;
 }
 
-function isCacheFresh(sourceKey) {
-  const ageMs = Date.now() - cache.loadedAt;
-  return hasUsableCache(sourceKey) && ageMs < config.cacheSeconds * 1000;
+function isCacheFresh(runtime, sourceKey) {
+  const ageMs = Date.now() - runtime.cache.loadedAt;
+  return hasUsableCache(runtime, sourceKey) && ageMs < config.cacheSeconds * 1000;
 }
 
 function buildGroups(channels) {
@@ -37,10 +48,7 @@ function buildGroups(channels) {
 }
 
 function readPlaylist(response) {
-  if (response.body?.getReader) {
-    return parseM3UStream(response.body, enrichChannel);
-  }
-
+  if (response.body?.getReader) return parseM3UStream(response.body, enrichChannel);
   return response.text().then((text) => parseM3U(text, enrichChannel));
 }
 
@@ -55,20 +63,18 @@ function readStoredPlaylist(source) {
   }));
 }
 
-async function loadChannelsFromSource(source) {
+async function loadChannelsFromSource(source, runtime) {
   const sourceKey = getSourceKey(source);
 
   if (source.type === 'file') {
     const channels = readStoredPlaylist(source);
     const groups = buildGroups(channels);
-
-    cache = {
+    runtime.cache = {
       loadedAt: Date.now(),
       sourceKey,
       channels,
       groups,
     };
-
     return { channels, groups, sourceReady: true, cached: false, stale: false };
   }
 
@@ -87,13 +93,9 @@ async function loadChannelsFromSource(source) {
       });
 
       lastStatus = response.status;
-
-      if (!response.ok) {
-        continue;
-      }
+      if (!response.ok) continue;
 
       const parsedChannels = await readPlaylist(response);
-
       if (parsedChannels.length > 0) {
         channels = parsedChannels;
         break;
@@ -109,8 +111,7 @@ async function loadChannelsFromSource(source) {
   }
 
   const groups = buildGroups(channels);
-
-  cache = {
+  runtime.cache = {
     loadedAt: Date.now(),
     sourceKey,
     channels,
@@ -121,17 +122,12 @@ async function loadChannelsFromSource(source) {
 }
 
 export function clearChannelCache() {
-  cache = {
-    loadedAt: 0,
-    sourceKey: '',
-    channels: [],
-    groups: ['Tumu'],
-  };
-  pendingLoad = null;
-  pendingSourceKey = '';
+  const tenantId = getTenantId();
+  tenantCaches.set(tenantId, emptyRuntime());
 }
 
 export async function getChannels({ force = false } = {}) {
+  const runtime = runtimeForCurrentTenant();
   const source = await getActivePlaylistSource();
   const sourceKey = getSourceKey(source);
 
@@ -140,37 +136,38 @@ export async function getChannels({ force = false } = {}) {
     return { channels: [], groups: ['Tumu'], sourceReady: false, cached: false, stale: false };
   }
 
-  if (!force && hasUsableCache(sourceKey)) {
+  if (!force && hasUsableCache(runtime, sourceKey)) {
     return {
-      channels: cache.channels,
-      groups: cache.groups,
+      channels: runtime.cache.channels,
+      groups: runtime.cache.groups,
       sourceReady: true,
       cached: true,
-      stale: !isCacheFresh(sourceKey),
+      stale: !isCacheFresh(runtime, sourceKey),
     };
   }
 
-  if (!force && pendingLoad && pendingSourceKey === sourceKey) {
-    return pendingLoad;
+  if (!force && runtime.pendingLoad && runtime.pendingSourceKey === sourceKey) {
+    return runtime.pendingLoad;
   }
 
-  pendingSourceKey = sourceKey;
-  pendingLoad = loadChannelsFromSource(source).finally(() => {
-    pendingLoad = null;
-    pendingSourceKey = '';
+  runtime.pendingSourceKey = sourceKey;
+  runtime.pendingLoad = loadChannelsFromSource(source, runtime).finally(() => {
+    runtime.pendingLoad = null;
+    runtime.pendingSourceKey = '';
   });
 
-  return pendingLoad;
+  return runtime.pendingLoad;
 }
 
 export async function findChannel(channelId) {
+  const runtime = runtimeForCurrentTenant();
   const source = await getActivePlaylistSource();
   const sourceKey = getSourceKey(source);
 
   if (!source || !sourceKey) return null;
 
-  if (hasUsableCache(sourceKey)) {
-    return cache.channels.find((channel) => channel.id === String(channelId));
+  if (hasUsableCache(runtime, sourceKey)) {
+    return runtime.cache.channels.find((channel) => channel.id === String(channelId));
   }
 
   const { channels } = await getChannels();

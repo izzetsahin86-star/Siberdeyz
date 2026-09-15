@@ -20,10 +20,17 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="app-launch" aria-hidden="true">
+      <div class="app-launch-mark"></div>
+      <strong>Siberdeyz</strong>
+      <span>Yayin merkezi hazirlaniyor</span>
+    </div>
+
     <section id="loginScreen" class="login-screen">
       <form id="loginForm" class="login-box">
         <p class="eyebrow">Siberdeyz</p>
         <h1>Admin Girisi</h1>
+        <p class="login-copy">Yayin merkezini yonetmek icin admin sifrenizle giris yapin.</p>
         <input id="adminPasswordInput" type="password" inputmode="numeric" placeholder="Admin sifresi" autocomplete="current-password" />
         <button id="loginButton" type="submit">Giris Yap</button>
         <p id="loginStatus" class="source-status" hidden></p>

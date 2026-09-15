@@ -3047,3 +3047,441 @@ select:focus {
     font-size: 10px;
   }
 }
+
+
+/* Final premium UI polish */
+.app-launch {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding:
+    calc(24px + var(--safe-top))
+    calc(20px + var(--safe-right))
+    calc(24px + var(--safe-bottom))
+    calc(20px + var(--safe-left));
+  color: #f5f5f7;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(10,132,255,.18), transparent 26%),
+    linear-gradient(180deg, #090a0f, #050609 70%);
+  pointer-events: none;
+  animation: launch-screen-exit 880ms cubic-bezier(.22,.8,.25,1) 360ms forwards;
+}
+
+.app-launch-mark {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.68), transparent 20%),
+    linear-gradient(145deg, #64d2ff, #0a84ff 55%, #5e5ce6);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.30),
+    0 14px 34px rgba(10,132,255,.30),
+    0 0 0 7px rgba(10,132,255,.07);
+  animation: launch-mark-in 520ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+.app-launch strong {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: -.03em;
+}
+
+.app-launch span {
+  color: #8d98a8;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .025em;
+}
+
+@keyframes launch-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(.84) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes launch-screen-exit {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.login-screen {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(10,132,255,.13), transparent 28%),
+    radial-gradient(circle at 88% 78%, rgba(94,92,230,.08), transparent 26%);
+}
+
+.login-screen::before,
+.login-screen::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(64px);
+}
+
+.login-screen::before {
+  width: 260px;
+  height: 260px;
+  top: -120px;
+  left: -100px;
+  background: rgba(10,132,255,.12);
+}
+
+.login-screen::after {
+  width: 220px;
+  height: 220px;
+  right: -100px;
+  bottom: -90px;
+  background: rgba(94,92,230,.08);
+}
+
+.login-box {
+  position: relative;
+  z-index: 1;
+  gap: 12px;
+  overflow: hidden;
+  padding: 26px;
+  border-color: rgba(255,255,255,.09);
+  background:
+    linear-gradient(180deg, rgba(31,33,42,.86), rgba(19,20,27,.82));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.05),
+    0 28px 80px rgba(0,0,0,.42),
+    0 12px 34px rgba(10,132,255,.08);
+}
+
+.login-box::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  width: 180px;
+  height: 180px;
+  top: -112px;
+  right: -82px;
+  border-radius: 50%;
+  background: rgba(10,132,255,.10);
+  filter: blur(34px);
+}
+
+.login-box .eyebrow,
+.login-box h1,
+.login-box .login-copy,
+.login-box input,
+.login-box button,
+.login-box .source-status {
+  position: relative;
+  z-index: 1;
+}
+
+.login-box .eyebrow {
+  color: #9dcfff;
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.login-box h1 {
+  font-size: 27px;
+}
+
+.login-copy {
+  margin: -3px 0 3px;
+  color: #8d98a8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+#adminPasswordInput {
+  min-height: 48px;
+  border-color: rgba(255,255,255,.08);
+  background: rgba(9,10,14,.52);
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+#adminPasswordInput:focus {
+  border-color: rgba(10,132,255,.55);
+  background: rgba(12,14,20,.72);
+  box-shadow:
+    0 0 0 3px rgba(10,132,255,.10),
+    inset 0 1px rgba(255,255,255,.03);
+}
+
+#loginButton {
+  min-height: 46px;
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, #2994ff, #0a72df);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.20),
+    0 10px 24px rgba(10,132,255,.20);
+}
+
+.sheet-header {
+  min-height: 50px;
+  padding: 14px 14px 9px;
+  border-bottom-color: rgba(255,255,255,.07);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.018));
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.sheet-header::before {
+  top: 6px;
+  width: 34px;
+  height: 4px;
+  background: rgba(255,255,255,.18);
+}
+
+.sheet-header strong {
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.sheet-close {
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,.06);
+  color: #c8ccd2;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.sheet-close:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,.11);
+  background: rgba(255,255,255,.08);
+}
+
+.status:not([hidden]),
+.source-status:not([hidden]) {
+  position: relative;
+  border-radius: 9px;
+}
+
+.status:not([hidden])::before,
+.source-status:not([hidden])::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: #64d2ff;
+  box-shadow: 0 0 0 3px rgba(100,210,255,.08);
+}
+
+.status[data-type="warning"]:not([hidden]),
+.source-status[data-type="warning"]:not([hidden]) {
+  color: #ffd56a;
+}
+
+.status[data-type="warning"]:not([hidden])::before,
+.source-status[data-type="warning"]:not([hidden])::before {
+  background: #ffd60a;
+  box-shadow: 0 0 0 3px rgba(255,214,10,.08);
+}
+
+.status[data-type="error"]:not([hidden]),
+.source-status[data-type="error"]:not([hidden]) {
+  color: #ffaaa5;
+}
+
+.status[data-type="error"]:not([hidden])::before,
+.source-status[data-type="error"]:not([hidden])::before {
+  background: #ff453a;
+  box-shadow: 0 0 0 3px rgba(255,69,58,.09);
+}
+
+.login-box .source-status:not([hidden]) {
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.035);
+  font-size: 10px;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  min-height: 86px;
+  margin: 4px;
+  padding: 14px 12px;
+  border: 1px dashed rgba(255,255,255,.075);
+  border-radius: 13px;
+  color: #818a97;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.012));
+  font-size: 10px;
+}
+
+.empty::before {
+  content: "○";
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  color: #6aaeff;
+  background: rgba(10,132,255,.055);
+  font-size: 15px;
+}
+
+button:disabled {
+  filter: saturate(.72);
+}
+
+.load-more:disabled,
+.scan-all-accounts:disabled,
+.source-pill-scan:disabled {
+  background-image:
+    linear-gradient(90deg, transparent, rgba(255,255,255,.035), transparent);
+  background-size: 180% 100%;
+  animation: ui-soft-loading 1.4s linear infinite;
+}
+
+@keyframes ui-soft-loading {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .login-screen {
+    padding:
+      calc(16px + var(--safe-top))
+      calc(12px + var(--safe-right))
+      calc(16px + var(--safe-bottom))
+      calc(12px + var(--safe-left));
+  }
+
+  .login-box {
+    width: min(100%, 360px);
+    gap: 10px;
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .login-box::before {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .login-box h1 {
+    font-size: 24px;
+  }
+
+  .login-copy {
+    font-size: 10px;
+  }
+
+  .content-panel {
+    border-color: rgba(255,255,255,.08);
+    box-shadow:
+      inset 0 1px rgba(255,255,255,.035),
+      0 24px 64px rgba(0,0,0,.46);
+  }
+
+  .sheet-header {
+    min-height: 46px;
+    padding: 12px 11px 7px;
+  }
+
+  .sheet-body {
+    height: calc(100% - 46px);
+  }
+
+  .sheet-header strong {
+    font-size: 13px;
+  }
+
+  .sheet-close {
+    min-height: 26px;
+    padding: 4px 9px;
+    font-size: 9px;
+  }
+
+  .panel-view {
+    overscroll-behavior: contain;
+  }
+
+  .empty {
+    min-height: 72px;
+    margin: 3px;
+    padding: 11px 9px;
+    border-radius: 11px;
+    font-size: 9px;
+  }
+
+  .empty::before {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  .status:not([hidden]),
+  .source-status:not([hidden]) {
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 390px) {
+  .sheet-header {
+    padding-inline: 10px;
+  }
+
+  .sheet-header strong {
+    font-size: 12px;
+  }
+
+  .sheet-close {
+    font-size: 8px;
+  }
+
+  .login-box {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-launch {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .app-launch-mark,
+  .load-more:disabled,
+  .scan-all-accounts:disabled,
+  .source-pill-scan:disabled {
+    animation: none;
+  }
+}

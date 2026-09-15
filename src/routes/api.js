@@ -16,7 +16,7 @@ import { proxyStream } from '../modules/streamProxy.js';
 import { playUniversal, playHlsResource, playTranscodedResource } from '../modules/universalPlayback.js';
 import { getAccountHealth, removeAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 import { deleteAccountsByIds } from '../modules/accountBulkDeleteService.js';
-import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler } from '../modules/accountAutoScanScheduler.js';
+import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler, stopAccountAutoScanSchedulerForTenant } from '../modules/accountAutoScanScheduler.js';
 import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
@@ -96,7 +96,9 @@ apiRouter.post('/admin/users', requireAdminSession, async (req, res, next) => {
 
 apiRouter.delete('/admin/users/:id', requireAdminSession, async (req, res, next) => {
   try {
-    res.json(await revokeAccessUser(req.params.id));
+    const result = await revokeAccessUser(req.params.id);
+    stopAccountAutoScanSchedulerForTenant(req.params.id);
+    res.json(result);
   } catch (error) {
     next(error);
   }

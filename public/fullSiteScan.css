@@ -293,9 +293,13 @@
 }
 
 .full-site-save-bar {
+  position: relative;
+  z-index: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px;
   gap: 5px;
+  flex: 0 0 auto;
+  background: rgba(22,24,31,.96);
 }
 
 .full-site-save-bar[hidden] {
@@ -320,6 +324,14 @@
 
   .full-site-stats {
     grid-template-columns: none;
+  }
+
+  .full-site-results-wrap {
+    max-height: 30svh;
+  }
+
+  .full-site-save-bar {
+    padding-top: 2px;
   }
 
   .full-site-save-bar {

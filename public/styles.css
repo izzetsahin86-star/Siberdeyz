@@ -3485,3 +3485,17 @@ button:disabled {
     animation: none;
   }
 }
+
+
+/* Multi connection account indicator */
+.account-scan-summary [data-account-stat="multi"] {
+  color: #9fd4ff;
+  border-color: rgba(100,210,255,.20);
+  background: rgba(100,210,255,.08);
+}
+
+@media (max-width: 860px) {
+  .accounts-view .account-search-row {
+    grid-template-columns: minmax(0, 1fr) 118px;
+  }
+}

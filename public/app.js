@@ -1,4 +1,5 @@
 import { attachPlaybackTimeline } from './playerTimeline.js';
+import { sourceHasMultipleConnections } from './accountMultiConnection.js';
 
 const PAGE_SIZE = 100;
 
@@ -476,12 +477,15 @@ function updateAccountScanSummary() {
     expired: 0,
     failed: 0,
     unscanned: 0,
+    multi: 0,
   };
 
   for (const source of state.sources) {
     if (source.type === 'file') continue;
+
     const status = accountHealthStatus(source);
     if (status in counts) counts[status] += 1;
+    if (sourceHasMultipleConnections(source, state.accountHealth)) counts.multi += 1;
   }
 
   for (const [status, count] of Object.entries(counts)) {
@@ -493,6 +497,7 @@ function updateAccountScanSummary() {
       expired: 'Suresi biten',
       failed: 'Calismayan',
       unscanned: 'Taranmamis',
+      multi: 'Coklu baglanti',
     }[status]);
 
     element.textContent = label + ' ' + count;
@@ -555,6 +560,7 @@ function getFilteredSources() {
   return state.sources.filter((source) => {
     const status = accountHealthStatus(source);
     const statusMatches = statusFilter === 'all'
+      || (statusFilter === 'multi' && sourceHasMultipleConnections(source, state.accountHealth))
       || (statusFilter === 'unscanned' && (status === 'unscanned' || status === 'unsupported'))
       || status === statusFilter;
 
@@ -566,6 +572,7 @@ function getFilteredSources() {
       source.url,
       source.fileName,
       accountStatusLabel(status),
+      sourceHasMultipleConnections(source, state.accountHealth) ? 'Coklu baglanti' : '',
     ]
       .filter(Boolean)
       .join(' ')

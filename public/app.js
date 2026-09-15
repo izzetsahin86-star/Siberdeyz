@@ -317,15 +317,16 @@ async function login(adminPassword) {
   showApp();
 }
 
-async function restoreAdminSession() {
-  const response = await fetch('/api/admin/session', {
-    cache: 'no-store',
-  });
-
-  if (!response.ok) return;
-
-  const data = await response.json();
-  if (data.authenticated) showApp();
+async function clearPreviousAdminSession() {
+  try {
+    await fetch('/api/admin/logout', {
+      method: 'POST',
+      cache: 'no-store',
+      keepalive: true,
+    });
+  } catch {
+    // Uygulama her yeni acilista giris ekranindan baslar.
+  }
 }
 
 function renderGroups() {
@@ -1379,7 +1380,7 @@ elements.saveSourceButton.addEventListener('click', () => {
 
 applyStandaloneClass();
 registerServiceWorker();
-restoreAdminSession().catch(() => {});
+clearPreviousAdminSession().catch(() => {});
 renderGroups();
 renderSources();
 renderAccountAutoScanStatus();

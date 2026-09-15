@@ -1,0 +1,221 @@
+/* Isolated settings layout.
+   Loaded after styles.css so legacy panel rules cannot collapse/overlap settings cards. */
+
+.settings-view[hidden] {
+  display: none !important;
+}
+
+.settings-view {
+  display: block !important;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-view .settings-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  gap: 12px !important;
+  width: 100%;
+  height: auto !important;
+  min-height: max-content;
+  padding: 10px !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.settings-view .settings-grid > * {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.settings-view .settings-status {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-view .setting-card {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  align-content: initial !important;
+  gap: 10px !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 14px !important;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+
+.settings-view .setting-card > * {
+  flex: 0 0 auto;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.settings-view .setting-card-head {
+  display: block !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 0 2px !important;
+}
+
+.settings-view .setting-card-head h2 {
+  display: block;
+  margin: 0 0 5px !important;
+  line-height: 1.2;
+}
+
+.settings-view .setting-card-head p,
+.settings-view .setting-card #soundStatus {
+  display: block;
+  margin: 0 !important;
+  line-height: 1.45 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.settings-view .setting-switch-row,
+.settings-view .setting-select-row {
+  width: 100%;
+  height: auto !important;
+  min-height: 54px !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.settings-view .setting-switch-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.settings-view .setting-switch-row > span {
+  display: flex !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-view .setting-switch-row strong,
+.settings-view .setting-switch-row small {
+  display: block;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.settings-view .setting-switch-row input[type="checkbox"] {
+  flex: 0 0 47px !important;
+  width: 47px !important;
+  min-width: 47px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  margin: 0 !important;
+}
+
+.settings-view .setting-select-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, 44%) !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.settings-view .setting-select-row > span {
+  min-width: 0;
+  white-space: normal !important;
+  line-height: 1.25;
+}
+
+.settings-view .setting-select-row select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  box-sizing: border-box;
+}
+
+.settings-view .setting-action-row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100%;
+}
+
+.settings-view .setting-action-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .content-panel[data-open="settings"] {
+    height: min(70dvh, 590px) !important;
+    min-height: 320px !important;
+    max-height: min(70dvh, 590px) !important;
+  }
+
+  .settings-view .settings-grid {
+    gap: 10px !important;
+    padding: 8px 9px 14px !important;
+  }
+
+  .settings-view .setting-card {
+    gap: 9px !important;
+    padding: 13px !important;
+    border-radius: 16px !important;
+  }
+
+  .settings-view .setting-card-head h2 {
+    font-size: 14px !important;
+  }
+
+  .settings-view .setting-card-head p,
+  .settings-view .setting-card #soundStatus {
+    font-size: 10px !important;
+  }
+
+  .settings-view .setting-switch-row,
+  .settings-view .setting-select-row {
+    min-height: 52px !important;
+    border-radius: 13px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .settings-view .setting-card {
+    padding: 12px !important;
+  }
+
+  .settings-view .setting-select-row {
+    grid-template-columns: minmax(0, 1fr) minmax(118px, 43%) !important;
+    gap: 8px !important;
+  }
+
+  .settings-view .setting-select-row select {
+    font-size: 10px !important;
+  }
+
+  .settings-view .setting-action-row {
+    grid-template-columns: 1fr !important;
+  }
+}

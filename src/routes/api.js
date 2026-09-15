@@ -17,6 +17,7 @@ import { playUniversal, playHlsResource, playTranscodedResource } from '../modul
 import { getAccountHealth, removeAccountHealth, scanAccount, scanAccounts } from '../modules/accountHealthService.js';
 import { deleteAccountsByIds } from '../modules/accountBulkDeleteService.js';
 import { getAccountAutoScanStatus } from '../modules/accountAutoScanScheduler.js';
+import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 
 export const apiRouter = Router();
 
@@ -98,6 +99,14 @@ apiRouter.get('/account-health', async (req, res, next) => {
 apiRouter.get('/account-auto-scan', async (req, res, next) => {
   try {
     res.json(await getAccountAutoScanStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/account-failures', async (req, res, next) => {
+  try {
+    res.json(await getPersistentFailureStatus());
   } catch (error) {
     next(error);
   }

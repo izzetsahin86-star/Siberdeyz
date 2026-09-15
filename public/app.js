@@ -25,6 +25,9 @@ const state = {
   accountStatus: 'all',
   accountHealth: {},
   accountAutoScanStatus: null,
+  accountFailureThreshold: 3,
+  accountFailureRecords: {},
+  accountPersistentFailedIds: new Set(),
   accountScanningIds: new Set(),
   accountScanningAll: false,
 };
@@ -88,6 +91,7 @@ const elements = {
   accountAutoScanStatus: document.querySelector('#accountAutoScanStatus'),
   accountRenderHint: document.querySelector('#accountRenderHint'),
   scanAllAccountsButton: document.querySelector('#scanAllAccountsButton'),
+  deletePersistentFailedButton: document.querySelector('#deletePersistentFailedButton'),
   deleteAllSourcesButton: document.querySelector('#deleteAllSourcesButton'),
   saveSourceButton: document.querySelector('#saveSourceButton'),
   soundToggleInput: document.querySelector('#soundToggleInput'),
@@ -531,10 +535,13 @@ function accountDeleteScopeText() {
 function updateAccountsSummary() {
   const count = state.sources.length;
   const deleteScope = getAccountDeleteScope();
+  const persistentFailedCount = state.accountPersistentFailedIds.size;
 
   elements.accountCount.textContent = String(count);
   elements.deleteAllSourcesButton.hidden = deleteScope.length === 0;
   elements.deleteAllSourcesButton.textContent = accountDeleteButtonLabel(deleteScope.length);
+  elements.deletePersistentFailedButton.hidden = persistentFailedCount === 0;
+  elements.deletePersistentFailedButton.textContent = 'Kalici Calismayanlari Sil (' + persistentFailedCount + ')';
   elements.scanAllAccountsButton.hidden = !state.sources.some((source) => source.type === 'url');
   elements.scanAllAccountsButton.disabled = state.accountScanningAll;
   elements.scanAllAccountsButton.textContent = state.accountScanningAll ? 'Taraniyor...' : 'Hesaplari Tara';
@@ -592,8 +599,17 @@ function renderSources() {
       const title = source.label || 'Hesap ' + (sourceIndex + 1);
       const connection = accountConnectionLabel(health);
       const expiry = accountExpiryLabel(health);
-      const statusLabel = accountStatusLabel(healthStatus);
+      const isPersistentFailed = state.accountPersistentFailedIds.has(source.id);
+      const failureRecord = state.accountFailureRecords[source.id];
+      const statusLabel = isPersistentFailed ? 'Kalici calismiyor' : accountStatusLabel(healthStatus);
       const metaParts = [];
+
+      if (isPersistentFailed) {
+        metaParts.push(
+          (failureRecord?.consecutiveFailures || state.accountFailureThreshold)
+          + ' otomatik taramada ust uste calismadi'
+        );
+      }
 
       if (isFile) {
         metaParts.push((source.channelCount || 0) + ' yayin');
@@ -641,6 +657,12 @@ function setSourceState(data) {
   state.accountHealth = Object.fromEntries(
     Object.entries(state.accountHealth).filter(([id]) => validIds.has(id))
   );
+  state.accountFailureRecords = Object.fromEntries(
+    Object.entries(state.accountFailureRecords).filter(([id]) => validIds.has(id))
+  );
+  state.accountPersistentFailedIds = new Set(
+    Array.from(state.accountPersistentFailedIds).filter((id) => validIds.has(id))
+  );
 
   renderSources();
 
@@ -685,8 +707,27 @@ async function loadAccountHealth() {
   }
 
   state.accountHealth = data.accounts || {};
+  await Promise.all([
+    loadAccountAutoScanStatus(),
+    loadAccountFailureStatus(),
+  ]);
   renderSources();
-  await loadAccountAutoScanStatus();
+}
+
+async function loadAccountFailureStatus() {
+  try {
+    const response = await fetch('/api/account-failures');
+    const data = await response.json();
+
+    if (!response.ok) return false;
+
+    state.accountFailureThreshold = Number(data.threshold) || 3;
+    state.accountFailureRecords = data.accounts || {};
+    state.accountPersistentFailedIds = new Set(data.persistentIds || []);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function scanSingleAccount(sourceId) {
@@ -888,6 +929,81 @@ async function deleteSource(sourceId) {
   }
 
   await loadChannels({ force: true, reset: true });
+}
+
+async function deletePersistentFailedAccounts() {
+  const ids = Array.from(state.accountPersistentFailedIds)
+    .filter((id) => state.sources.some((source) => source.id === id && source.type === 'url'));
+
+  if (ids.length === 0) return;
+
+  const approved = window.confirm(
+    ids.length
+    + ' hesap 3 otomatik taramada ust uste calismadi. Kalici calismayan olarak isaretlenen bu hesaplari silmek istiyor musunuz? Bu islem geri alinamaz.'
+  );
+  if (!approved) return;
+
+  const adminPassword = getAdminPassword();
+  elements.deletePersistentFailedButton.disabled = true;
+  elements.deleteAllSourcesButton.disabled = true;
+  elements.sourceFileInput.disabled = true;
+  elements.toggleUrlFormButton.disabled = true;
+
+  try {
+    let data;
+
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const batch = ids.slice(offset, offset + 100);
+      setSourceStatus(
+        'Kalici calismayan hesaplar siliniyor... '
+        + Math.min(offset + batch.length, ids.length) + '/' + ids.length
+      );
+
+      const response = await fetch('/api/source/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-admin-password': adminPassword,
+        },
+        body: JSON.stringify({ ids: batch }),
+      });
+      data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Kalici calismayan hesaplar silinemedi');
+      }
+    }
+
+    setSourceState(data);
+    stopPlayback({ message: '', resetSound: false });
+
+    if (!data.hasSource) {
+      clearChannelState();
+      setStatus('Hesap yok. Hesaplardan yeni yayin ekleyin.', 'warning');
+    } else {
+      state.group = 'Tumu';
+      state.type = 'all';
+      state.favoritesOnly = false;
+      state.search = '';
+      state.channels = [];
+      state.hasMore = false;
+      elements.searchInput.value = '';
+
+      renderGroups();
+      renderChannels();
+      await loadChannels({ force: true, reset: true });
+    }
+
+    await loadAccountFailureStatus();
+    renderSources();
+    setSourceStatus(ids.length + ' kalici calismayan hesap silindi.');
+  } finally {
+    elements.deletePersistentFailedButton.disabled = false;
+    elements.deleteAllSourcesButton.disabled = false;
+    elements.sourceFileInput.disabled = false;
+    elements.toggleUrlFormButton.disabled = false;
+    renderSources();
+  }
 }
 
 async function deleteAllSources() {
@@ -1173,6 +1289,10 @@ elements.channelList.addEventListener('click', (event) => {
 
   const button = event.target.closest('.channel');
   if (button) playChannel(button.dataset.id);
+});
+
+elements.deletePersistentFailedButton.addEventListener('click', () => {
+  deletePersistentFailedAccounts().catch((error) => setSourceStatus(error.message, 'error'));
 });
 
 elements.deleteAllSourcesButton.addEventListener('click', () => {

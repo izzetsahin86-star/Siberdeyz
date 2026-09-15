@@ -87,6 +87,10 @@ export function createWebScanController({ onSaved } = {}) {
       ['3 dk alti elendi', Number(summary.shortRemoved) || 0],
       ['Acilmayan', Number(summary.failed) || 0],
       ['Suresi bilinmiyor', Number(summary.unknownDuration) || 0],
+      ['Gezilen sayfa', Number(summary.pagesVisited) || 0],
+      ['Detay sayfasi', Number(summary.detailPagesVisited) || 0],
+      ['Iframe', Number(summary.iframeFramesSeen) || 0],
+      ['XHR/JS', Number(summary.responseBodiesScanned) || 0],
     ];
 
     elements.summary.innerHTML = parts.map(([label, value]) => (
@@ -155,7 +159,7 @@ export function createWebScanController({ onSaved } = {}) {
     resetScan();
     elements.scan.disabled = true;
     elements.scan.textContent = 'Taraniyor...';
-    setStatus('Site aciliyor, video istekleri yakalaniyor ve yayinlar test ediliyor...');
+    setStatus('Derin tarama basladi: ana sayfa, video detaylari, iframe ve ag istekleri inceleniyor...');
 
     try {
       const response = await fetch('/api/web-scan', {
@@ -178,7 +182,15 @@ export function createWebScanController({ onSaved } = {}) {
           'success'
         );
       } else {
-        setStatus('Uygun yayin bulunamadi. Kisa ve acilmayan icerikler otomatik elendi.', 'warning');
+        const shortOnly = Number(data.summary?.shortRemoved) > 0
+          && Number(data.summary?.detected) === Number(data.summary?.shortRemoved);
+
+        setStatus(
+          shortOnly
+            ? 'Bulunan medyalarin tamami 3 dakikanin altinda oldugu icin otomatik elendi.'
+            : (data.message || 'Derin tarama tamamlandi ancak kaydedilebilir yayin bulunamadi.'),
+          data.summary?.protectionDetected ? 'error' : 'warning'
+        );
       }
     } catch (error) {
       setStatus(error.message, 'error');

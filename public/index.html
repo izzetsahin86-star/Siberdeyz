@@ -37,15 +37,13 @@
         </div>
       </header>
 
-      <section class="group-panel" aria-label="Yayin gruplari">
-        <div class="type-strip" aria-label="Yayin turleri">
-          <button class="group-chip is-active" type="button" data-type-filter="all">Tumu</button>
-          <button class="group-chip" type="button" data-type-filter="live">Canli TV</button>
-          <button class="group-chip" type="button" data-type-filter="movie">Film</button>
-          <button class="group-chip" type="button" data-type-filter="series">Dizi</button>
-          <button class="group-chip favorite-chip" type="button" data-favorites-filter="1">Favoriler</button>
-        </div>
-        <div id="groupChips" class="group-strip" aria-label="Kategoriler"></div>
+      <section class="group-panel" aria-label="Kategoriler">
+        <button id="categoryToggle" class="category-toggle" type="button" aria-expanded="false" aria-controls="groupChips">
+          <span class="category-toggle-label">Kategori</span>
+          <strong id="currentGroupLabel">Tumu</strong>
+          <span class="category-toggle-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div id="groupChips" class="group-strip" aria-label="Kategoriler" hidden></div>
       </section>
 
       <section class="watch-area">

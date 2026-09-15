@@ -6,6 +6,7 @@ const state = {
   group: 'Tumu',
   type: 'all',
   favoritesOnly: false,
+  categoryOpen: false,
   search: '',
   total: 0,
   allTotal: 0,
@@ -59,8 +60,8 @@ const elements = {
   accountsView: document.querySelector('#accountsView'),
   settingsView: document.querySelector('#settingsView'),
   groupChips: document.querySelector('#groupChips'),
-  typeButtons: document.querySelectorAll('[data-type-filter]'),
-  favoritesFilterButton: document.querySelector('[data-favorites-filter]'),
+  categoryToggle: document.querySelector('#categoryToggle'),
+  currentGroupLabel: document.querySelector('#currentGroupLabel'),
   controlButtons: document.querySelectorAll('.control-button'),
   player: document.querySelector('#player'),
   simpleTimeline: document.querySelector('#simpleTimeline'),
@@ -341,19 +342,18 @@ async function login(adminPassword) {
   showApp();
 }
 
-function renderTypeFilters() {
-  elements.typeButtons.forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.typeFilter === state.type && !state.favoritesOnly);
-  });
-
-  elements.favoritesFilterButton.classList.toggle('is-active', state.favoritesOnly);
-}
-
 function renderGroups() {
   const groups = state.groups.length ? state.groups : ['Tumu'];
+  const currentGroup = groups.includes(state.group) ? state.group : 'Tumu';
+
+  state.group = currentGroup;
+  elements.currentGroupLabel.textContent = currentGroup;
+  elements.categoryToggle.setAttribute('aria-expanded', state.categoryOpen ? 'true' : 'false');
+  elements.categoryToggle.classList.toggle('is-open', state.categoryOpen);
+  elements.groupChips.hidden = !state.categoryOpen;
 
   elements.groupChips.innerHTML = groups.map((group) => `
-    <button class="group-chip ${group === state.group ? 'is-active' : ''}" type="button" data-group-value="${escapeHtml(group)}">
+    <button class="group-chip ${group === currentGroup ? 'is-active' : ''}" type="button" data-group-value="${escapeHtml(group)}">
       ${escapeHtml(group)}
     </button>
   `).join('');
@@ -882,7 +882,6 @@ async function activateSource(sourceId) {
   elements.searchInput.value = '';
 
   renderGroups();
-  renderTypeFilters();
   renderChannels();
   switchPanel('channels');
 
@@ -941,7 +940,6 @@ async function loadChannels({ force = false, reset = false } = {}) {
   state.hasMore = Boolean(data.hasMore);
 
   renderGroups();
-  renderTypeFilters();
   renderChannels();
 
   const filterText = state.total === state.allTotal ? '' : `, filtre sonucu ${state.total}`;
@@ -991,7 +989,6 @@ function reloadFilteredChannels() {
   state.channels = [];
   state.hasMore = false;
   setPanelCompact(false);
-  renderTypeFilters();
   renderGroups();
   renderChannels();
   loadChannels({ reset: true }).catch((error) => {
@@ -1012,23 +1009,17 @@ elements.loginForm.addEventListener('submit', (event) => {
   login(adminPassword).catch((error) => setLoginStatus(error.message, 'error'));
 });
 
+elements.categoryToggle.addEventListener('click', () => {
+  state.categoryOpen = !state.categoryOpen;
+  renderGroups();
+});
+
 elements.groupChips.addEventListener('click', (event) => {
   const button = event.target.closest('[data-group-value]');
   if (!button) return;
+
   state.group = button.dataset.groupValue;
-  reloadFilteredChannels();
-});
-
-elements.typeButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    state.type = button.dataset.typeFilter;
-    state.favoritesOnly = false;
-    reloadFilteredChannels();
-  });
-});
-
-elements.favoritesFilterButton.addEventListener('click', () => {
-  state.favoritesOnly = !state.favoritesOnly;
+  state.categoryOpen = false;
   reloadFilteredChannels();
 });
 

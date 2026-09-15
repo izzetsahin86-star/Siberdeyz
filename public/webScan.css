@@ -294,9 +294,9 @@
 
 @media (max-width: 860px) {
   .content-panel[data-open="webscan"] {
-    height: min(56svh, 500px) !important;
-    min-height: 300px !important;
-    max-height: min(56svh, 500px) !important;
+    height: 76svh !important;
+    min-height: 76svh !important;
+    max-height: 76svh !important;
   }
 
   .web-scan-view {

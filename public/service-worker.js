@@ -1,10 +1,11 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260915-10';
+const CACHE_NAME = 'siberdeyz-pwa-20260915-settings-1';
 
 const APP_SHELL = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
+  '/appSettings.js',
   '/accountMultiConnection.js',
   '/manifest.webmanifest',
   '/offline.html',

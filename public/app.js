@@ -97,6 +97,7 @@ const elements = {
   categoryToggle: document.querySelector('#categoryToggle'),
   currentGroupLabel: document.querySelector('#currentGroupLabel'),
   controlButtons: document.querySelectorAll('.control-button'),
+  watchArea: document.querySelector('.watch-area'),
   player: document.querySelector('#player'),
   playbackTimeline: document.querySelector('#playbackTimeline'),
   playbackCurrentTime: document.querySelector('#playbackCurrentTime'),
@@ -286,6 +287,7 @@ function setPlaybackSource(channel) {
 function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
   clearPlaybackFallback();
   elements.player.pause();
+  unlockMobilePlayerLayout();
   elements.player.removeAttribute('src');
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
@@ -1290,6 +1292,28 @@ async function loadChannels({ force = false, reset = false } = {}) {
   setStatus(`${state.channels.length}/${state.total} gosteriliyor. Toplam ${state.allTotal} yayin${filterText}.`);
 }
 
+function lockMobilePlayerLayout() {
+  if (!elements.watchArea || !window.matchMedia('(max-width: 860px)').matches) return;
+
+  const rect = elements.watchArea.getBoundingClientRect();
+  if (!Number.isFinite(rect.height) || rect.height <= 0) return;
+
+  const height = Math.round(rect.height);
+  elements.watchArea.style.height = height + 'px';
+  elements.watchArea.style.minHeight = height + 'px';
+  elements.watchArea.style.maxHeight = height + 'px';
+  elements.watchArea.dataset.playerLocked = 'true';
+}
+
+function unlockMobilePlayerLayout() {
+  if (!elements.watchArea) return;
+
+  elements.watchArea.style.removeProperty('height');
+  elements.watchArea.style.removeProperty('min-height');
+  elements.watchArea.style.removeProperty('max-height');
+  delete elements.watchArea.dataset.playerLocked;
+}
+
 async function playChannel(channelId) {
   const channel = state.channels.find((item) => item.id === channelId);
   if (!channel) return;
@@ -1299,6 +1323,7 @@ async function playChannel(channelId) {
     activeElement.blur();
   }
 
+  lockMobilePlayerLayout();
   setPanelCompact(true);
   state.currentChannelId = channel.id;
   elements.currentChannel.textContent = channel.name;
@@ -1491,6 +1516,10 @@ elements.saveSourceButton.addEventListener('click', () => {
     setSourceStatus(error.message, 'error');
   });
 });
+
+elements.player.playsInline = true;
+elements.player.setAttribute('playsinline', '');
+elements.player.setAttribute('webkit-playsinline', '');
 
 userAccessController = createUserAccessSettingsController();
 

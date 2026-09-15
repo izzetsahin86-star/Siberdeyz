@@ -16,7 +16,6 @@ const state = {
   hasMore: false,
   loading: false,
   started: false,
-  adminPassword: '',
   soundEnabled: false,
   sources: [],
   activeSourceId: '',
@@ -131,10 +130,6 @@ function setSourceStatus(message, type = 'info') {
 
 function setLoginStatus(message, type = 'info') {
   setTextStatus(elements.loginStatus, message, type);
-}
-
-function getAdminPassword() {
-  return state.adminPassword;
 }
 
 function setLoading(isLoading) {
@@ -317,10 +312,20 @@ async function login(adminPassword) {
     throw new Error(data.error || 'Giris yapilamadi');
   }
 
-  state.adminPassword = adminPassword;
   elements.adminPasswordInput.value = '';
   setLoginStatus('');
   showApp();
+}
+
+async function restoreAdminSession() {
+  const response = await fetch('/api/admin/session', {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) return;
+
+  const data = await response.json();
+  if (data.authenticated) showApp();
 }
 
 function renderGroups() {
@@ -738,15 +743,13 @@ async function loadAccountFailureStatus() {
 }
 
 async function scanSingleAccount(sourceId) {
-  const adminPassword = getAdminPassword();
   state.accountScanningIds.add(sourceId);
   renderSources();
 
   try {
     const response = await fetch('/api/account-health/' + encodeURIComponent(sourceId) + '/scan', {
       method: 'POST',
-      headers: { 'x-admin-password': adminPassword },
-    });
+        });
     const data = await response.json();
 
     if (!response.ok) {
@@ -773,7 +776,6 @@ async function scanAllAccounts() {
 
   state.accountScanningAll = true;
   updateAccountsSummary();
-  const adminPassword = getAdminPassword();
 
   try {
     for (let offset = 0; offset < ids.length; offset += 100) {
@@ -789,7 +791,6 @@ async function scanAllAccounts() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-admin-password': adminPassword,
         },
         body: JSON.stringify({ ids: batch }),
       });
@@ -819,7 +820,6 @@ async function scanAllAccounts() {
 async function saveSource() {
   const url = elements.sourceInput.value.trim();
   const label = elements.sourceNameInput.value.trim();
-  const adminPassword = getAdminPassword();
 
   if (!url) {
     setSourceStatus('Once yayin URL girin.', 'warning');
@@ -833,7 +833,6 @@ async function saveSource() {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-admin-password': adminPassword,
     },
     body: JSON.stringify({ url, label }),
   });
@@ -860,7 +859,6 @@ async function uploadSourceFiles() {
 
   if (files.length === 0) return;
 
-  const adminPassword = getAdminPassword();
   const manualLabel = files.length === 1 ? elements.sourceNameInput.value.trim() : '';
   let importedTotal = 0;
 
@@ -882,7 +880,6 @@ async function uploadSourceFiles() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-admin-password': adminPassword,
         },
         body: JSON.stringify({
           fileName: file.name,
@@ -913,13 +910,11 @@ async function uploadSourceFiles() {
 }
 
 async function deleteSource(sourceId) {
-  const adminPassword = getAdminPassword();
   setSourceStatus('Hesap siliniyor...');
 
   const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}`, {
     method: 'DELETE',
-    headers: { 'x-admin-password': adminPassword },
-  });
+    });
   const data = await response.json();
 
   if (!response.ok) {
@@ -950,7 +945,6 @@ async function deletePersistentFailedAccounts() {
   );
   if (!approved) return;
 
-  const adminPassword = getAdminPassword();
   elements.deletePersistentFailedButton.disabled = true;
   elements.deleteAllSourcesButton.disabled = true;
   elements.sourceFileInput.disabled = true;
@@ -970,7 +964,6 @@ async function deletePersistentFailedAccounts() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-admin-password': adminPassword,
         },
         body: JSON.stringify({ ids: batch }),
       });
@@ -1024,7 +1017,6 @@ async function deleteAllSources() {
   );
   if (!approved) return;
 
-  const adminPassword = getAdminPassword();
   elements.deleteAllSourcesButton.disabled = true;
   elements.sourceFileInput.disabled = true;
   elements.toggleUrlFormButton.disabled = true;
@@ -1036,8 +1028,7 @@ async function deleteAllSources() {
     if (state.accountStatus === 'all') {
       const response = await fetch('/api/source', {
         method: 'DELETE',
-        headers: { 'x-admin-password': adminPassword },
-      });
+            });
       data = await response.json();
 
       if (!response.ok) {
@@ -1057,8 +1048,7 @@ async function deleteAllSources() {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            'x-admin-password': adminPassword,
-          },
+            },
           body: JSON.stringify({ ids: batch }),
         });
         data = await response.json();
@@ -1102,13 +1092,11 @@ async function activateSource(sourceId) {
   const isAlreadyActive = sourceId === state.activeSourceId;
 
   if (!isAlreadyActive) {
-    const adminPassword = getAdminPassword();
-    setSourceStatus('Hesap aciliyor...');
+      setSourceStatus('Hesap aciliyor...');
 
     const response = await fetch(`/api/source/${encodeURIComponent(sourceId)}/active`, {
       method: 'PUT',
-      headers: { 'x-admin-password': adminPassword },
-    });
+        });
     const data = await response.json();
 
     if (!response.ok) {
@@ -1391,6 +1379,7 @@ elements.saveSourceButton.addEventListener('click', () => {
 
 applyStandaloneClass();
 registerServiceWorker();
+restoreAdminSession().catch(() => {});
 renderGroups();
 renderSources();
 renderAccountAutoScanStatus();

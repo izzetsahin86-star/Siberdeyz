@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { isAdminPassword, requireAdmin } from '../modules/authService.js';
+import { getAdminSession, loginAdmin, logoutAdmin, requireAdminSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
@@ -71,14 +71,11 @@ apiRouter.get('/health', (req, res) => {
   res.json({ ok: true, name: 'Siberdeyz IPTV Player' });
 });
 
-apiRouter.post('/admin/login', (req, res) => {
-  if (!isAdminPassword(req.body?.adminPassword)) {
-    res.status(401).json({ error: 'Admin sifresi hatali.' });
-    return;
-  }
+apiRouter.post('/admin/login', loginAdmin);
+apiRouter.post('/admin/logout', logoutAdmin);
+apiRouter.get('/admin/session', getAdminSession);
 
-  res.json({ ok: true });
-});
+apiRouter.use(requireAdminSession);
 
 apiRouter.get('/source', async (req, res, next) => {
   try {
@@ -112,7 +109,7 @@ apiRouter.get('/account-failures', async (req, res, next) => {
   }
 });
 
-apiRouter.post('/account-health/:id/scan', requireAdmin, async (req, res, next) => {
+apiRouter.post('/account-health/:id/scan', async (req, res, next) => {
   try {
     res.json(await scanAccount(req.params.id));
   } catch (error) {
@@ -120,7 +117,7 @@ apiRouter.post('/account-health/:id/scan', requireAdmin, async (req, res, next) 
   }
 });
 
-apiRouter.post('/account-health/scan', requireAdmin, async (req, res, next) => {
+apiRouter.post('/account-health/scan', async (req, res, next) => {
   try {
     res.json(await scanAccounts(req.body?.ids));
   } catch (error) {
@@ -128,7 +125,7 @@ apiRouter.post('/account-health/scan', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.post('/source', requireAdmin, async (req, res, next) => {
+apiRouter.post('/source', async (req, res, next) => {
   try {
     const status = await savePlaylistSource(req.body?.url, req.body?.label);
     clearChannelCache();
@@ -139,7 +136,7 @@ apiRouter.post('/source', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.post('/source/file', requireAdmin, async (req, res, next) => {
+apiRouter.post('/source/file', async (req, res, next) => {
   try {
     const parsed = parseUploadedPlaylist(req.body?.content, req.body?.fileName);
     const status = parsed.kind === 'sources'
@@ -163,7 +160,7 @@ apiRouter.post('/source/file', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.put('/source/:id/active', requireAdmin, async (req, res, next) => {
+apiRouter.put('/source/:id/active', async (req, res, next) => {
   try {
     const status = await setActivePlaylistSource(req.params.id);
     clearChannelCache();
@@ -174,7 +171,7 @@ apiRouter.put('/source/:id/active', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.post('/source/bulk-delete', requireAdmin, async (req, res, next) => {
+apiRouter.post('/source/bulk-delete', async (req, res, next) => {
   try {
     const status = await deleteAccountsByIds(req.body?.ids);
     clearChannelCache();
@@ -185,7 +182,7 @@ apiRouter.post('/source/bulk-delete', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
+apiRouter.delete('/source/:id', async (req, res, next) => {
   try {
     const status = await deletePlaylistSource(req.params.id);
     await removeAccountHealth(req.params.id);
@@ -197,7 +194,7 @@ apiRouter.delete('/source/:id', requireAdmin, async (req, res, next) => {
   }
 });
 
-apiRouter.delete('/source', requireAdmin, async (req, res, next) => {
+apiRouter.delete('/source', async (req, res, next) => {
   try {
     const status = await deletePlaylistSource();
     await removeAccountHealth();

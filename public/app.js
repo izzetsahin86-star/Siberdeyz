@@ -627,7 +627,7 @@ function renderSources() {
         if (metaParts.length === 0) metaParts.push('Liste URL');
       }
 
-      const showManualScan = !isFile && healthStatus !== 'active';
+      const showManualScan = !isFile;
 
       return [
         '<article class="source-pill-item ' + (source.active ? 'is-active ' : '') + 'health-' + escapeHtml(healthStatus) + '">',

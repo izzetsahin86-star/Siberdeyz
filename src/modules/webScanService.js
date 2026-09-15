@@ -775,7 +775,7 @@ async function discoverWithBrowser(pageUrl) {
     try {
       pageTitle = await scanOnePage(pageUrl, { collectLinks: true, detail: false });
     } catch {
-      diagnostics.pageErrors += 1;
+      // Statik motor yine de ana sayfayi inceleyebilir.
     }
 
     const rankedLinks = [...detailLinks.values()]
@@ -966,6 +966,22 @@ export async function scanWebPage(rawUrl) {
             )
         ),
     };
+
+    console.info(
+      'Web scan completed:',
+      JSON.stringify({
+        detected: scan.summary.detected,
+        accepted: scan.summary.accepted,
+        shortRemoved: scan.summary.shortRemoved,
+        failed: scan.summary.failed,
+        pagesVisited: scan.summary.pagesVisited,
+        detailPagesVisited: scan.summary.detailPagesVisited,
+        detailLinksFound: scan.summary.detailLinksFound,
+        iframeFramesSeen: scan.summary.iframeFramesSeen,
+        responseBodiesScanned: scan.summary.responseBodiesScanned,
+        protectionDetected: scan.summary.protectionDetected,
+      })
+    );
 
     await writePending(scan);
     return scan;

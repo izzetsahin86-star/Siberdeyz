@@ -553,6 +553,7 @@ video {
 }
 
 .player-meta strong {
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 72%;
   padding: 6px 10px;
@@ -1600,8 +1601,9 @@ select:focus {
   }
 
   .player-meta-actions {
+    flex: 0 0 auto;
     gap: 4px;
-    max-width: 58%;
+    max-width: 52%;
   }
 
   .player-delete-web-scan {
@@ -1617,7 +1619,7 @@ select:focus {
   }
 
   .player-meta strong {
-    max-width: 68%;
+    max-width: 46%;
     padding: 5px 8px;
     font-size: 11px;
   }

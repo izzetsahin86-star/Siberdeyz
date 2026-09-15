@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { config } from '../config.js';
+import { accessUserExists, authenticateAccessUser } from './userAccessService.js';
+import { runWithTenant } from './tenantContext.js';
 
 const COOKIE_NAME = 'siberdeyz_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -69,12 +71,15 @@ function sign(value) {
     .digest('base64url');
 }
 
-function createToken() {
+function createToken(identity) {
   const issuedAt = now();
   const encoded = encodePayload({
     iat: issuedAt,
     exp: issuedAt + SESSION_TTL_MS,
     nonce: crypto.randomBytes(18).toString('hex'),
+    role: identity.role,
+    userId: identity.userId,
+    tenantId: identity.tenantId,
   });
 
   return encoded + '.' + sign(encoded);
@@ -103,20 +108,28 @@ function parseCookies(req) {
 }
 
 function verifyToken(token) {
-  if (!token || !getSigningSecret()) return false;
+  if (!token || !getSigningSecret()) return null;
 
   const [encoded, signature, extra] = String(token).split('.');
-  if (!encoded || !signature || extra) return false;
+  if (!encoded || !signature || extra) return null;
 
   const expected = sign(encoded);
-  if (!safeEqual(signature, expected)) return false;
+  if (!safeEqual(signature, expected)) return null;
 
   try {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf-8'));
     const expiresAt = Number(payload?.exp);
-    return Number.isFinite(expiresAt) && expiresAt > now();
+    if (!Number.isFinite(expiresAt) || expiresAt <= now()) return null;
+
+    const role = payload?.role === 'user' ? 'user' : 'admin';
+    const userId = role === 'admin' ? 'admin' : String(payload?.userId || '').trim();
+    const tenantId = role === 'admin' ? 'admin' : String(payload?.tenantId || userId).trim();
+
+    if (role === 'user' && (!userId || !tenantId)) return null;
+
+    return { role, userId, tenantId };
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -132,55 +145,102 @@ function cookieOptions(req) {
   };
 }
 
-export function hasAdminSession(req) {
-  const token = parseCookies(req)[COOKIE_NAME];
-  return verifyToken(token);
+async function resolveLoginIdentity(password) {
+  if (config.adminPassword && safeEqual(password, config.adminPassword)) {
+    return {
+      role: 'admin',
+      userId: 'admin',
+      tenantId: 'admin',
+      label: 'Yonetici',
+    };
+  }
+
+  const user = await authenticateAccessUser(password);
+  if (!user) return null;
+
+  return {
+    role: 'user',
+    userId: user.id,
+    tenantId: user.id,
+    label: user.label,
+  };
 }
 
-export function loginAdmin(req, res) {
-  if (!config.adminPassword) {
-    res.status(503).json({ error: 'Admin girisi yapilandirilmamis.' });
-    return;
+export async function loginSession(req, res, next) {
+  try {
+    if (!config.adminPassword) {
+      res.status(503).json({ error: 'Giris sistemi yapilandirilmamis.' });
+      return;
+    }
+
+    const failure = getFailureRecord(req);
+    if (failure.count >= LOGIN_MAX_FAILURES) {
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((failure.windowStartedAt + LOGIN_WINDOW_MS - now()) / 1000)
+      );
+
+      res.setHeader('retry-after', String(retryAfterSeconds));
+      res.status(429).json({ error: 'Cok fazla hatali giris denemesi. Bir sure sonra tekrar deneyin.' });
+      return;
+    }
+
+    const identity = await resolveLoginIdentity(req.body?.adminPassword);
+
+    if (!identity) {
+      failure.count += 1;
+      saveFailure(failure);
+      res.status(401).json({ error: 'Sifre hatali.' });
+      return;
+    }
+
+    clearFailures(req);
+    res.cookie(COOKIE_NAME, createToken(identity), cookieOptions(req));
+    res.setHeader('cache-control', 'no-store');
+    res.json({
+      ok: true,
+      authenticated: true,
+      role: identity.role,
+      userId: identity.userId,
+      label: identity.label,
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const failure = getFailureRecord(req);
-  if (failure.count >= LOGIN_MAX_FAILURES) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((failure.windowStartedAt + LOGIN_WINDOW_MS - now()) / 1000)
-    );
-
-    res.setHeader('retry-after', String(retryAfterSeconds));
-    res.status(429).json({ error: 'Cok fazla hatali giris denemesi. Bir sure sonra tekrar deneyin.' });
-    return;
-  }
-
-  if (!safeEqual(req.body?.adminPassword, config.adminPassword)) {
-    failure.count += 1;
-    saveFailure(failure);
-    res.status(401).json({ error: 'Admin sifresi hatali.' });
-    return;
-  }
-
-  clearFailures(req);
-  res.cookie(COOKIE_NAME, createToken(), cookieOptions(req));
-  res.setHeader('cache-control', 'no-store');
-  res.json({ ok: true, authenticated: true });
 }
 
-export function logoutAdmin(req, res) {
-  const options = cookieOptions(req);
-  delete options.maxAge;
-
-  res.clearCookie(COOKIE_NAME, options);
+export function logoutSession(req, res) {
+  res.clearCookie(COOKIE_NAME, cookieOptions(req));
   res.setHeader('cache-control', 'no-store');
   res.json({ ok: true, authenticated: false });
 }
 
+export async function requireAppSession(req, res, next) {
+  try {
+    const identity = verifyToken(parseCookies(req)[COOKIE_NAME]);
+
+    if (!identity) {
+      res.setHeader('cache-control', 'no-store');
+      res.status(401).json({ error: 'Oturum gerekli.' });
+      return;
+    }
+
+    if (identity.role === 'user' && !(await accessUserExists(identity.userId))) {
+      res.clearCookie(COOKIE_NAME, cookieOptions(req));
+      res.status(401).json({ error: 'Kullanici erisimi iptal edilmis.' });
+      return;
+    }
+
+    req.auth = identity;
+    runWithTenant(identity, () => next());
+  } catch (error) {
+    next(error);
+  }
+}
+
 export function requireAdminSession(req, res, next) {
-  if (!hasAdminSession(req)) {
-    res.setHeader('cache-control', 'no-store');
-    res.status(401).json({ error: 'Oturum gerekli.' });
+  if (req.auth?.role !== 'admin') {
+    res.status(403).json({ error: 'Bu islem sadece yoneticiye acik.' });
     return;
   }
 

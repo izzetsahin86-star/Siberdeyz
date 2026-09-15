@@ -1,8 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { getTenantDataDir } from './tenantContext.js';
 
-const storageDir = path.join(process.cwd(), 'data');
-const settingsFile = path.join(storageDir, 'app-settings.json');
+function getStorageDir() {
+  return getTenantDataDir();
+}
+
+function getSettingsFile() {
+  return path.join(getStorageDir(), 'app-settings.json');
+}
 
 const DEFAULT_SETTINGS = Object.freeze({
   startupSound: false,
@@ -51,7 +57,7 @@ function sanitizeSettings(input = {}) {
 
 async function readSavedSettings() {
   try {
-    const content = await fs.readFile(settingsFile, 'utf-8');
+    const content = await fs.readFile(getSettingsFile(), 'utf-8');
     return JSON.parse(content);
   } catch (error) {
     if (error.code === 'ENOENT') return {};
@@ -68,7 +74,8 @@ export async function updateAppSettings(patch = {}) {
   const current = await getAppSettings();
   const next = sanitizeSettings({ ...current, ...(patch && typeof patch === 'object' ? patch : {}) });
 
-  await fs.mkdir(storageDir, { recursive: true });
+  await fs.mkdir(getStorageDir(), { recursive: true });
+  const settingsFile = getSettingsFile();
   const tempFile = settingsFile + '.tmp';
   await fs.writeFile(tempFile, JSON.stringify(next, null, 2));
   await fs.rename(tempFile, settingsFile);

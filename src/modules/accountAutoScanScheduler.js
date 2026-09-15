@@ -261,3 +261,12 @@ export async function getAccountAutoScanStatus() {
     lastError: String(status.lastError || ''),
   };
 }
+
+export function stopAccountAutoScanSchedulerForTenant(tenantId) {
+  const id = String(tenantId || '').trim();
+  if (!id) return;
+
+  const runtime = schedulers.get(id);
+  if (runtime?.timer) clearTimeout(runtime.timer);
+  schedulers.delete(id);
+}

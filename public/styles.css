@@ -1517,16 +1517,42 @@ select:focus {
   }
 
   .watch-area {
+    display: block;
     min-width: 0;
     min-height: 0;
-    contain: layout paint;
+    contain: strict;
     border-radius: 26px;
   }
 
   .watch-area > video {
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 48px 0;
+    width: 100% !important;
+    height: calc(100% - 48px) !important;
     min-width: 0;
+    min-height: 0;
     max-width: 100%;
-    max-height: 100%;
+    max-height: calc(100% - 48px);
+    object-fit: contain;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  .watch-area > .player-meta {
+    position: absolute;
+    z-index: 4;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+  }
+
+  .watch-area[data-player-locked="true"] {
+    flex: 0 0 auto;
   }
 
   .playback-timeline {

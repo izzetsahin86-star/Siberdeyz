@@ -76,13 +76,16 @@
         </div>
 
         <div class="sheet-body">
-          <div id="channelsView" class="panel-view">
-            <div class="search-row">
-              <input id="searchInput" type="search" placeholder="Kanal, film veya dizi ara" />
+          <div id="channelsView" class="panel-view channels-view">
+            <div class="channel-toolbar">
+              <input id="searchInput" type="search" placeholder="Kanal ara" />
+              <select id="channelCategorySelect" aria-label="Kategori sec">
+                <option value="Tumu">Tumu</option>
+              </select>
             </div>
-            <div id="status" class="status">Yayin listesi yukleniyor...</div>
-            <div id="channelList" class="channel-list"></div>
-            <button id="loadMoreButton" class="load-more" type="button" hidden>Daha fazla goster</button>
+            <div id="status" class="status channel-status">Yayin listesi yukleniyor...</div>
+            <div id="channelList" class="channel-list compact-channel-list"></div>
+            <button id="loadMoreButton" class="load-more compact-load-more" type="button" hidden>Daha fazla goster</button>
           </div>
 
           <div id="accountsView" class="panel-view accounts-view" hidden>

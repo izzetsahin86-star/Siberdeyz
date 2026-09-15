@@ -672,6 +672,34 @@ video {
   padding: 10px 12px 8px;
 }
 
+.channel-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 6px;
+  padding: 7px 9px 5px;
+}
+
+.channel-toolbar input,
+.channel-toolbar select {
+  min-width: 0;
+  min-height: 36px;
+  border-radius: 11px;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+
+.channel-toolbar select {
+  padding-right: 26px;
+  color: #d8d8de;
+  background: rgba(255,255,255,.06);
+}
+
+.channel-status {
+  padding: 0 10px 5px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 input,
 select {
   width: 100%;
@@ -721,60 +749,62 @@ select:focus {
 
 .channel-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   align-content: start;
-  gap: 8px;
+  gap: 5px;
   min-height: 0;
   overflow: auto;
-  padding: 0 12px 12px;
+  padding: 0 9px 8px;
   scrollbar-width: none;
 }
 
 .channel-card {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 5px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 2px;
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: rgba(255,255,255,.05);
-  box-shadow: inset 0 1px rgba(255,255,255,.025);
-  animation: ios-rise 220ms ease both;
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  box-shadow: inset 0 1px rgba(255,255,255,.02);
 }
 
 .channel-card:hover {
-  background: rgba(255,255,255,.07);
+  background: rgba(255,255,255,.065);
 }
 
 .favorite-button {
+  min-width: 30px;
   border: 0;
-  border-radius: 15px;
-  color: #7c7c84;
+  border-radius: 10px;
+  padding: 0;
+  color: #74747c;
   background: transparent;
-  font-size: 20px;
+  font-size: 15px;
   cursor: pointer;
   transition: transform 120ms ease, background 150ms ease, color 150ms ease;
 }
 
 .favorite-button:hover {
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,.05);
 }
 
 .favorite-button.is-active {
   color: var(--yellow);
-  text-shadow: 0 0 20px rgba(255,214,10,.34);
+  text-shadow: 0 0 14px rgba(255,214,10,.26);
 }
 
 .channel {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 7px;
   align-items: center;
   width: 100%;
   min-width: 0;
   border: 0;
-  border-radius: 16px;
-  padding: 8px 9px 8px 6px;
+  border-radius: 10px;
+  padding: 4px 7px 4px 3px;
   color: var(--text);
   background: transparent;
   text-align: left;
@@ -783,20 +813,20 @@ select:focus {
 }
 
 .channel:hover {
-  background: rgba(10,132,255,.09);
+  background: rgba(10,132,255,.08);
 }
 
 .channel-logo {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: rgba(0,0,0,.42);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  background: rgba(0,0,0,.36);
   color: var(--cyan);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -819,21 +849,29 @@ select:focus {
 }
 
 .channel strong {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -.005em;
 }
 
 .channel small {
   display: flex;
-  gap: 6px;
-  margin-top: 3px;
+  gap: 5px;
+  margin-top: 2px;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 8px;
 }
 
 .channel small span:first-child {
   color: var(--cyan);
+}
+
+.compact-load-more {
+  min-height: 34px;
+  margin: 0 9px 8px;
+  padding: 7px 10px;
+  border-radius: 11px;
+  font-size: 10px;
 }
 
 .empty {
@@ -1574,22 +1612,53 @@ select:focus {
     height: calc(100% - 50px);
   }
 
+  .channel-toolbar {
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 5px;
+    padding: 6px 7px 4px;
+  }
+
+  .channel-toolbar input,
+  .channel-toolbar select {
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 16px;
+  }
+
   .channel-list {
     grid-template-columns: 1fr;
-    gap: 7px;
-    padding-inline: 10px;
+    gap: 4px;
+    padding: 0 7px 7px;
   }
 
   .channel-card {
-    border-radius: 17px;
+    min-height: 40px;
+    border-radius: 11px;
   }
 
-  .search-row {
-    padding: 9px 10px 7px;
+  .channel {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 6px;
+    padding-block: 3px;
   }
 
-  .status {
-    padding-inline: 10px;
+  .channel-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .channel strong {
+    font-size: 10px;
+  }
+
+  .channel small {
+    font-size: 8px;
+  }
+
+  .channel-status {
+    padding: 0 8px 4px;
+    font-size: 9px;
   }
 
   .accounts-view {

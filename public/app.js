@@ -34,6 +34,7 @@ const state = {
 
 let searchTimer;
 let playbackFallbackHandler = null;
+let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -297,6 +298,7 @@ function switchPanel(panelName) {
 }
 
 async function login(adminPassword) {
+  await startupSessionReset;
   elements.loginButton.disabled = true;
   setLoginStatus('Sifre kontrol ediliyor...');
 
@@ -1380,7 +1382,7 @@ elements.saveSourceButton.addEventListener('click', () => {
 
 applyStandaloneClass();
 registerServiceWorker();
-clearPreviousAdminSession().catch(() => {});
+startupSessionReset = clearPreviousAdminSession();
 renderGroups();
 renderSources();
 renderAccountAutoScanStatus();

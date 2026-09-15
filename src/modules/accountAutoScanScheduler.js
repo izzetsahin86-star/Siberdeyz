@@ -130,7 +130,13 @@ async function runAutomaticAccountScan() {
     for (let offset = 0; offset < ids.length; offset += BATCH_SIZE) {
       const batch = ids.slice(offset, offset + BATCH_SIZE);
       const scanResult = await scanAccounts(batch);
-      await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
+
+      try {
+        await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
+      } catch (error) {
+        console.error('Persistent failure tracker could not update:', error);
+      }
+
       scannedCount += batch.length;
 
       status = {

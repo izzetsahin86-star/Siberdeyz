@@ -367,6 +367,7 @@ function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {})
   clearPlaybackFallback();
   elements.player.pause();
   unlockMobilePlayerLayout();
+  if ('srcObject' in elements.player) elements.player.srcObject = null;
   elements.player.removeAttribute('src');
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
@@ -495,6 +496,8 @@ async function login(adminPassword) {
     // Kullanici yonetimi ana uygulama girisini engellememeli.
   }
 
+  // A new authenticated session always starts with an empty, stopped player.
+  stopPlayback({ message: '', resetSound: false });
   showApp();
 }
 
@@ -1679,6 +1682,8 @@ renderGroups();
 renderSources();
 renderAccountAutoScanStatus();
 applySoundSetting();
+// Do not let Safari/browser media restoration leak a previous playback into login.
+stopPlayback({ message: '', resetSound: false });
 
 attachPlaybackTimeline(elements.player, {
   root: elements.playbackTimeline,

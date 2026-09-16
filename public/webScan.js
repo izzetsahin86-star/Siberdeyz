@@ -282,13 +282,28 @@ export function createWebScanController({ onSaved } = {}) {
   });
 
   elements.deleteAll?.addEventListener('click', () => {
-    const removedCount = candidates.length;
-    if (removedCount === 0) return;
+    if (!scanId || candidates.length === 0) return;
 
-    candidates = [];
-    selected.clear();
-    renderResults();
-    setStatus(removedCount + ' tarama sonucu listeden silindi.', 'warning');
+    elements.deleteAll.disabled = true;
+    setStatus('Tarama sonuclari kalici olarak siliniyor...');
+
+    fetch('/api/web-scan/' + encodeURIComponent(scanId) + '/results', {
+      method: 'DELETE',
+      cache: 'no-store',
+    })
+      .then((response) => readJson(response, 'Tarama sonuclari silinemedi.'))
+      .then((data) => {
+        candidates = [];
+        selected.clear();
+        scanId = '';
+        renderSummary();
+        renderResults();
+        setStatus((Number(data.deleted) || 0) + ' tarama sonucu kalici olarak silindi.', 'success');
+      })
+      .catch((error) => setStatus(error.message, 'error'))
+      .finally(() => {
+        elements.deleteAll.disabled = false;
+      });
   });
 
   elements.save?.addEventListener('click', () => {

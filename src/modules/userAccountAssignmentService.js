@@ -1,6 +1,5 @@
 import { accessUserExists } from './userAccessService.js';
 import { runWithTenantId } from './tenantContext.js';
-import { clearChannelCache } from './playlistService.js';
 import { savePlaylistSource } from './sourceStorage.js';
 
 export async function assignUrlAccountToUser(userId, url, label = '') {
@@ -16,8 +15,6 @@ export async function assignUrlAccountToUser(userId, url, label = '') {
 
   return runWithTenantId(id, async () => {
     const status = await savePlaylistSource(url, cleanLabel, { activate: false });
-    clearChannelCache();
-
     return {
       ok: true,
       userId: id,

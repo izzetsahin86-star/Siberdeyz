@@ -15,8 +15,7 @@
     z-index: 40;
     left: calc(12px + var(--safe-left));
     right: calc(12px + var(--safe-right));
-    bottom: max(2px, calc(var(--safe-bottom) - 32px));
-    transform: translateY(20px);
+    bottom: 0;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 5px;
@@ -169,7 +168,7 @@
   .control-panel {
     left: calc(8px + var(--safe-left));
     right: calc(8px + var(--safe-right));
-    bottom: max(2px, calc(var(--safe-bottom) - 28px));
+    bottom: 0;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 3px;
     padding: 6px;

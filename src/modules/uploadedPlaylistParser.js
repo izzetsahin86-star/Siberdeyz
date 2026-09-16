@@ -3,6 +3,14 @@ import { parseM3U } from './m3uParser.js';
 const URL_PATTERN = /(https?:\/\/[^\s"'<>|]+)/ig;
 const PLAYLIST_EXT_PATTERN = /\.(m3u|m3u_plus)(?:$|[?#])/i;
 const STREAM_EXT_PATTERN = /\.(m3u8|ts|mp4|mkv|avi|mov)(?:$|[?#])/i;
+const SOCIAL_HOSTS = new Set(['t.me', 'telegram.me', 'www.t.me', 'www.telegram.me']);
+
+const FIELD_PATTERNS = {
+  portal: /(?:Portal|ƤσятαƖ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
+  realUrl: /(?:Real\s*Url|ℝ𝕖𝕒𝕝\s*𝕌𝕣𝕝|ʀєɑℓ\s*µʀℓ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
+  user: /(?:User|Username|υѕєя)\s*[=:]?\s*([^\s]+)/iu,
+  pass: /(?:Pass|Password|ραѕѕ)\s*[=:]?\s*([^\s]+)/iu,
+};
 
 function cleanFileName(fileName) {
   return String(fileName || 'Dosya').replace(/\.[^.]+$/, '').trim() || 'Dosya';
@@ -79,6 +87,133 @@ function extractUrls(line) {
   }));
 }
 
+function sourceIdentity(url) {
+  try {
+    const parsed = new URL(url);
+    const username = parsed.searchParams.get('username');
+    const password = parsed.searchParams.get('password');
+
+    if (username !== null && password !== null) {
+      return [
+        parsed.protocol.toLocaleLowerCase('en-US'),
+        parsed.host.toLocaleLowerCase('en-US'),
+        username,
+        password,
+      ].join('|');
+    }
+
+    return parsed.toString();
+  } catch {
+    return String(url || '');
+  }
+}
+
+function sourceDefaultLabel(url, fallback) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./i, '');
+    const username = parsed.searchParams.get('username');
+
+    if (host && username) return host + ' - ' + username;
+    return host || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function isGenericSourcePrefix(value) {
+  const normalized = String(value || '')
+    .replace(/[╠•●۞🎬🔰👀=:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('tr-TR');
+
+  return [
+    'm3u',
+    'm3u1',
+    'm3u2',
+    'playlist',
+    'url',
+    'real url',
+    'portal',
+    'ʀєɑℓ µʀℓ',
+    'ℝ𝕖𝕒𝕝 𝕌𝕣𝕝',
+    'ƤσятαƖ',
+  ].some((token) => normalized === token.toLocaleLowerCase('tr-TR'));
+}
+
+function addPlaylistSource(sources, seen, sourceUrl, labelCandidate, fallback) {
+  if (!sourceUrl || looksLikeDirectStream(sourceUrl)) return false;
+
+  const identity = sourceIdentity(sourceUrl);
+  if (seen.has(identity)) return false;
+
+  seen.add(identity);
+  const cleanedCandidate = cleanName(labelCandidate);
+  const label = cleanedCandidate && !isGenericSourcePrefix(cleanedCandidate)
+    ? cleanedCandidate
+    : sourceDefaultLabel(sourceUrl, fallback + ' ' + (sources.length + 1));
+
+  sources.push({ url: sourceUrl, label });
+  return true;
+}
+
+function buildSourceFromAccountBlock(block) {
+  const baseUrl = cleanUrl(block.realUrl || block.portal);
+  const username = String(block.username || '').trim();
+  const password = String(block.password || '').trim();
+
+  if (!baseUrl || !username || !password) return '';
+
+  try {
+    const parsed = new URL(baseUrl);
+    parsed.pathname = '/get.php';
+    parsed.search = '';
+    parsed.hash = '';
+    parsed.searchParams.set('username', username);
+    parsed.searchParams.set('password', password);
+    parsed.searchParams.set('type', 'm3u_plus');
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
+function parseAccountBlocks(lines, sources, seen, fallback) {
+  let block = {};
+
+  const flush = () => {
+    const generated = buildSourceFromAccountBlock(block);
+    if (generated) addPlaylistSource(sources, seen, generated, '', fallback);
+    block = {};
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (block.username && block.password && (block.realUrl || block.portal)) flush();
+      continue;
+    }
+
+    const portalMatch = line.match(FIELD_PATTERNS.portal);
+    if (portalMatch) {
+      if (block.portal && block.username && block.password) flush();
+      block.portal = cleanUrl(portalMatch[1]);
+    }
+
+    const realMatch = line.match(FIELD_PATTERNS.realUrl);
+    if (realMatch) block.realUrl = cleanUrl(realMatch[1]);
+
+    const userMatch = line.match(FIELD_PATTERNS.user);
+    if (userMatch) block.username = userMatch[1].trim();
+
+    const passMatch = line.match(FIELD_PATTERNS.pass);
+    if (passMatch) block.password = passMatch[1].trim();
+  }
+
+  flush();
+}
+
 function parsePlaylistSources(text, fileName) {
   const fallback = cleanFileName(fileName);
   const lines = String(text || '').split(/\r?\n/);
@@ -91,23 +226,37 @@ function parsePlaylistSources(text, fileName) {
 
     for (const match of extractUrls(line)) {
       const sourceUrl = toPlaylistSourceUrl(match.url);
-      if (!sourceUrl || looksLikeDirectStream(match.url) || seen.has(sourceUrl)) continue;
+      if (!sourceUrl) continue;
 
-      seen.add(sourceUrl);
-      let defaultLabel = fallback + ' ' + (sources.length + 1);
-
-      try {
-        defaultLabel = new URL(sourceUrl).hostname.replace(/^www\./i, '') || defaultLabel;
-      } catch {
-        // URL zaten dogrulandi; sadece etiket geri dususu.
-      }
-
-      const label = cleanName(line.slice(0, match.index)) || defaultLabel;
-      sources.push({ url: sourceUrl, label });
+      addPlaylistSource(
+        sources,
+        seen,
+        sourceUrl,
+        line.slice(0, match.index),
+        fallback
+      );
     }
   }
 
+  // Bazi TXT ciktilarinda get.php satiri bulunmayabilir; Portal/Real URL + User + Pass
+  // alanlarindan ayni Xtream M3U URL'sini olustur.
+  parseAccountBlocks(lines, sources, seen, fallback);
+
   return sources;
+}
+
+function looksLikeMetadataOrSocialUrl(line, url) {
+  try {
+    const parsed = new URL(url);
+    if (SOCIAL_HOSTS.has(parsed.hostname.toLocaleLowerCase('en-US'))) return true;
+  } catch {
+    return false;
+  }
+
+  return Boolean(
+    line.match(FIELD_PATTERNS.portal)
+    || line.match(FIELD_PATTERNS.realUrl)
+  );
 }
 
 function sanitizeChannels(channels, fileName) {
@@ -145,7 +294,7 @@ function parsePlainPlaylist(text, fileName) {
 
     for (const match of extractUrls(line)) {
       const url = match.url;
-      if (isPlaylistSourceUrl(url)) continue;
+      if (isPlaylistSourceUrl(url) || looksLikeMetadataOrSocialUrl(line, url)) continue;
 
       const beforeUrl = line.slice(0, match.index);
       const name = cleanName(beforeUrl) || nameFromUrl(url, 'Yayin ' + (channels.length + 1));

@@ -209,11 +209,14 @@ function parseAccountBlocks(lines, sources, seen, fallback) {
     const realMatch = line.match(FIELD_PATTERNS.realUrl);
     if (realMatch) block.realUrl = cleanUrl(realMatch[1]);
 
-    const userMatch = line.match(FIELD_PATTERNS.user);
-    if (userMatch) block.username = userMatch[1].trim();
+    const containsUrl = extractUrls(line).length > 0;
+    if (!containsUrl) {
+      const userMatch = line.match(FIELD_PATTERNS.user);
+      if (userMatch) block.username = userMatch[1].trim();
 
-    const passMatch = line.match(FIELD_PATTERNS.pass);
-    if (passMatch) block.password = passMatch[1].trim();
+      const passMatch = line.match(FIELD_PATTERNS.pass);
+      if (passMatch) block.password = passMatch[1].trim();
+    }
   }
 
   flush();

@@ -223,7 +223,7 @@ export async function clearActivePlaylistSource() {
   return getSourceStatus();
 }
 
-export async function savePlaylistSource(url, label = '') {
+export async function savePlaylistSource(url, label = '', options = {}) {
   const clean = cleanUrl(url);
   const state = await readState();
   const now = new Date().toISOString();
@@ -250,7 +250,10 @@ export async function savePlaylistSource(url, label = '') {
     });
   }
 
-  state.activeSourceId = id;
+  if (options?.activate !== false) {
+    state.activeSourceId = id;
+  }
+
   await writeState(state);
   return getSourceStatus();
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-bottom-dock-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-aurora-dock-only-1';
 
 const APP_SHELL = [
   '/',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   '/webScan.css',
   '/fullSiteScan.css',
   '/bottomDock.css',
+  '/auroraDock.js',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
@@ -33,6 +34,7 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/webScan.css',
   '/fullSiteScan.css',
   '/bottomDock.css',
+  '/auroraDock.js',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',

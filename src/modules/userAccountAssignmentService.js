@@ -15,13 +15,12 @@ export async function assignUrlAccountToUser(userId, url, label = '') {
   const cleanLabel = String(label || '').trim().slice(0, 80);
 
   return runWithTenantId(id, async () => {
-    const status = await savePlaylistSource(url, cleanLabel);
+    const status = await savePlaylistSource(url, cleanLabel, { activate: false });
     clearChannelCache();
 
     return {
       ok: true,
       userId: id,
-      sourceId: status.activeSourceId || '',
       sourceCount: Array.isArray(status.sources) ? status.sources.length : 0,
     };
   });

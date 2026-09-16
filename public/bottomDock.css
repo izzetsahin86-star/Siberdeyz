@@ -132,7 +132,7 @@
   }
 
   .content-panel {
-    bottom: calc(132px + var(--safe-bottom));
+    bottom: 126px;
   }
 }
 
@@ -157,6 +157,10 @@
   .aurora-dock-icon {
     width: 21px;
     height: 21px;
+  }
+
+  .content-panel {
+    bottom: 120px;
   }
 }
 
@@ -193,7 +197,7 @@
   }
 
   .content-panel {
-    bottom: calc(76px + var(--safe-bottom));
+    bottom: 68px;
   }
 }
 

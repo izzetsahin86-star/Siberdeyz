@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-lower-dock-2';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-lower-dock-3';
 
 const APP_SHELL = [
   '/',

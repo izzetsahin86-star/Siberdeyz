@@ -4,6 +4,7 @@ import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
 import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
+import { applyAppUiMode } from './appUiV2.js';
 
 const PAGE_SIZE = 100;
 
@@ -33,6 +34,7 @@ const state = {
     retryCount: 3,
     defaultPanel: 'channels',
     channelDensity: 'compact',
+    interfaceMode: 'classic',
   },
   sources: [],
   activeSourceId: '',
@@ -260,6 +262,7 @@ function applyAppSettings(settings, { initial = false } = {}) {
   };
 
   document.documentElement.dataset.channelDensity = state.appSettings.channelDensity;
+  applyAppUiMode(state.appSettings.interfaceMode);
 
   if (initial) {
     state.soundEnabled = Boolean(state.appSettings.startupSound);

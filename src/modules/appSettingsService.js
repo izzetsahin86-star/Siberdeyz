@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   retryCount: 3,
   defaultPanel: 'channels',
   channelDensity: 'compact',
+  interfaceMode: 'classic',
 });
 
 const ALLOWED_SCAN_MINUTES = new Set([0, 30, 60, 120]);
@@ -27,6 +28,7 @@ const ALLOWED_PLAYBACK_MODES = new Set(['auto', 'direct', 'compatibility']);
 const ALLOWED_RETRY_COUNTS = new Set([1, 3, 5]);
 const ALLOWED_DEFAULT_PANELS = new Set(['channels', 'accounts']);
 const ALLOWED_CHANNEL_DENSITIES = new Set(['normal', 'compact']);
+const ALLOWED_INTERFACE_MODES = new Set(['classic', 'v2']);
 
 function sanitizeBoolean(value, fallback) {
   return typeof value === 'boolean' ? value : fallback;
@@ -52,6 +54,7 @@ function sanitizeSettings(input = {}) {
     retryCount: sanitizeNumber(input.retryCount, ALLOWED_RETRY_COUNTS, DEFAULT_SETTINGS.retryCount),
     defaultPanel: sanitizeString(input.defaultPanel, ALLOWED_DEFAULT_PANELS, DEFAULT_SETTINGS.defaultPanel),
     channelDensity: sanitizeString(input.channelDensity, ALLOWED_CHANNEL_DENSITIES, DEFAULT_SETTINGS.channelDensity),
+    interfaceMode: sanitizeString(input.interfaceMode, ALLOWED_INTERFACE_MODES, DEFAULT_SETTINGS.interfaceMode),
   };
 }
 

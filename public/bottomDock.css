@@ -16,6 +16,7 @@
     left: calc(12px + var(--safe-left));
     right: calc(12px + var(--safe-right));
     bottom: max(2px, calc(var(--safe-bottom) - 32px));
+    transform: translateY(20px);
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 5px;

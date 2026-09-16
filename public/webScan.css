@@ -5,9 +5,9 @@
 }
 
 .content-panel[data-open="webscan"] {
-  height: min(54dvh, 520px);
-  min-height: 300px;
-  max-height: 520px;
+  height: clamp(230px, 36dvh, 400px);
+  min-height: 230px;
+  max-height: 400px;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0) scale(1);
@@ -301,9 +301,9 @@
 
 @media (max-width: 860px) {
   .content-panel[data-open="webscan"] {
-    height: 72svh !important;
-    min-height: 72svh !important;
-    max-height: 72svh !important;
+    height: min(58dvh, 480px) !important;
+    min-height: 230px !important;
+    max-height: min(58dvh, 480px) !important;
   }
 
   .web-scan-view {
@@ -364,5 +364,15 @@
     display: block;
     font-size: 20px;
     line-height: 1;
+  }
+}
+
+
+/* Keep Web Tarama the same height as Kanallar/Hesaplar. */
+@media (min-width: 861px) {
+  .content-panel[data-open="webscan"] {
+    height: clamp(260px, 34dvh, 420px) !important;
+    min-height: 260px !important;
+    max-height: 420px !important;
   }
 }

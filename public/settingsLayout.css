@@ -1,6 +1,13 @@
 /* Isolated settings layout.
    Loaded after styles.css so legacy panel rules cannot collapse/overlap settings cards. */
 
+/* Match settings panel height to Kanallar/Hesaplar. */
+.content-panel[data-open="settings"] {
+  height: clamp(230px, 36dvh, 400px) !important;
+  min-height: 230px !important;
+  max-height: 400px !important;
+}
+
 .settings-view[hidden] {
   display: none !important;
 }
@@ -169,9 +176,9 @@
 
 @media (max-width: 860px) {
   .content-panel[data-open="settings"] {
-    height: min(70dvh, 590px) !important;
-    min-height: 320px !important;
-    max-height: min(70dvh, 590px) !important;
+    height: min(58dvh, 480px) !important;
+    min-height: 230px !important;
+    max-height: min(58dvh, 480px) !important;
   }
 
   .settings-view .settings-grid {
@@ -384,5 +391,14 @@
 @media (max-width: 860px) {
   .user-access-create input {
     font-size: 16px !important;
+  }
+}
+
+
+@media (min-width: 861px) {
+  .content-panel[data-open="settings"] {
+    height: clamp(260px, 34dvh, 420px) !important;
+    min-height: 260px !important;
+    max-height: 420px !important;
   }
 }

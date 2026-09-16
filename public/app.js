@@ -6,6 +6,7 @@ import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
 
 const PAGE_SIZE = 100;
+const ACCOUNT_PAGE_SIZE = 100;
 
 const state = {
   channels: [],
@@ -40,6 +41,7 @@ const state = {
   activePanel: '',
   accountSearch: '',
   accountStatus: 'all',
+  accountPage: 0,
   accountHealth: {},
   accountAutoScanStatus: null,
   accountFailureThreshold: 3,
@@ -802,16 +804,23 @@ function renderSources() {
   if (state.sources.length === 0) {
     elements.sourceList.innerHTML = '<div class="empty compact-empty">Kayitli hesap yok. Dosya veya URL ekleyin.</div>';
     elements.accountRenderHint.hidden = true;
+    elements.accountRenderHint.innerHTML = '';
+    state.accountPage = 0;
     return;
   }
 
   const filtered = getFilteredSources();
-  const visible = filtered.slice(0, 200);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / ACCOUNT_PAGE_SIZE));
+  state.accountPage = Math.min(Math.max(0, state.accountPage), pageCount - 1);
+
+  const pageStart = state.accountPage * ACCOUNT_PAGE_SIZE;
+  const pageEnd = Math.min(pageStart + ACCOUNT_PAGE_SIZE, filtered.length);
+  const visible = filtered.slice(pageStart, pageEnd);
 
   if (visible.length === 0) {
     elements.sourceList.innerHTML = '<div class="empty compact-empty">Aramaya uygun hesap bulunamadi.</div>';
   } else {
-    elements.sourceList.innerHTML = visible.map((source, index) => {
+    elements.sourceList.innerHTML = visible.map((source) => {
       const sourceIndex = state.sources.indexOf(source);
       const isFile = source.type === 'file';
       const health = state.accountHealth[source.id];
@@ -867,11 +876,23 @@ function renderSources() {
     }).join('');
   }
 
-  const hiddenCount = Math.max(0, filtered.length - visible.length);
-  elements.accountRenderHint.hidden = hiddenCount === 0;
-  elements.accountRenderHint.textContent = hiddenCount > 0
-    ? filtered.length + ' sonuc bulundu. Performans icin ilk 200 hesap gosteriliyor; aramayi daraltin.'
-    : '';
+  const hasPagination = filtered.length > ACCOUNT_PAGE_SIZE;
+  elements.accountRenderHint.hidden = !hasPagination;
+
+  if (hasPagination) {
+    elements.accountRenderHint.innerHTML = [
+      '<span class="account-page-summary">',
+      escapeHtml(filtered.length) + ' sonuc · ' + escapeHtml(pageStart + 1) + '-' + escapeHtml(pageEnd),
+      '</span>',
+      '<span class="account-page-controls">',
+      '<button type="button" data-account-page="prev"' + (state.accountPage === 0 ? ' disabled' : '') + '>Onceki</button>',
+      '<strong>' + escapeHtml(state.accountPage + 1) + ' / ' + escapeHtml(pageCount) + '</strong>',
+      '<button type="button" data-account-page="next"' + (state.accountPage >= pageCount - 1 ? ' disabled' : '') + '>Sonraki</button>',
+      '</span>',
+    ].join('');
+  } else {
+    elements.accountRenderHint.innerHTML = '';
+  }
 }
 
 function setSourceState(data) {
@@ -1594,12 +1615,30 @@ elements.channelCategorySelect.addEventListener('change', (event) => {
 
 elements.accountSearchInput.addEventListener('input', (event) => {
   state.accountSearch = event.target.value;
+  state.accountPage = 0;
   renderSources();
 });
 
 elements.accountStatusFilter.addEventListener('change', (event) => {
   state.accountStatus = event.target.value;
+  state.accountPage = 0;
   renderSources();
+});
+
+elements.accountRenderHint.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-account-page]');
+  if (!button || button.disabled) return;
+
+  if (button.dataset.accountPage === 'prev') {
+    state.accountPage = Math.max(0, state.accountPage - 1);
+  }
+
+  if (button.dataset.accountPage === 'next') {
+    state.accountPage += 1;
+  }
+
+  renderSources();
+  elements.sourceList.scrollTop = 0;
 });
 
 elements.scanAllAccountsButton.addEventListener('click', () => {

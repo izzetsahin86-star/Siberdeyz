@@ -3872,3 +3872,67 @@ html[data-channel-density="normal"] .channels-view .channel small {
     height: 35px;
   }
 }
+
+
+/* Accounts pagination: all filtered accounts remain reachable without rendering thousands at once. */
+.accounts-view .account-render-hint:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.accounts-view .account-page-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accounts-view .account-page-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.accounts-view .account-page-controls strong {
+  min-width: 42px;
+  color: #c9d3df;
+  font-size: 8px;
+  text-align: center;
+}
+
+.accounts-view .account-page-controls button {
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 8px;
+  color: #b9c6d5;
+  background: rgba(255,255,255,.05);
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.accounts-view .account-page-controls button:disabled {
+  opacity: .35;
+}
+
+@media (max-width: 390px) {
+  .accounts-view .account-render-hint:not([hidden]) {
+    gap: 5px;
+  }
+
+  .accounts-view .account-page-summary {
+    font-size: 7.5px;
+  }
+
+  .accounts-view .account-page-controls {
+    gap: 3px;
+  }
+
+  .accounts-view .account-page-controls button {
+    padding-inline: 6px;
+    font-size: 7.5px;
+  }
+}

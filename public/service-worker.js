@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-webscan-72-savebar-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-app-ui-v2-1';
 
 const APP_SHELL = [
   '/',
@@ -7,11 +7,13 @@ const APP_SHELL = [
   '/settingsLayout.css',
   '/webScan.css',
   '/fullSiteScan.css',
+  '/appUiV2.css',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
   '/fullSiteScan.js',
+  '/appUiV2.js',
   '/accountMultiConnection.js',
   '/manifest.webmanifest',
   '/offline.html',
@@ -31,11 +33,13 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/settingsLayout.css',
   '/webScan.css',
   '/fullSiteScan.css',
+  '/appUiV2.css',
   '/app.js',
   '/appSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
   '/fullSiteScan.js',
+  '/appUiV2.js',
   '/manifest.webmanifest',
   '/offline.html',
 ]);

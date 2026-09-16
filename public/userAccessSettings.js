@@ -26,6 +26,10 @@ export function createUserAccessSettingsController() {
     generatedBox: document.querySelector('#generatedUserPasswordBox'),
     generatedPassword: document.querySelector('#generatedUserPassword'),
     copy: document.querySelector('#copyGeneratedUserPasswordButton'),
+    accountTarget: document.querySelector('#userAccountTarget'),
+    accountLabel: document.querySelector('#userAccountLabel'),
+    accountUrl: document.querySelector('#userAccountUrl'),
+    assignAccount: document.querySelector('#assignUserAccountButton'),
     list: document.querySelector('#userAccessList'),
     status: document.querySelector('#userAccessStatus'),
   };
@@ -42,6 +46,24 @@ export function createUserAccessSettingsController() {
 
   function render() {
     if (!elements.list) return;
+
+    if (elements.accountTarget) {
+      const selected = elements.accountTarget.value;
+      elements.accountTarget.innerHTML = [
+        '<option value="">Kullanici secin</option>',
+        ...users.map((user) => '<option value="' + escapeHtml(user.id) + '">' + escapeHtml(user.label || 'Kullanici') + '</option>'),
+      ].join('');
+
+      if (users.some((user) => user.id === selected)) {
+        elements.accountTarget.value = selected;
+      }
+
+      elements.accountTarget.disabled = users.length === 0;
+    }
+
+    if (elements.assignAccount) {
+      elements.assignAccount.disabled = users.length === 0;
+    }
 
     if (users.length === 0) {
       elements.list.innerHTML = '<div class="user-access-empty">Henuz kullanici sifresi uretilmedi.</div>';
@@ -105,6 +127,51 @@ export function createUserAccessSettingsController() {
     }
   }
 
+  async function assignAccount() {
+    if (role !== 'admin') return;
+
+    const userId = String(elements.accountTarget?.value || '').trim();
+    const url = String(elements.accountUrl?.value || '').trim();
+    const label = String(elements.accountLabel?.value || '').trim();
+
+    if (!userId) {
+      setStatus('Once URL atanacak kullaniciyi secin.', 'warning');
+      return;
+    }
+
+    if (!url) {
+      setStatus('Atanacak yayin URL adresini girin.', 'warning');
+      return;
+    }
+
+    elements.assignAccount.disabled = true;
+    setStatus('URL hesabi kullaniciya ataniyor...');
+
+    try {
+      const response = await fetch('/api/admin/users/' + encodeURIComponent(userId) + '/source', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url, label }),
+      });
+      const data = await readJson(response);
+      const user = users.find((item) => item.id === userId);
+
+      if (elements.accountUrl) elements.accountUrl.value = '';
+      if (elements.accountLabel) elements.accountLabel.value = '';
+
+      setStatus(
+        (user?.label || 'Kullanici')
+        + ' hesabina URL eklendi. Toplam hesap: '
+        + String(data.sourceCount || 0),
+        'success'
+      );
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      elements.assignAccount.disabled = users.length === 0;
+    }
+  }
+
   async function revoke(userId) {
     if (role !== 'admin') return;
     const user = users.find((item) => item.id === userId);
@@ -129,6 +196,10 @@ export function createUserAccessSettingsController() {
 
   elements.generate?.addEventListener('click', () => {
     generate().catch(() => {});
+  });
+
+  elements.assignAccount?.addEventListener('click', () => {
+    assignAccount().catch(() => {});
   });
 
   elements.copy?.addEventListener('click', async () => {

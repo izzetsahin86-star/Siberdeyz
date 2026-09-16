@@ -126,8 +126,10 @@ function normalizeState(saved) {
 
   if (Array.isArray(saved.sources)) {
     const sources = saved.sources.map(normalizeSource).filter(Boolean);
-    const activeSourceId = sources.some((source) => source.id === saved.activeSourceId)
-      ? saved.activeSourceId
+    const hasStoredActiveSource = Object.prototype.hasOwnProperty.call(saved, 'activeSourceId');
+    const requestedActiveSourceId = String(saved.activeSourceId || '');
+    const activeSourceId = hasStoredActiveSource
+      ? (sources.some((source) => source.id === requestedActiveSourceId) ? requestedActiveSourceId : '')
       : sources[0]?.id || '';
 
     return { activeSourceId, sources };
@@ -188,7 +190,7 @@ function publicSource(source, activeSourceId) {
 
 export async function getActivePlaylistSource() {
   const state = await readState();
-  const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];
+  const active = state.sources.find((source) => source.id === state.activeSourceId);
 
   if (!active) return null;
   return {
@@ -204,7 +206,7 @@ export async function getPlaylistSource() {
 
 export async function getSourceStatus() {
   const state = await readState();
-  const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];
+  const active = state.sources.find((source) => source.id === state.activeSourceId);
 
   return {
     hasSource: state.sources.length > 0,
@@ -212,6 +214,13 @@ export async function getSourceStatus() {
     activeSourceId: active?.id || '',
     sources: state.sources.map((source) => publicSource(source, active?.id || '')),
   };
+}
+
+export async function clearActivePlaylistSource() {
+  const state = await readState();
+  state.activeSourceId = '';
+  await writeState(state);
+  return getSourceStatus();
 }
 
 export async function savePlaylistSource(url, label = '') {

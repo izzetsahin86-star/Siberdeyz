@@ -308,27 +308,9 @@
 
 .full-site-save-bar input {
   min-width: 0;
-  height: 16px;
-  min-height: 16px;
-  max-height: 16px;
-  padding: 0 5px;
-  border-radius: 5px;
+  min-height: 36px;
+  padding-block: 6px;
   font-size: 16px;
-  line-height: 16px;
-}
-
-.full-site-save-bar input::placeholder {
-  font-size: 8px;
-}
-
-.full-site-save-bar button {
-  height: 16px;
-  min-height: 16px;
-  max-height: 16px;
-  padding: 0 5px;
-  border-radius: 5px;
-  font-size: 7px;
-  line-height: 1;
 }
 
 @media (max-width: 860px) {

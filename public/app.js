@@ -124,6 +124,8 @@ const elements = {
   accountScanSummary: document.querySelector('#accountScanSummary'),
   accountAutoScanStatus: document.querySelector('#accountAutoScanStatus'),
   accountRenderHint: document.querySelector('#accountRenderHint'),
+  accountTransferBar: document.querySelector('#accountTransferBar'),
+  accountTransferUser: document.querySelector('#accountTransferUser'),
   scanAllAccountsButton: document.querySelector('#scanAllAccountsButton'),
   deletePersistentFailedButton: document.querySelector('#deletePersistentFailedButton'),
   deleteAllSourcesButton: document.querySelector('#deleteAllSourcesButton'),
@@ -476,7 +478,84 @@ function switchPanel(panelName) {
 
   if (panelName === 'accounts') {
     loadAccountHealth().catch((error) => setSourceStatus(error.message, 'error'));
+    loadAccountTransferUsers().catch((error) => setSourceStatus(error.message, 'error'));
   }
+}
+
+async function loadAccountTransferUsers() {
+  if (!elements.accountTransferBar || !elements.accountTransferUser) return;
+
+  if (state.sessionRole !== 'admin') {
+    elements.accountTransferBar.hidden = true;
+    elements.accountTransferUser.innerHTML = '<option value="">Kullanici secin</option>';
+    return;
+  }
+
+  const selected = elements.accountTransferUser.value;
+  const response = await fetch('/api/admin/users', { cache: 'no-store' });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Kullanici listesi alinamadi.');
+  }
+
+  const users = Array.isArray(data.users) ? data.users : [];
+  elements.accountTransferUser.innerHTML = [
+    '<option value="">Kullanici secin</option>',
+    ...users.map((user) => (
+      '<option value="' + escapeHtml(user.id) + '">'
+      + escapeHtml(user.label || 'Kullanici')
+      + '</option>'
+    )),
+  ].join('');
+
+  if (users.some((user) => user.id === selected)) {
+    elements.accountTransferUser.value = selected;
+  }
+
+  elements.accountTransferBar.hidden = users.length === 0;
+}
+
+async function transferAccountToUser(sourceId) {
+  if (state.sessionRole !== 'admin') return;
+
+  const userId = String(elements.accountTransferUser?.value || '').trim();
+  if (!userId) {
+    setSourceStatus('Once hesabin aktarilacagi kullaniciyi secin.', 'warning');
+    return;
+  }
+
+  const source = state.sources.find((item) => item.id === sourceId);
+  if (!source || source.type !== 'url') {
+    setSourceStatus('Yalnizca URL hesaplari kullaniciya aktarilabilir.', 'warning');
+    return;
+  }
+
+  setSourceStatus((source.label || 'Hesap') + ' kullaniciya aktariliyor...');
+
+  const response = await fetch(
+    '/api/admin/users/' + encodeURIComponent(userId) + '/source-copy',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourceId }),
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Hesap kullaniciya aktarilamadi.');
+  }
+
+  const selectedName = elements.accountTransferUser?.selectedOptions?.[0]?.textContent || 'Kullanici';
+  setSourceStatus(
+    (source.label || 'Hesap')
+    + ' → '
+    + selectedName
+    + ' aktarildi. Kullanici hesap sayisi: '
+    + String(data.sourceCount || 0),
+    'success'
+  );
 }
 
 async function login(adminPassword) {
@@ -866,6 +945,9 @@ function renderSources() {
         '</span>',
         '</button>',
         '<div class="source-pill-actions">',
+        state.sessionRole === 'admin' && !isFile
+          ? '<button class="source-pill-transfer" type="button" data-source-transfer="' + escapeHtml(source.id) + '">Aktar</button>'
+          : '',
         showManualScan
           ? '<button class="source-pill-scan" type="button" data-account-scan="' + escapeHtml(source.id) + '"' + (scanning ? ' disabled' : '') + '>' + (scanning ? '...' : 'Tara') + '</button>'
           : '',
@@ -1582,6 +1664,13 @@ elements.deleteAllSourcesButton.addEventListener('click', () => {
 });
 
 elements.sourceList.addEventListener('click', (event) => {
+  const transferButton = event.target.closest('[data-source-transfer]');
+  if (transferButton) {
+    transferAccountToUser(transferButton.dataset.sourceTransfer)
+      .catch((error) => setSourceStatus(error.message, 'error'));
+    return;
+  }
+
   const scanButton = event.target.closest('[data-account-scan]');
   if (scanButton) {
     scanSingleAccount(scanButton.dataset.accountScan)

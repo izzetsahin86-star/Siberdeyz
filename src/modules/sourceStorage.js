@@ -204,6 +204,20 @@ export async function getPlaylistSource() {
   return active?.type === 'url' ? active.url : '';
 }
 
+export async function getPlaylistSourceById(sourceId) {
+  const id = String(sourceId || '').trim();
+  if (!id) return null;
+
+  const state = await readState();
+  const source = state.sources.find((item) => item.id === id);
+  if (!source) return null;
+
+  return {
+    ...source,
+    channels: source.channels || [],
+  };
+}
+
 export async function getSourceStatus() {
   const state = await readState();
   const active = state.sources.find((source) => source.id === state.activeSourceId);

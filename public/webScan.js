@@ -49,6 +49,7 @@ export function createWebScanController({ onSaved } = {}) {
     save: document.querySelector('#webScanSaveButton'),
     selectAll: document.querySelector('#webScanSelectAll'),
     clearSelection: document.querySelector('#webScanClearSelection'),
+    deleteAll: document.querySelector('#webScanDeleteAll'),
   };
 
   let scanId = '';
@@ -278,6 +279,16 @@ export function createWebScanController({ onSaved } = {}) {
   elements.clearSelection?.addEventListener('click', () => {
     selected.clear();
     renderResults();
+  });
+
+  elements.deleteAll?.addEventListener('click', () => {
+    const removedCount = candidates.length;
+    if (removedCount === 0) return;
+
+    candidates = [];
+    selected.clear();
+    renderResults();
+    setStatus(removedCount + ' tarama sonucu listeden silindi.', 'warning');
   });
 
   elements.save?.addEventListener('click', () => {

@@ -57,6 +57,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
     results: document.querySelector('#fullSiteScanResults'),
     selectAll: document.querySelector('#fullSiteScanSelectAll'),
     clearSelection: document.querySelector('#fullSiteScanClearSelection'),
+    deleteAll: document.querySelector('#fullSiteScanDeleteAll'),
     saveBar: document.querySelector('#fullSiteScanSaveBar'),
     saveLabel: document.querySelector('#fullSiteScanSaveLabel'),
     save: document.querySelector('#fullSiteScanSave'),
@@ -65,6 +66,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
   let snapshot = null;
   let selected = new Set();
   let knownResultIds = new Set();
+  let dismissedResultIds = new Set();
   let pollTimer = null;
   let saving = false;
   let refreshing = false;
@@ -145,7 +147,8 @@ export function createFullSiteScanController({ onSaved } = {}) {
   }
 
   function renderResults(data) {
-    const results = Array.isArray(data?.results) ? data.results : [];
+    const results = (Array.isArray(data?.results) ? data.results : [])
+      .filter((item) => !dismissedResultIds.has(item.id));
     syncSelectedWithResults(results);
 
     if (results.length === 0) {
@@ -278,6 +281,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
     elements.url.value = url;
     selected.clear();
     knownResultIds.clear();
+    dismissedResultIds.clear();
     elements.start.disabled = true;
     setStatus('Tum Site taramasi baslatiliyor...');
 
@@ -373,13 +377,29 @@ export function createFullSiteScanController({ onSaved } = {}) {
   });
 
   elements.selectAll?.addEventListener('click', () => {
-    selected = new Set((snapshot?.results || []).map((item) => item.id));
+    selected = new Set(
+      (snapshot?.results || [])
+        .filter((item) => !dismissedResultIds.has(item.id))
+        .map((item) => item.id)
+    );
     renderResults(snapshot);
   });
 
   elements.clearSelection?.addEventListener('click', () => {
     selected.clear();
     renderResults(snapshot);
+  });
+
+  elements.deleteAll?.addEventListener('click', () => {
+    const visibleResults = (snapshot?.results || [])
+      .filter((item) => !dismissedResultIds.has(item.id));
+
+    if (visibleResults.length === 0) return;
+
+    visibleResults.forEach((item) => dismissedResultIds.add(item.id));
+    visibleResults.forEach((item) => selected.delete(item.id));
+    renderResults(snapshot);
+    setStatus(visibleResults.length + ' tarama sonucu listeden silindi.', 'warning');
   });
 
   elements.save?.addEventListener('click', () => save().catch(() => {}));

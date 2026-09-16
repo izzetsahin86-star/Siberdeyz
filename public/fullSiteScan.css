@@ -352,3 +352,10 @@
     grid-template-columns: minmax(0, 1fr) 102px;
   }
 }
+
+
+.full-site-tools .full-site-delete-all {
+  color: #ffaaa5;
+  border-color: rgba(255,69,58,.18);
+  background: rgba(255,69,58,.07);
+}

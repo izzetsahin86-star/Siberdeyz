@@ -260,6 +260,7 @@ export async function savePlaylistSources(sources = []) {
   const now = new Date().toISOString();
   const imported = [];
   const seen = new Set();
+  const byId = new Map(state.sources.map((source) => [source.id, source]));
 
   for (const entry of Array.isArray(sources) ? sources : []) {
     const clean = cleanUrl(entry?.url);
@@ -267,7 +268,7 @@ export async function savePlaylistSources(sources = []) {
     seen.add(clean);
 
     const id = createSourceId(clean);
-    const existing = state.sources.find((source) => source.id === id);
+    const existing = byId.get(id);
     const label = String(entry?.label || getDefaultUrlLabel(clean, state.sources.length)).trim();
 
     if (existing) {
@@ -278,7 +279,7 @@ export async function savePlaylistSources(sources = []) {
       existing.channels = [];
       existing.updatedAt = now;
     } else {
-      state.sources.push({
+      const source = {
         id,
         type: 'url',
         label: label || getDefaultUrlLabel(clean, state.sources.length),
@@ -287,7 +288,9 @@ export async function savePlaylistSources(sources = []) {
         channels: [],
         createdAt: now,
         updatedAt: now,
-      });
+      };
+      state.sources.push(source);
+      byId.set(id, source);
     }
 
     imported.push(id);

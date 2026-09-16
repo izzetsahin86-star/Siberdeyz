@@ -1,5 +1,6 @@
 /* Every redesign rule is opt-in. Removing data-interface restores legacy CSS. */
 .aurora-icon, .aurora-playback-status { display: none; }
+.aurora-control-label::after { content: attr(data-classic-label); }
 .interface-toggle { min-height: 44px; padding: 8px 12px; border: 1px solid #ffffff20; border-radius: 100px; background: #ffffff08; color: #bac8db; font: 600 11px/1.2 system-ui, sans-serif; cursor: pointer; }
 .interface-toggle:focus-visible { outline: 2px solid #6be3d2; outline-offset: 3px; }
 .interface-note { font-size: 12px; color: #a8b9cd; line-height: 1.5; }
@@ -30,6 +31,7 @@ html[data-interface="aurora"] .control-panel::before { display: none; }
 html[data-interface="aurora"] .control-button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; min-height: 54px; padding: 8px 4px; border: 1px solid transparent; border-radius: 15px; font-size: 11px; line-height: 1.2; font-weight: 600; color: #9cafc8; background: transparent; box-shadow: none; }
 html[data-interface="aurora"] .control-button::before { display: none; }
 html[data-interface="aurora"] .aurora-icon { display: flex; width: 23px; height: 23px; pointer-events: none; }
+html[data-interface="aurora"] .aurora-control-label::after { content: attr(data-compact-label); }
 html[data-interface="aurora"] .aurora-icon svg { width: 100%; height: 100%; }
 html[data-interface="aurora"] .control-button.is-active { color: #8ff4dc; background: #67e6cf13; border-color: #67e6cf24; box-shadow: inset 0 1px #baffe612; }
 html[data-interface="aurora"] .control-button[data-action="stop"] { color: #fca5a8; }
@@ -130,3 +132,94 @@ html[data-interface="aurora"] .full-site-toolbar { grid-template-columns: minmax
 html[data-interface="aurora"] .full-site-toolbar input { grid-column: 1 / -1; }
 html[data-interface="aurora"] .full-site-toolbar #fullSiteScanStart { grid-column: auto; }
 html[data-interface="aurora"] .web-scan-mode-section { overflow-y: auto; }
+
+/* Aurora Compact v2: keeps every action while returning more space to content. */
+html[data-interface="aurora"] { --aurora-dock: 78px; }
+html[data-interface="aurora"] .tv-shell {
+  gap: 8px;
+  padding: calc(9px + var(--safe-top)) calc(10px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(10px + var(--safe-left));
+}
+html[data-interface="aurora"] .app-header { min-height: 38px; }
+html[data-interface="aurora"] .brand-block .eyebrow { font-size: 19px; gap: 8px; letter-spacing: -.55px; }
+html[data-interface="aurora"] .brand-block .eyebrow::before { width: 8px; height: 17px; border-radius: 3px; box-shadow: 5px 0 0 -2px #67e6cf35; }
+html[data-interface="aurora"] .aurora-playback-status { display: none; }
+html[data-interface="aurora"] .interface-toggle { min-height: 34px; padding: 6px 11px; font-size: 10px; }
+html[data-interface="aurora"] .group-panel { border-radius: 14px; }
+html[data-interface="aurora"] .category-toggle { min-height: 42px; padding: 7px 11px; border-radius: 14px; gap: 8px; }
+html[data-interface="aurora"] .category-toggle-label { font-size: 8px; letter-spacing: 1.2px; }
+html[data-interface="aurora"] .category-toggle strong { font-size: 12px; }
+html[data-interface="aurora"] .category-toggle-chevron { width: 28px; height: 28px; }
+html[data-interface="aurora"] .group-strip { padding: 6px; gap: 5px; max-height: 120px; }
+html[data-interface="aurora"] .group-chip { min-height: 34px; padding: 6px; border-radius: 9px; font-size: 10px; }
+html[data-interface="aurora"] .watch-area { border-radius: 18px; }
+html[data-interface="aurora"] .player-meta { padding: 5px 9px; gap: 6px; }
+html[data-interface="aurora"] .player-meta span { font-size: 7px; letter-spacing: .8px; }
+html[data-interface="aurora"] .player-meta strong { font-size: 11px; }
+html[data-interface="aurora"] .content-panel { border-radius: 19px; }
+html[data-interface="aurora"] .sheet-header,
+html[data-interface="aurora"] .content-panel[data-open="webscan"] .sheet-header { height: 48px; min-height: 48px; padding: 10px 11px 5px; }
+html[data-interface="aurora"] .sheet-header strong,
+html[data-interface="aurora"] .content-panel[data-open="webscan"] .sheet-header strong { font-size: 15px; }
+html[data-interface="aurora"] .sheet-close,
+html[data-interface="aurora"] .content-panel[data-open="webscan"] .sheet-close { min-height: 34px; padding: 5px 10px; font-size: 10px; }
+html[data-interface="aurora"] .sheet-body,
+html[data-interface="aurora"] .content-panel[data-open="webscan"] .sheet-body { height: calc(100% - 48px); }
+html[data-interface="aurora"] .channel-toolbar { padding: 7px 8px; gap: 5px; grid-template-columns: minmax(0, 1fr) 104px; }
+html[data-interface="aurora"] .channel-status { padding: 0 9px 5px; font-size: 9px; }
+html[data-interface="aurora"] .channels-view .channel-list { gap: 5px; padding: 0 8px 8px; }
+html[data-interface="aurora"] .channels-view .channel-card { min-height: 48px; grid-template-columns: 36px minmax(0, 1fr); border-radius: 12px; }
+html[data-interface="aurora"] .channels-view .channel { min-height: 46px; padding: 5px; }
+html[data-interface="aurora"] .channels-view .channel strong { font-size: 12px; }
+html[data-interface="aurora"] .channels-view .channel small { font-size: 8px; }
+html[data-interface="aurora"] .channels-view .favorite-button { min-width: 36px; min-height: 40px; }
+html[data-interface="aurora"] .accounts-view { gap: 6px; padding: 8px; }
+html[data-interface="aurora"] .web-scan-view { padding: 7px; }
+html[data-interface="aurora"] .settings-view .settings-grid { gap: 7px !important; padding: 6px 7px 10px !important; }
+html[data-interface="aurora"] .settings-view .setting-card { padding: 11px !important; border-radius: 13px !important; }
+html[data-interface="aurora"] .settings-view .setting-card-head h2 { font-size: 14px !important; }
+html[data-interface="aurora"] .settings-view .setting-card-head p,
+html[data-interface="aurora"] .settings-view .setting-card #soundStatus { font-size: 10px !important; }
+
+@media (max-width: 860px) {
+  html[data-interface="aurora"] .tv-shell { padding-bottom: calc(var(--aurora-dock) + 8px + var(--safe-bottom)); }
+  html[data-interface="aurora"] .control-panel {
+    left: calc(7px + var(--safe-left));
+    right: calc(7px + var(--safe-right));
+    bottom: calc(5px + var(--safe-bottom));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1px;
+    min-height: 64px;
+    padding: 4px;
+    border-radius: 19px;
+  }
+  html[data-interface="aurora"] .control-button[data-action],
+  html[data-interface="aurora"] .control-button[data-panel] {
+    grid-column: span 1;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 54px;
+    padding: 4px 1px;
+    border-radius: 12px;
+    background: transparent;
+    font-size: 8px;
+  }
+  html[data-interface="aurora"] .control-button .aurora-icon,
+  html[data-interface="aurora"] .control-button[data-action] .aurora-icon { width: 18px; height: 18px; }
+  html[data-interface="aurora"] .content-panel {
+    left: calc(7px + var(--safe-left));
+    right: calc(7px + var(--safe-right));
+    bottom: calc(var(--aurora-dock) + var(--safe-bottom));
+  }
+  html[data-interface="aurora"] .content-panel:not([data-open="none"]) {
+    height: min(58svh, calc(100svh - var(--safe-top) - var(--safe-bottom) - 150px)) !important;
+    max-height: calc(100svh - var(--safe-top) - var(--safe-bottom) - 150px) !important;
+  }
+}
+
+@media (max-width: 374px) {
+  html[data-interface="aurora"] .tv-shell { padding-inline: 7px; gap: 6px; }
+  html[data-interface="aurora"] .brand-block .eyebrow { font-size: 17px; }
+  html[data-interface="aurora"] .interface-toggle { min-height: 32px; padding-inline: 9px; }
+  html[data-interface="aurora"] .control-button[data-action],
+  html[data-interface="aurora"] .control-button[data-panel] { font-size: 7px; }
+}

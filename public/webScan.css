@@ -376,3 +376,10 @@
     max-height: 420px !important;
   }
 }
+
+
+.web-scan-tools .web-scan-delete-all {
+  color: #ffaaa5;
+  border-color: rgba(255,69,58,.18);
+  background: rgba(255,69,58,.07);
+}

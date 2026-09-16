@@ -1035,3 +1035,27 @@ export async function saveWebScanSelection(scanId, candidateIds = [], label = ''
     sourceLabel,
   };
 }
+
+
+export async function deleteWebScanResults(scanId) {
+  const pending = await readPending();
+
+  if (!pending || pending.scanId !== String(scanId || '')) {
+    const error = new Error('Tarama sonucu bulunamadi veya suresi doldu. Yeniden tarayin.');
+    error.status = 404;
+    throw error;
+  }
+
+  const deleted = Array.isArray(pending.candidates) ? pending.candidates.length : 0;
+
+  try {
+    await fs.unlink(getPendingFile());
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  return {
+    scanId: pending.scanId,
+    deleted,
+  };
+}

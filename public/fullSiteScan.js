@@ -394,12 +394,33 @@ export function createFullSiteScanController({ onSaved } = {}) {
     const visibleResults = (snapshot?.results || [])
       .filter((item) => !dismissedResultIds.has(item.id));
 
-    if (visibleResults.length === 0) return;
+    if (!snapshot?.jobId || visibleResults.length === 0) return;
 
-    visibleResults.forEach((item) => dismissedResultIds.add(item.id));
-    visibleResults.forEach((item) => selected.delete(item.id));
-    renderResults(snapshot);
-    setStatus(visibleResults.length + ' tarama sonucu listeden silindi.', 'warning');
+    elements.deleteAll.disabled = true;
+    setStatus('Tarama sonuclari kalici olarak siliniyor...');
+
+    fetch('/api/full-site-scan/' + encodeURIComponent(snapshot.jobId) + '/results', {
+      method: 'DELETE',
+      cache: 'no-store',
+    })
+      .then((response) => readJson(response, 'Tum Site tarama sonuclari silinemedi.'))
+      .then((data) => {
+        selected.clear();
+        knownResultIds.clear();
+        dismissedResultIds.clear();
+
+        if (data.cleared) {
+          render(null);
+        } else {
+          render(data);
+        }
+
+        setStatus((Number(data.deleted) || 0) + ' tarama sonucu kalici olarak silindi.', 'success');
+      })
+      .catch((error) => setStatus(error.message, 'error'))
+      .finally(() => {
+        elements.deleteAll.disabled = false;
+      });
   });
 
   elements.save?.addEventListener('click', () => save().catch(() => {}));

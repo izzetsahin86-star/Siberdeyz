@@ -1273,3 +1273,42 @@ export async function saveFullSiteScanSelection(jobId, candidateIds = [], label 
     sourceLabel,
   };
 }
+
+
+export async function deleteFullSiteScanResults(jobId) {
+  const tenantId = getTenantId();
+  const requestedJobId = String(jobId || '');
+  const active = activeJobForTenant(tenantId);
+
+  if (active) {
+    if (active.id !== requestedJobId) {
+      const error = new Error('Tum Site tarama sonucu bulunamadi.');
+      error.status = 404;
+      throw error;
+    }
+
+    const deleted = active.results.length;
+    active.results = [];
+    active.updatedAt = new Date().toISOString();
+    await persistJob(active, true);
+    return { ...snapshotJob(active), deleted };
+  }
+
+  const stateFile = jobFileForCurrentTenant();
+  const snapshot = await readPersistedJob(stateFile);
+
+  if (!snapshot || snapshot.jobId !== requestedJobId) {
+    const error = new Error('Tum Site tarama sonucu bulunamadi.');
+    error.status = 404;
+    throw error;
+  }
+
+  const deleted = Array.isArray(snapshot.results) ? snapshot.results.length : 0;
+  try {
+    await fs.unlink(stateFile);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  return { jobId: requestedJobId, deleted, cleared: true };
+}

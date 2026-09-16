@@ -22,8 +22,9 @@ import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler, stopAcco
 import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
-import { scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
+import { deleteWebScanResults, scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
 import {
+  deleteFullSiteScanResults,
   getFullSiteScanStatus,
   pauseFullSiteScan,
   resumeFullSiteScan,
@@ -165,6 +166,14 @@ apiRouter.post('/web-scan/:scanId/save', async (req, res, next) => {
   }
 });
 
+apiRouter.delete('/web-scan/:scanId/results', async (req, res, next) => {
+  try {
+    res.json(await deleteWebScanResults(req.params.scanId));
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.delete('/web-scan/channel/:id', async (req, res, next) => {
   try {
     const result = await deleteActiveWebScanChannel(req.params.id);
@@ -231,6 +240,14 @@ apiRouter.post('/full-site-scan/:jobId/save', async (req, res, next) => {
     clearChannelCache();
     await clearFavorites();
     res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/full-site-scan/:jobId/results', async (req, res, next) => {
+  try {
+    res.json(await deleteFullSiteScanResults(req.params.jobId));
   } catch (error) {
     next(error);
   }

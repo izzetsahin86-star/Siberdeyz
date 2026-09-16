@@ -33,7 +33,7 @@
     function render() {
       root.dataset.interface = mode;
       select.value = mode;
-      toggle.textContent = mode === 'aurora' ? 'Klasik görünüm' : 'Aurora’yı dene';
+      toggle.textContent = mode === 'aurora' ? 'Klasik' : 'Aurora';
       toggle.setAttribute('aria-label', mode === 'aurora' ? 'Klasik arayüze dön' : 'Aurora arayüzüne geç');
       if (themeMeta) themeMeta.content = mode === 'aurora' ? '#080e19' : initialThemeColor;
     }
@@ -57,19 +57,35 @@
       webscan: '<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6M3 10h14M10 3a13 13 0 0 1 0 14 13 13 0 0 1 0-14"/>',
       settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
     };
+    const compactLabels = {
+      stop: 'Kapat',
+      next: 'Sonraki',
+      reload: 'Yenile',
+      channels: 'Kanallar',
+      accounts: 'Hesaplar',
+      webscan: 'Web',
+      settings: 'Ayarlar',
+    };
     document.querySelectorAll('.control-button').forEach(button => {
+      const action = button.dataset.action || button.dataset.panel;
+      const originalLabel = button.textContent.trim();
       const icon = document.createElement('span');
       icon.className = 'aurora-icon';
       icon.setAttribute('aria-hidden', 'true');
-      icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${icons[button.dataset.action || button.dataset.panel] || ''}</svg>`;
-      button.prepend(icon);
+      icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${icons[action] || ''}</svg>`;
+      const label = document.createElement('span');
+      label.className = 'aurora-control-label';
+      label.dataset.classicLabel = originalLabel;
+      label.dataset.compactLabel = compactLabels[action] || originalLabel;
+      button.setAttribute('aria-label', originalLabel);
+      button.replaceChildren(icon, label);
     });
     // Keep sheets above the dock even when text size or orientation changes.
     const dock = document.querySelector('.control-panel');
     if (dock && 'ResizeObserver' in window) {
       new ResizeObserver(() => {
         if (mode === 'aurora' && dock.getBoundingClientRect().height > 0) {
-          root.style.setProperty('--aurora-dock', `${Math.ceil(dock.getBoundingClientRect().height) + 16}px`);
+          root.style.setProperty('--aurora-dock', `${Math.ceil(dock.getBoundingClientRect().height) + 10}px`);
         }
       }).observe(dock);
     }

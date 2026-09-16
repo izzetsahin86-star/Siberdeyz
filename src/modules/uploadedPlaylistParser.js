@@ -8,8 +8,8 @@ const SOCIAL_HOSTS = new Set(['t.me', 'telegram.me', 'www.t.me', 'www.telegram.m
 const FIELD_PATTERNS = {
   portal: /(?:Portal|ƤσятαƖ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
   realUrl: /(?:Real\s*Url|ℝ𝕖𝕒𝕝\s*𝕌𝕣𝕝|ʀєɑℓ\s*µʀℓ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
-  user: /(?:User|Username|υѕєя)\s*[=:]?\s*([^\s]+)/iu,
-  pass: /(?:Pass|Password|ραѕѕ)\s*[=:]?\s*([^\s]+)/iu,
+  user: /(?:Username|User|υѕєя)\s*[=:]?\s*([^\s]+)/iu,
+  pass: /(?:Password|Pass|ραѕѕ)\s*[=:]?\s*([^\s]+)/iu,
 };
 
 function cleanFileName(fileName) {
@@ -132,6 +132,11 @@ function isGenericSourcePrefix(value) {
     'm3u',
     'm3u1',
     'm3u2',
+    'ᴍ3ᴜ',
+    'ᴍ3ᴜ1',
+    'ᴍ3ᴜ2',
+    'м3υ',
+    'м3u',
     'playlist',
     'url',
     'real url',

@@ -3936,3 +3936,100 @@ html[data-channel-density="normal"] .channels-view .channel small {
     font-size: 7.5px;
   }
 }
+
+
+/* Admin direct account transfer from Accounts panel. */
+.account-transfer-bar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(120px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border: 1px solid rgba(94,92,230,.18);
+  border-radius: 10px;
+  background: rgba(94,92,230,.06);
+}
+
+.account-transfer-bar[hidden] {
+  display: none !important;
+}
+
+.account-transfer-bar > span {
+  color: #c9c8ff;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.account-transfer-bar > small {
+  min-width: 0;
+  overflow: hidden;
+  color: #8f8f98;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-transfer-bar select {
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 24px 4px 7px;
+  border-radius: 8px;
+  font-size: 9px;
+}
+
+.source-pill-transfer {
+  min-width: 42px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding: 0 7px;
+  color: #c9c8ff;
+  background: rgba(94,92,230,.08);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.source-pill-transfer:hover {
+  color: #ebeaff;
+  background: rgba(94,92,230,.15);
+}
+
+@media (max-width: 860px) {
+  .accounts-view .account-transfer-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 6px;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
+
+  .accounts-view .account-transfer-bar > small {
+    grid-column: 1 / -1;
+    font-size: 7px;
+  }
+
+  .accounts-view .account-transfer-bar select {
+    min-height: 30px;
+    font-size: 12px;
+  }
+
+  .accounts-view .source-pill-transfer {
+    min-width: 36px;
+    padding: 0 5px;
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 390px) {
+  .accounts-view .account-transfer-bar > span {
+    font-size: 8px;
+  }
+
+  .accounts-view .source-pill-transfer {
+    min-width: 34px;
+    padding: 0 4px;
+    font-size: 7.5px;
+  }
+}

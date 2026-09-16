@@ -6,10 +6,10 @@ const STREAM_EXT_PATTERN = /\.(m3u8|ts|mp4|mkv|avi|mov)(?:$|[?#])/i;
 const SOCIAL_HOSTS = new Set(['t.me', 'telegram.me', 'www.t.me', 'www.telegram.me']);
 
 const FIELD_PATTERNS = {
-  portal: /(?:Portal|ƤσятαƖ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
-  realUrl: /(?:Real\s*Url|ℝ𝕖𝕒𝕝\s*𝕌𝕣𝕝|ʀєɑℓ\s*µʀℓ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/iu,
-  user: /(?:Username|User|υѕєя)\s*[=:]?\s*([^\s]+)/iu,
-  pass: /(?:Password|Pass|ραѕѕ)\s*[=:]?\s*([^\s]+)/iu,
+  portal: /(?:Portal|ƤσятαƖ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/i,
+  realUrl: /(?:Real\s*Url|ℝ𝕖𝕒𝕝\s*𝕌𝕣𝕝|ʀєɑℓ\s*µʀℓ)\s*[=:]?\s*(https?:\/\/[^\s"'<>|]+)/i,
+  user: /(?:Username|User|υѕєя)\s*[=:]?\s*([^\s]+)/i,
+  pass: /(?:Password|Pass|ραѕѕ)\s*[=:]?\s*([^\s]+)/i,
 };
 
 function cleanFileName(fileName) {

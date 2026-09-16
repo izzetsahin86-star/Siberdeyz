@@ -22,6 +22,7 @@ import { getAccountAutoScanStatus, reconfigureAccountAutoScanScheduler, stopAcco
 import { getPersistentFailureStatus } from '../modules/accountFailureTracker.js';
 import { getAppSettings, updateAppSettings } from '../modules/appSettingsService.js';
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
+import { assignUrlAccountToUser } from '../modules/userAccountAssignmentService.js';
 import { deleteWebScanResults, scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
 import {
   deleteFullSiteScanResults,
@@ -101,6 +102,18 @@ apiRouter.get('/admin/users', requireAdminSession, async (req, res, next) => {
 apiRouter.post('/admin/users', requireAdminSession, async (req, res, next) => {
   try {
     res.status(201).json(await createAccessUser(req.body?.label));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/admin/users/:id/source', requireAdminSession, async (req, res, next) => {
+  try {
+    res.status(201).json(await assignUrlAccountToUser(
+      req.params.id,
+      req.body?.url,
+      req.body?.label
+    ));
   } catch (error) {
     next(error);
   }

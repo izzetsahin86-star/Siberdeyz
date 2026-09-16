@@ -3589,7 +3589,8 @@ button:disabled {
 }
 
 
-/* Match Accounts panel height with Channels and enlarge the loaded accounts area. */
+/* Match Accounts panel height with Channels.
+   Only the account list is flexible; controls and status chips always stay visible. */
 @media (max-width: 860px) {
   .content-panel[data-open="accounts"] {
     height: min(58dvh, 480px);
@@ -3605,12 +3606,36 @@ button:disabled {
       auto
       auto
       auto
-      minmax(min(24dvh, 190px), 1fr)
+      minmax(0, 1fr)
       auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .accounts-view .account-scan-summary {
+    min-height: 22px;
+    max-height: 22px;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .accounts-view .account-scan-summary span {
+    min-height: 20px;
+    height: 20px;
+    line-height: 1;
   }
 
   .accounts-view .source-list {
-    min-height: min(24dvh, 190px);
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .accounts-view .account-render-hint {
+    min-height: 22px;
   }
 }
 
@@ -3629,12 +3654,16 @@ button:disabled {
       auto
       auto
       auto
-      minmax(150px, 1fr)
+      minmax(0, 1fr)
       auto;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .accounts-view .source-list {
-    min-height: 150px;
+    min-height: 0;
+    height: auto;
+    overflow: auto;
   }
 }
 

@@ -393,13 +393,29 @@ function showApp() {
 
   if (!state.started) {
     state.started = true;
+
     loadSourceStatus()
-      .then(() => loadAccountHealth())
-      .catch((error) => setSourceStatus(error.message, 'error'));
-    loadChannels({ reset: true }).catch((error) => {
-      setLoading(false);
-      setStatus(error.message, 'error');
-    });
+      .then(() => {
+        if (!state.activeSourceId) {
+          clearChannelState();
+          setStatus(
+            state.sources.length
+              ? 'Yayin secmek icin Hesaplar bolumunden bir hesap acin.'
+              : 'Hesap yok. Hesaplardan yayin URL yukleyin.',
+            'warning'
+          );
+          return;
+        }
+
+        return loadChannels({ reset: true });
+      })
+      .catch((error) => {
+        setLoading(false);
+        setSourceStatus(error.message, 'error');
+        setStatus(error.message, 'error');
+      });
+
+    loadAccountHealth().catch((error) => setSourceStatus(error.message, 'error'));
   }
 }
 
@@ -496,7 +512,9 @@ async function login(adminPassword) {
     // Kullanici yonetimi ana uygulama girisini engellememeli.
   }
 
-  // A new authenticated session always starts with an empty, stopped player.
+  await resetActiveSourceForNewSession();
+
+  // A new authenticated session always starts with no selected source or playback.
   stopPlayback({ message: '', resetSound: false });
   showApp();
 }
@@ -904,6 +922,21 @@ async function loadSourceStatus() {
   }
 
   setSourceState(data);
+}
+
+async function resetActiveSourceForNewSession() {
+  const response = await fetch('/api/source/active/reset', {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Yeni oturum temiz baslatilamadi.');
+  }
+
+  setSourceState(data);
+  clearChannelState();
 }
 
 async function loadAccountHealth() {

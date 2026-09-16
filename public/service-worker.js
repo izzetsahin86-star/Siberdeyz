@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-full-site-layout-fix-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-playback-session-reset-1';
 
 const APP_SHELL = [
   '/',

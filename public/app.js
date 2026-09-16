@@ -365,7 +365,10 @@ function setPlaybackSource(channel) {
 
 function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
   clearPlaybackFallback();
-  elements.player.pause();\n  unlockMobilePlayerLayout();\n  if ('srcObject' in elements.player) elements.player.srcObject = null;\n  elements.player.removeAttribute('src');
+  elements.player.pause();
+  unlockMobilePlayerLayout();
+  if ('srcObject' in elements.player) elements.player.srcObject = null;
+  elements.player.removeAttribute('src');
   elements.player.load();
   elements.currentChannel.textContent = 'Henuz secilmedi';
   state.currentChannelId = '';
@@ -493,7 +496,12 @@ async function login(adminPassword) {
     // Kullanici yonetimi ana uygulama girisini engellememeli.
   }
 
-  // A new authenticated session always starts with an empty, stopped player.\n  stopPlayback({ message: '', resetSound: false });\n  showApp();\n}\n\nasync function clearPreviousAdminSession() {
+  // A new authenticated session always starts with an empty, stopped player.
+  stopPlayback({ message: '', resetSound: false });
+  showApp();
+}
+
+async function clearPreviousAdminSession() {
   try {
     await fetch('/api/admin/logout', {
       method: 'POST',
@@ -1673,7 +1681,11 @@ startupSessionReset = clearPreviousAdminSession();
 renderGroups();
 renderSources();
 renderAccountAutoScanStatus();
-applySoundSetting();\n// Do not let Safari/browser media restoration leak a previous playback into login.\nstopPlayback({ message: '', resetSound: false });\n\nattachPlaybackTimeline(elements.player, {
+applySoundSetting();
+// Do not let Safari/browser media restoration leak a previous playback into login.
+stopPlayback({ message: '', resetSound: false });
+
+attachPlaybackTimeline(elements.player, {
   root: elements.playbackTimeline,
   currentTime: elements.playbackCurrentTime,
   durationTime: elements.playbackDurationTime,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-webscan-delete-all-persistent-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-account-pagination-1';
 
 const APP_SHELL = [
   '/',

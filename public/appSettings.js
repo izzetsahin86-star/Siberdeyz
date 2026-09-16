@@ -7,7 +7,6 @@ const DEFAULT_SETTINGS = Object.freeze({
   retryCount: 3,
   defaultPanel: 'channels',
   channelDensity: 'compact',
-  interfaceMode: 'classic',
 });
 
 function normalizeSettings(value = {}) {
@@ -40,7 +39,6 @@ export function createAppSettingsController({
     retryCount: document.querySelector('#retryCountSetting'),
     defaultPanel: document.querySelector('#defaultPanelSetting'),
     channelDensity: document.querySelector('#channelDensitySetting'),
-    interfaceMode: document.querySelector('#interfaceModeSetting'),
     clearCache: document.querySelector('#clearCacheButton'),
     logout: document.querySelector('#logoutButton'),
     status: document.querySelector('#settingsStatus'),
@@ -65,7 +63,6 @@ export function createAppSettingsController({
     }
     if (elements.defaultPanel) elements.defaultPanel.value = settings.defaultPanel;
     if (elements.channelDensity) elements.channelDensity.value = settings.channelDensity;
-    if (elements.interfaceMode) elements.interfaceMode.value = settings.interfaceMode;
   }
 
   function notify(initial = false) {
@@ -124,7 +121,6 @@ export function createAppSettingsController({
   bindSelect(elements.retryCount, 'retryCount', Number);
   bindSelect(elements.defaultPanel, 'defaultPanel');
   bindSelect(elements.channelDensity, 'channelDensity');
-  bindSelect(elements.interfaceMode, 'interfaceMode');
 
   elements.clearCache?.addEventListener('click', async () => {
     elements.clearCache.disabled = true;

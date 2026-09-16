@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260916-account-direct-transfer-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260916-account-transfer-layout-fix-1';
 
 const APP_SHELL = [
   '/',

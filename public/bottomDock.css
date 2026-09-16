@@ -1,247 +1,134 @@
-/* Classic UI - isolated two-level mobile control center.
-   Visual-only layer. Existing buttons and JavaScript actions stay unchanged. */
+/* Classic UI - isolated mobile bottom dock refresh.
+   Visual-only layer: existing buttons, actions and panel logic are unchanged. */
 
 @media (max-width: 860px) {
   .control-panel {
     position: fixed;
     z-index: 40;
-    left: calc(8px + var(--safe-left));
-    right: calc(8px + var(--safe-right));
-    bottom: max(6px, calc(var(--safe-bottom) - 9px));
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: 32px 50px;
-    gap: 0 4px;
-    min-height: 82px;
-    padding: 0 5px 5px;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    left: calc(7px + var(--safe-left));
+    right: calc(7px + var(--safe-right));
+    bottom: max(8px, calc(var(--safe-bottom) - 8px));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    min-height: 58px;
+    padding: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 23px;
+    background:
+      linear-gradient(180deg, rgba(30, 32, 40, .82), rgba(17, 18, 24, .86));
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, .055),
+      0 13px 38px rgba(0, 0, 0, .38);
+    -webkit-backdrop-filter: blur(32px) saturate(165%);
+    backdrop-filter: blur(32px) saturate(165%);
   }
 
-  /* Lower four-tab navigation surface. */
   .control-panel::before {
     content: "";
     position: absolute;
-    z-index: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 58px;
+    inset: 0;
     pointer-events: none;
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 22px;
+    border-radius: inherit;
     background:
-      linear-gradient(180deg, rgba(31,34,43,.92), rgba(16,18,24,.94));
-    box-shadow:
-      inset 0 1px rgba(255,255,255,.06),
-      0 16px 42px rgba(0,0,0,.42);
-    -webkit-backdrop-filter: blur(32px) saturate(170%);
-    backdrop-filter: blur(32px) saturate(170%);
-  }
-
-  .control-panel::after {
-    content: "";
-    position: absolute;
-    z-index: 1;
-    left: 50%;
-    bottom: 5px;
-    width: 1px;
-    height: 47px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(255,255,255,.055) 20%,
-      rgba(255,255,255,.055) 80%,
-      transparent
-    );
-    transform: translateX(-50%);
-    pointer-events: none;
+      linear-gradient(
+        90deg,
+        rgba(10, 132, 255, .035),
+        transparent 30%,
+        transparent 70%,
+        rgba(100, 210, 255, .025)
+      );
   }
 
   .control-button {
     position: relative;
-    z-index: 2;
-    min-width: 0;
-    border: 0;
-    color: #9aa1ac;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition:
-      transform 125ms cubic-bezier(.2,.8,.2,1),
-      color 160ms ease,
-      background 160ms ease,
-      border-color 160ms ease,
-      box-shadow 180ms ease;
-  }
-
-  .control-button:hover {
-    background: transparent;
-  }
-
-  .control-button:active {
-    transform: scale(.92);
-  }
-
-  /* Three floating quick actions. */
-  .control-button[data-action] {
-    align-self: start;
-    display: grid;
-    place-items: center;
-    align-content: center;
-    gap: 1px;
-    min-height: 39px;
-    margin-top: 0;
-    padding: 2px 4px;
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 999px;
-    color: #b8c0ca;
-    background:
-      linear-gradient(180deg, rgba(33,36,46,.97), rgba(18,20,27,.97));
-    box-shadow:
-      inset 0 1px rgba(255,255,255,.07),
-      0 8px 22px rgba(0,0,0,.38);
-    font-size: 7px;
-    font-weight: 800;
-    line-height: 1;
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
-  }
-
-  .control-button[data-action="stop"] {
-    grid-column: 3 / 5;
-    grid-row: 1;
-    color: #ff8a84;
-    border-color: rgba(255,69,58,.18);
-    background:
-      linear-gradient(180deg, rgba(92,31,34,.94), rgba(41,21,25,.97));
-  }
-
-  .control-button[data-action="next"] {
-    grid-column: 6 / 8;
-    grid-row: 1;
-    color: #add6ff;
-    border-color: rgba(10,132,255,.20);
-    background:
-      linear-gradient(180deg, rgba(23,55,86,.96), rgba(17,29,45,.97));
-  }
-
-  .control-button[data-action="reload"] {
-    grid-column: 9 / 11;
-    grid-row: 1;
-    color: #c7ccd4;
-  }
-
-  .control-button[data-action]::before {
-    display: block;
-    width: auto;
-    height: auto;
-    border-radius: 0;
-    color: currentColor;
-    background: transparent;
-    box-shadow: none;
-    font-size: 15px;
-    line-height: .9;
-  }
-
-  .control-button[data-action="stop"]::before {
-    font-size: 12px;
-  }
-
-  .control-button[data-action="reload"]::before {
-    font-size: 17px;
-  }
-
-  .control-button[data-action]:active {
-    transform: translateY(1px) scale(.90);
-    filter: brightness(1.1);
-  }
-
-  /* Four permanent app navigation buttons. */
-  .control-button[data-panel] {
-    grid-row: 2;
-    align-self: end;
+    z-index: 1;
     display: grid;
     place-items: center;
     align-content: center;
     gap: 2px;
-    min-height: 50px;
-    padding: 5px 2px 2px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 2px 1px;
+    border: 0;
     border-radius: 15px;
-    color: #858d99;
+    color: #8e949e;
     background: transparent;
     box-shadow: none;
     font-size: 7.5px;
-    font-weight: 780;
+    font-weight: 750;
     line-height: 1;
+    text-align: center;
+    overflow-wrap: normal;
+    transition:
+      transform 120ms cubic-bezier(.2, .8, .2, 1),
+      color 160ms ease,
+      background 160ms ease;
   }
 
-  .control-button[data-panel="channels"] {
-    grid-column: 1 / 4;
+  .control-button:hover {
+    background: rgba(255, 255, 255, .035);
   }
 
-  .control-button[data-panel="accounts"] {
-    grid-column: 4 / 7;
+  .control-button:active {
+    transform: scale(.91);
+    background: rgba(255, 255, 255, .045);
   }
 
-  .control-button[data-panel="webscan"] {
-    grid-column: 7 / 10;
-    font-size: 7.5px;
-  }
-
-  .control-button[data-panel="settings"] {
-    grid-column: 10 / 13;
-  }
-
-  .control-button[data-panel]::before,
-  .control-button[data-panel="webscan"]::before {
+  .control-button::before {
     display: grid;
     place-items: center;
     width: 34px;
-    height: 25px;
+    height: 27px;
     border-radius: 10px;
     color: currentColor;
     background: transparent;
-    box-shadow: none;
     font-size: 18px;
     line-height: 1;
+    font-weight: 500;
     transition:
-      transform 150ms cubic-bezier(.2,.8,.2,1),
+      transform 150ms cubic-bezier(.2, .8, .2, 1),
       color 160ms ease,
       background 180ms ease,
       box-shadow 180ms ease;
   }
 
-  .control-button[data-panel="webscan"]::before {
-    font-size: 19px;
+  .control-button:active::before {
+    transform: translateY(1px) scale(.95);
   }
 
-  .control-button[data-panel].is-active {
-    color: #79bdff;
+  .control-button.is-active {
+    color: #79bbff;
     background: transparent;
     box-shadow: none;
   }
 
-  .control-button[data-panel].is-active::before {
-    color: #e7f4ff;
+  .control-button.is-active::before {
+    color: #d9edff;
     background:
-      linear-gradient(180deg, rgba(10,132,255,.30), rgba(10,132,255,.13));
+      linear-gradient(180deg, rgba(10, 132, 255, .28), rgba(10, 132, 255, .14));
     box-shadow:
-      inset 0 1px rgba(255,255,255,.08),
-      0 5px 15px rgba(10,132,255,.16);
+      inset 0 1px rgba(255, 255, 255, .07),
+      0 5px 14px rgba(10, 132, 255, .14);
   }
 
-  .control-button[data-panel]:active::before {
-    transform: scale(.90);
+  .control-button[data-action="stop"]::before {
+    color: #ff7770;
+    background: rgba(255, 69, 58, .055);
   }
 
-  /* Open sheets sit above the new two-level control center. */
-  .content-panel {
-    bottom: calc(94px + var(--safe-bottom));
+  .control-button[data-action="reload"]::before {
+    font-size: 21px;
+  }
+
+  .control-button[data-panel="webscan"] {
+    font-size: 7.5px;
+  }
+
+  .control-button[data-panel="webscan"]::before {
+    width: 34px;
+    height: 27px;
+    font-size: 18px;
   }
 }
 
@@ -249,39 +136,23 @@
   .control-panel {
     left: calc(6px + var(--safe-left));
     right: calc(6px + var(--safe-right));
-    grid-template-rows: 31px 48px;
-    min-height: 79px;
-    padding-inline: 3px;
+    gap: 1px;
+    padding-inline: 4px;
   }
 
-  .control-panel::before {
-    height: 56px;
-    border-radius: 21px;
-  }
-
-  .control-button[data-action] {
-    min-height: 37px;
-    padding-inline: 2px;
-    font-size: 6.5px;
-  }
-
-  .control-button[data-panel] {
-    min-height: 48px;
+  .control-button {
+    min-height: 47px;
     font-size: 7px;
   }
 
-  .control-button[data-panel]::before,
+  .control-button::before,
   .control-button[data-panel="webscan"]::before {
     width: 31px;
-    height: 24px;
+    height: 26px;
     font-size: 17px;
   }
 
-  .control-button[data-panel="webscan"]::before {
-    font-size: 18px;
-  }
-
-  .content-panel {
-    bottom: calc(91px + var(--safe-bottom));
+  .control-button[data-action="reload"]::before {
+    font-size: 20px;
   }
 }

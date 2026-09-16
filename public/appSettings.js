@@ -143,6 +143,16 @@ export function createAppSettingsController({
     setStatus('Cikis yapiliyor...');
 
     try {
+      try {
+        const resetResponse = await fetch('/api/source/active/reset', {
+          method: 'POST',
+          cache: 'no-store',
+        });
+        if (resetResponse.ok) await resetResponse.json().catch(() => ({}));
+      } catch {
+        // Yeni giris de aktif kaynagi sifirlar; cikisi engelleme.
+      }
+
       const response = await fetch('/api/admin/logout', {
         method: 'POST',
         cache: 'no-store',

@@ -4033,3 +4033,35 @@ html[data-channel-density="normal"] .channels-view .channel small {
     font-size: 7.5px;
   }
 }
+
+
+/* Layout repair: transfer selector stays inside source-tools, so the account list keeps its flexible row. */
+.accounts-view .source-tools .account-transfer-bar {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 5px;
+}
+
+.accounts-view .source-tools .account-transfer-bar select {
+  min-height: 28px;
+}
+
+@media (max-width: 860px) {
+  .accounts-view .source-tools .account-transfer-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5px;
+    padding: 3px 5px;
+  }
+
+  .accounts-view .source-tools .account-transfer-bar select {
+    min-height: 28px;
+    font-size: 12px;
+  }
+
+  .accounts-view .source-pill-transfer {
+    min-width: 32px;
+    padding: 0 4px;
+    font-size: 7.5px;
+  }
+}

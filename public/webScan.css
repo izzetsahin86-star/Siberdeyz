@@ -390,3 +390,29 @@
   border-color: rgba(255,69,58,.18);
   background: rgba(255,69,58,.07);
 }
+
+/* Film / Oyuncu Ara: keep the module inside the Web Tarama sheet. */
+.web-scan-view .media-search-section {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  align-content: start;
+  grid-template-rows: none;
+  grid-auto-rows: max-content;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.web-scan-view .media-search-results {
+  min-height: 0;
+}
+
+/* On phones keep Web Tarama compact so the player and bottom controls stay usable. */
+@media (max-width: 860px) {
+  .content-panel[data-open="webscan"] {
+    height: min(44dvh, 360px) !important;
+    min-height: 210px !important;
+    max-height: min(44dvh, 360px) !important;
+  }
+}

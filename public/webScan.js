@@ -1,3 +1,5 @@
+import { createMediaSearchController } from './mediaSearchScan.js';
+
 function formatDuration(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value) || value <= 0) return 'Suresi bilinmiyor';
@@ -311,8 +313,12 @@ export function createWebScanController({ onSaved } = {}) {
   });
 
   renderResults();
+  const mediaSearchController = createMediaSearchController({ onSaved });
 
   return {
-    reset: resetScan,
+    reset() {
+      resetScan();
+      mediaSearchController?.reset?.();
+    },
   };
 }

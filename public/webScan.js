@@ -1,3 +1,5 @@
+import { createMediaSearchController } from './mediaSearchScan.js';
+
 function formatDuration(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value) || value <= 0) return 'Suresi bilinmiyor';
@@ -15,12 +17,12 @@ function formatDuration(seconds) {
 }
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, (char) => ({
+  return String(value).replace(/[&<>'\"]/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     "'": '&#39;',
-    '"': '&quot;',
+    '\"': '&quot;',
   }[char]));
 }
 
@@ -250,7 +252,6 @@ export function createWebScanController({ onSaved } = {}) {
     if (normalized) elements.url.value = normalized;
   });
 
-
   elements.results?.addEventListener('change', (event) => {
     const checkbox = event.target.closest('[data-web-scan-select]');
     if (!checkbox) return;
@@ -311,8 +312,12 @@ export function createWebScanController({ onSaved } = {}) {
   });
 
   renderResults();
+  const mediaSearchController = createMediaSearchController({ onSaved });
 
   return {
-    reset: resetScan,
+    reset() {
+      resetScan();
+      mediaSearchController?.reset?.();
+    },
   };
 }

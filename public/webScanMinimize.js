@@ -1,6 +1,6 @@
-export function attachWebScanMinimize({ bottomPanel, panelTitle, closeButton } = {}) {
+export function attachWebScanMinimize({ bottomPanel, closeButton } = {}) {
   const header = closeButton?.parentElement;
-  if (!bottomPanel || !panelTitle || !closeButton || !header) {
+  if (!bottomPanel || !closeButton || !header) {
     return { sync() {}, reset() {} };
   }
 
@@ -32,22 +32,32 @@ export function attachWebScanMinimize({ bottomPanel, panelTitle, closeButton } =
     );
   }
 
+  function sync() {
+    const webScanOpen = isWebScanOpen();
+    button.hidden = !webScanOpen;
+
+    if (!webScanOpen) {
+      bottomPanel.dataset.minimized = 'false';
+      button.textContent = 'Kucult';
+      button.setAttribute('aria-expanded', 'true');
+    }
+  }
+
   button.addEventListener('click', () => {
     if (!isWebScanOpen()) return;
     setMinimized(bottomPanel.dataset.minimized !== 'true');
   });
 
   header.addEventListener('dblclick', (event) => {
-    if (!isWebScanOpen()) return;
-    if (event.target.closest('button')) return;
+    if (!isWebScanOpen() || event.target.closest('button')) return;
     setMinimized(bottomPanel.dataset.minimized !== 'true');
   });
 
-  function sync() {
-    const webScanOpen = isWebScanOpen();
-    button.hidden = !webScanOpen;
-    if (!webScanOpen) setMinimized(false);
-  }
+  const observer = new MutationObserver(sync);
+  observer.observe(bottomPanel, {
+    attributes: true,
+    attributeFilter: ['data-open'],
+  });
 
   function reset() {
     setMinimized(false);

@@ -4,6 +4,7 @@ import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
 import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
+import { createChannelLoadFeedback } from './channelLoadFeedback.js';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_PAGE_SIZE = 100;
@@ -60,6 +61,7 @@ let settingsController = null;
 let userAccessController = null;
 let webScanController = null;
 let fullSiteScanController = null;
+let channelLoadFeedback = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -1478,38 +1480,72 @@ async function loadChannels({ force = false, reset = false } = {}) {
   if (state.loading) return;
 
   const offset = reset ? 0 : state.channels.length;
-  const waitingText = offset === 0
+  const isInitialLoad = offset === 0;
+  const waitingText = isInitialLoad
     ? 'Liste cekiliyor... Buyuk listelerde ilk sonuc 10-20 saniye surebilir.'
     : 'Daha fazla kanal yukleniyor...';
+  const activeSource = getActiveSource();
+  const loadLabel = activeSource?.label
+    ? activeSource.label + ' kanallari yukleniyor'
+    : 'Kanallar yukleniyor';
+
+  const requestController = new AbortController();
+  const timeoutId = setTimeout(() => requestController.abort(), 60000);
 
   setLoading(true);
   setStatus(waitingText);
+  if (isInitialLoad) channelLoadFeedback?.start(loadLabel);
 
-  const response = await fetch(buildChannelUrl({ force, offset }));
-  const data = await response.json();
-  setLoading(false);
+  try {
+    const response = await fetch(buildChannelUrl({ force, offset }), {
+      signal: requestController.signal,
+    });
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Yayin listesi alinamadi');
+    if (!response.ok) {
+      throw new Error(data.error || 'Yayin listesi alinamadi');
+    }
+
+    if (!data.sourceReady) {
+      clearChannelState();
+      const message = 'Bu hesapta yuklenebilir kanal bulunamadi.';
+      setStatus(message, 'warning');
+      if (isInitialLoad) channelLoadFeedback?.fail(message);
+      return;
+    }
+
+    state.channels = reset ? data.channels : [...state.channels, ...data.channels];
+    state.groups = data.groups || ['Tumu'];
+    state.total = data.total || 0;
+    state.allTotal = data.allTotal || state.total;
+    state.hasMore = Boolean(data.hasMore);
+
+    renderGroups();
+    renderChannels();
+
+    const filterText = state.total === state.allTotal ? '' : `, filtre sonucu ${state.total}`;
+    const readyText = `${state.channels.length}/${state.total} gosteriliyor. Toplam ${state.allTotal} yayin${filterText}.`;
+    setStatus(readyText);
+    if (isInitialLoad) {
+      channelLoadFeedback?.success(
+        state.allTotal > 0
+          ? state.allTotal + ' kanal yuklendi.'
+          : 'Kanal listesi yuklendi.'
+      );
+    }
+  } catch (error) {
+    const message = error?.name === 'AbortError'
+      ? 'Kanal listesi 60 saniye icinde yuklenemedi.'
+      : (error?.message || 'Kanal listesi yuklenemedi.');
+    setStatus(message, 'error');
+    if (isInitialLoad) channelLoadFeedback?.fail(message);
+    const reportedError = new Error(message);
+    reportedError.cause = error;
+    throw reportedError;
+  } finally {
+    clearTimeout(timeoutId);
+    setLoading(false);
   }
-
-  if (!data.sourceReady) {
-    clearChannelState();
-    setStatus('Hesap yok. Hesaplardan yayin URL yukleyin.', 'warning');
-    return;
-  }
-
-  state.channels = reset ? data.channels : [...state.channels, ...data.channels];
-  state.groups = data.groups || ['Tumu'];
-  state.total = data.total || 0;
-  state.allTotal = data.allTotal || state.total;
-  state.hasMore = Boolean(data.hasMore);
-
-  renderGroups();
-  renderChannels();
-
-  const filterText = state.total === state.allTotal ? '' : `, filtre sonucu ${state.total}`;
-  setStatus(`${state.channels.length}/${state.total} gosteriliyor. Toplam ${state.allTotal} yayin${filterText}.`);
 }
 
 function lockMobilePlayerLayout() {
@@ -1818,6 +1854,18 @@ fullSiteScanController = createFullSiteScanController({
     } catch (error) {
       setStatus(error.message, 'error');
     }
+  },
+});
+
+channelLoadFeedback = createChannelLoadFeedback({
+  async onRetry() {
+    state.channels = [];
+    state.hasMore = false;
+    renderChannels();
+    await loadChannels({ force: true, reset: true });
+  },
+  onAccounts() {
+    switchPanel('accounts');
   },
 });
 

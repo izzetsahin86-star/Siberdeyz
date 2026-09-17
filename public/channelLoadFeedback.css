@@ -1,0 +1,131 @@
+/* Isolated channel loading feedback */
+
+.channels-view {
+  position: relative;
+}
+
+.channel-load-feedback {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(10,132,255,.22);
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(10,132,255,.11), rgba(94,92,230,.06));
+}
+
+.channel-load-feedback[hidden] {
+  display: none !important;
+}
+
+.channel-load-feedback-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(10,132,255,.1);
+}
+
+.channel-load-feedback-icon i {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(143,199,255,.22);
+  border-top-color: #8fc7ff;
+  border-radius: 50%;
+  animation: channel-load-spin .8s linear infinite;
+}
+
+.channel-load-feedback-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.channel-load-feedback-copy strong {
+  overflow: hidden;
+  color: #eef6ff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-load-feedback-copy span {
+  color: #8fa2b5;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.channel-load-feedback[data-state="success"] {
+  border-color: rgba(48,209,88,.24);
+  background: rgba(48,209,88,.07);
+}
+
+.channel-load-feedback[data-state="success"] .channel-load-feedback-icon {
+  background: rgba(48,209,88,.12);
+}
+
+.channel-load-feedback[data-state="success"] .channel-load-feedback-icon i {
+  width: 13px;
+  height: 7px;
+  border: 0;
+  border-bottom: 2px solid #70d68a;
+  border-left: 2px solid #70d68a;
+  border-radius: 0;
+  animation: none;
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.channel-load-feedback[data-state="error"] {
+  grid-template-columns: minmax(0, 1fr);
+  border-color: rgba(255,69,58,.25);
+  background: rgba(255,69,58,.07);
+}
+
+.channel-load-feedback[data-state="error"] .channel-load-feedback-copy strong {
+  color: #ffb1ad;
+}
+
+.channel-load-feedback-actions {
+  display: flex;
+  gap: 5px;
+  grid-column: 1 / -1;
+}
+
+.channel-load-feedback-actions[hidden] {
+  display: none !important;
+}
+
+.channel-load-feedback-actions button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 9px;
+  color: #f4f7fb;
+  background: rgba(255,255,255,.06);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.channel-load-feedback-actions button:first-child {
+  border-color: rgba(10,132,255,.3);
+  background: rgba(10,132,255,.15);
+}
+
+.channel-load-feedback-actions button:disabled {
+  opacity: .45;
+}
+
+@keyframes channel-load-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-load-feedback-icon i {
+    animation: none;
+  }
+}

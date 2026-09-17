@@ -92,6 +92,8 @@ const elements = {
   loginStatus: document.querySelector('#loginStatus'),
   loginButton: document.querySelector('#loginButton'),
   appShell: document.querySelector('#appShell'),
+  activeAccountHeader: document.querySelector('#activeAccountHeader'),
+  activeAccountName: document.querySelector('#activeAccountName'),
   bottomPanel: document.querySelector('#bottomPanel'),
   panelTitle: document.querySelector('#panelTitle'),
   closePanelButton: document.querySelector('#closePanelButton'),
@@ -174,6 +176,20 @@ function getActiveSource() {
   return state.sources.find((source) => source.id === state.activeSourceId)
     || state.sources.find((source) => source.active)
     || null;
+}
+
+function renderActiveAccountHeader() {
+  const source = getActiveSource();
+  const label = String(source?.label || '').trim();
+
+  if (elements.activeAccountName) {
+    elements.activeAccountName.textContent = label || 'Aktif hesap yok';
+    elements.activeAccountName.title = label || 'Aktif hesap secilmedi';
+  }
+
+  if (elements.activeAccountHeader) {
+    elements.activeAccountHeader.dataset.active = String(Boolean(source));
+  }
 }
 
 function updateSelectedWebScanDeleteButton() {
@@ -995,6 +1011,7 @@ function setSourceState(data) {
   );
 
   renderSources();
+  renderActiveAccountHeader();
   updateSelectedWebScanDeleteButton();
 
   if (data.hasSource) {

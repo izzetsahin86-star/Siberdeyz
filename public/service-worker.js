@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260917-professional-timeline-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260917-active-account-header-1';
 
 const APP_SHELL = [
   '/',
@@ -9,6 +9,7 @@ const APP_SHELL = [
   '/fullSiteScan.css',
   '/channelLoadFeedback.css',
   '/playerTimelinePro.css',
+  '/activeAccountHeader.css',
   '/bottomDock.css',
   '/auroraDock.js',
   '/app.js',

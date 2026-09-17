@@ -23,13 +23,14 @@
     <link rel="stylesheet" href="/fullSiteScan.css" />
     <link rel="stylesheet" href="/channelLoadFeedback.css" />
     <link rel="stylesheet" href="/playerTimelinePro.css" />
+    <link rel="stylesheet" href="/activeAccountHeader.css" />
     <link rel="stylesheet" href="/bottomDock.css" />
   </head>
   <body>
     <div class="app-launch" aria-hidden="true"><div class="app-launch-mark"></div><strong>Siberdeyz</strong><span>Yayin merkezi hazirlaniyor</span></div>
     <section id="loginScreen" class="login-screen"><form id="loginForm" class="login-box"><p class="eyebrow">Siberdeyz</p><h1>Siberdeyz Girisi</h1><p class="login-copy">Yonetici veya kullanici sifrenizle giris yapin.</p><input id="adminPasswordInput" type="password" placeholder="Sifre" autocomplete="current-password" /><button id="loginButton" type="submit">Giris Yap</button><p id="loginStatus" class="source-status" hidden></p></form></section>
     <main id="appShell" class="tv-shell" hidden>
-      <header class="app-header"><div class="brand-block"><p class="eyebrow">Siberdeyz</p></div></header>
+      <header class="app-header"><div id="activeAccountHeader" class="active-account-header" data-active="false"><span class="active-account-caption"><i aria-hidden="true"></i>Aktif hesap</span><strong id="activeAccountName">Aktif hesap yok</strong></div></header>
       <section class="group-panel" aria-label="Kategoriler"><button id="categoryToggle" class="category-toggle" type="button" aria-expanded="false" aria-controls="groupChips"><span class="category-toggle-label">Kategori</span><strong id="currentGroupLabel">Tumu</strong><span class="category-toggle-chevron" aria-hidden="true">⌄</span></button><div id="groupChips" class="group-strip" aria-label="Kategoriler" hidden></div></section>
       <section class="watch-area"><video id="player" controls playsinline webkit-playsinline muted></video><div id="playbackTimeline" class="playback-timeline" hidden aria-hidden="true"><span id="playbackCurrentTime">00:00</span><span id="playbackTimelineTrack" class="playback-timeline-track" role="slider" tabindex="-1" aria-label="Yayin suresi" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><i id="playbackProgressFill"></i></span><span id="playbackDurationTime">--:--</span></div><div class="player-meta"><div class="player-meta-actions"><span>Secili yayin</span><button id="deleteSelectedWebScanButton" class="player-delete-web-scan" type="button" hidden>Yayini Sil</button></div><strong id="currentChannel">Henuz secilmedi</strong></div></section>
       <section id="bottomPanel" class="content-panel" data-open="none" data-compact="false" aria-hidden="true">

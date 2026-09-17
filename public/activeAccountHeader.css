@@ -1,0 +1,102 @@
+/* Active account identity in the application header */
+
+.app-header {
+  min-height: 40px;
+  padding: 0 4px;
+}
+
+.active-account-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 560px);
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, rgba(20,31,47,.9), rgba(11,18,29,.88));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.045),
+    0 8px 24px rgba(0,0,0,.18);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.active-account-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: #8d9caf;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.active-account-caption i {
+  width: 8px;
+  height: 8px;
+  border: 2px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  background: #687487;
+  box-shadow: 0 0 0 3px rgba(104,116,135,.08);
+}
+
+.active-account-header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #aeb8c5;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: -.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-account-header[data-active="true"] {
+  border-color: rgba(48,209,88,.19);
+  background:
+    linear-gradient(135deg, rgba(20,43,44,.88), rgba(11,25,30,.9));
+}
+
+.active-account-header[data-active="true"] .active-account-caption {
+  color: #8eb9aa;
+}
+
+.active-account-header[data-active="true"] .active-account-caption i {
+  border-color: rgba(189,255,214,.42);
+  background: #30d158;
+  box-shadow:
+    0 0 0 3px rgba(48,209,88,.1),
+    0 0 11px rgba(48,209,88,.42);
+}
+
+.active-account-header[data-active="true"] strong {
+  color: #edf8f1;
+}
+
+@media (max-width: 860px) {
+  .app-header {
+    min-height: 36px;
+    padding-inline: 5px;
+  }
+
+  .active-account-header {
+    width: 100%;
+    min-height: 34px;
+    padding: 5px 9px;
+    border-radius: 11px;
+  }
+
+  .active-account-caption {
+    font-size: 7px;
+  }
+
+  .active-account-header strong {
+    font-size: 11px;
+  }
+}

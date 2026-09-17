@@ -24,6 +24,7 @@ import { getAppSettings, updateAppSettings } from '../modules/appSettingsService
 import { createAccessUser, listAccessUsers, revokeAccessUser } from '../modules/userAccessService.js';
 import { assignExistingUrlAccountToUser, assignUrlAccountToUser } from '../modules/userAccountAssignmentService.js';
 import { deleteWebScanResults, scanWebPage, saveWebScanSelection } from '../modules/webScanService.js';
+import { deletePersonVideoScanResults, scanPersonVideos, savePersonVideoScanSelection } from '../modules/personVideoScanService.js';
 import {
   deleteFullSiteScanResults,
   getFullSiteScanStatus,
@@ -209,6 +210,37 @@ apiRouter.delete('/web-scan/channel/:id', async (req, res, next) => {
     }
 
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/person-video-scan', async (req, res, next) => {
+  try {
+    res.json(await scanPersonVideos(req.body?.name));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/person-video-scan/:scanId/save', async (req, res, next) => {
+  try {
+    const result = await savePersonVideoScanSelection(
+      req.params.scanId,
+      req.body?.ids,
+      req.body?.label
+    );
+    clearChannelCache();
+    await clearFavorites();
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/person-video-scan/:scanId/results', async (req, res, next) => {
+  try {
+    res.json(await deletePersonVideoScanResults(req.params.scanId));
   } catch (error) {
     next(error);
   }

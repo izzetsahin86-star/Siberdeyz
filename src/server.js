@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { apiRouter } from './routes/api.js';
-import { mediaSearchRouter } from './routes/mediaSearchApi.js';
 import { startAccountAutoScanScheduler } from './modules/accountAutoScanScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,7 +13,6 @@ const publicDir = path.join(__dirname, '..', 'public');
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(publicDir));
-app.use('/api', mediaSearchRouter);
 app.use('/api', apiRouter);
 
 app.use((error, req, res, next) => {

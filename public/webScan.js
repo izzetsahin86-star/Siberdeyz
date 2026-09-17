@@ -17,12 +17,12 @@ function formatDuration(seconds) {
 }
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>'\"]/g, (char) => ({
+  return String(value).replace(/[&<>'"]/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     "'": '&#39;',
-    '\"': '&quot;',
+    '"': '&quot;',
   }[char]));
 }
 
@@ -251,6 +251,7 @@ export function createWebScanController({ onSaved } = {}) {
     const normalized = normalizeWebAddress(elements.url.value);
     if (normalized) elements.url.value = normalized;
   });
+
 
   elements.results?.addEventListener('change', (event) => {
     const checkbox = event.target.closest('[data-web-scan-select]');

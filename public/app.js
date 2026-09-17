@@ -4,7 +4,6 @@ import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
 import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
-import { createPersonVideoScanController } from './personVideoScan.js';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_PAGE_SIZE = 100;
@@ -61,7 +60,6 @@ let settingsController = null;
 let userAccessController = null;
 let webScanController = null;
 let fullSiteScanController = null;
-let personVideoScanController = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -1802,28 +1800,6 @@ webScanController = createWebScanController({
 });
 
 fullSiteScanController = createFullSiteScanController({
-  async onSaved(data) {
-    setSourceState(data);
-    stopPlayback({ message: '', resetSound: false });
-    state.group = 'Tumu';
-    state.type = 'all';
-    state.favoritesOnly = false;
-    state.search = '';
-    state.channels = [];
-    state.hasMore = false;
-    elements.searchInput.value = '';
-    renderGroups();
-    renderChannels();
-
-    try {
-      await loadChannels({ force: true, reset: true });
-    } catch (error) {
-      setStatus(error.message, 'error');
-    }
-  },
-});
-
-personVideoScanController = createPersonVideoScanController({
   async onSaved(data) {
     setSourceState(data);
     stopPlayback({ message: '', resetSound: false });

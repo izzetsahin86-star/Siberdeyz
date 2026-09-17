@@ -43,7 +43,6 @@ export function createFullSiteScanController({ onSaved } = {}) {
     modeButtons: document.querySelectorAll('[data-web-scan-mode]'),
     quickSection: document.querySelector('#quickWebScanSection'),
     fullSection: document.querySelector('#fullSiteScanSection'),
-    personSection: document.querySelector('#personVideoScanSection'),
     url: document.querySelector('#fullSiteScanUrl'),
     limit: document.querySelector('#fullSiteScanLimit'),
     start: document.querySelector('#fullSiteScanStart'),
@@ -80,17 +79,16 @@ export function createFullSiteScanController({ onSaved } = {}) {
   }
 
   function setMode(mode) {
-    const selectedMode = ['quick', 'full', 'person'].includes(mode) ? mode : 'quick';
+    const full = mode === 'full';
 
     elements.modeButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.webScanMode === selectedMode);
+      button.classList.toggle('is-active', button.dataset.webScanMode === mode);
     });
 
-    if (elements.quickSection) elements.quickSection.hidden = selectedMode !== 'quick';
-    if (elements.fullSection) elements.fullSection.hidden = selectedMode !== 'full';
-    if (elements.personSection) elements.personSection.hidden = selectedMode !== 'person';
+    if (elements.quickSection) elements.quickSection.hidden = full;
+    if (elements.fullSection) elements.fullSection.hidden = !full;
 
-    if (selectedMode === 'full') {
+    if (full) {
       const quickUrl = String(document.querySelector('#webScanUrl')?.value || '').trim();
       if (!elements.url.value && quickUrl) elements.url.value = quickUrl;
       refresh().catch(() => {});

@@ -70,7 +70,7 @@ function isPrivateIp(address) {
   return true;
 }
 
-export async function assertPublicHttpUrl(value) {
+async function assertPublicHttpUrl(value) {
   let parsed;
   const input = String(value || '').trim();
   const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(input)
@@ -186,7 +186,7 @@ function formatKind(url) {
   return extension ? extension.toUpperCase() : 'VIDEO';
 }
 
-export async function safeFetch(url, options = {}, redirectsLeft = 4) {
+async function safeFetch(url, options = {}, redirectsLeft = 4) {
   const parsed = await assertPublicHttpUrl(url);
   const response = await fetch(parsed, {
     ...options,
@@ -208,7 +208,7 @@ export async function safeFetch(url, options = {}, redirectsLeft = 4) {
   return response;
 }
 
-export async function readTextLimited(response, maxBytes = 700000) {
+async function readTextLimited(response, maxBytes = 700000) {
   if (!response.body?.getReader) return (await response.text()).slice(0, maxBytes);
 
   const reader = response.body.getReader();
@@ -329,7 +329,7 @@ function ffprobe(url) {
   });
 }
 
-export async function probeCandidate(url) {
+async function probeCandidate(url) {
   await assertPublicHttpUrl(url);
   if (extensionOf(url) === 'm3u8') {
     try {
@@ -361,7 +361,7 @@ function makeCandidate(url, index, discoveredBy, name = '', sourcePage = '') {
   };
 }
 
-export function extractMediaUrlsFromText(text, baseUrl) {
+function extractMediaUrlsFromText(text, baseUrl) {
   const found = new Set();
   const normalized = String(text || '').replace(/\\\//g, '/');
 

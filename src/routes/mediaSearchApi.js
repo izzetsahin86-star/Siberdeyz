@@ -10,9 +10,7 @@ import {
 
 export const mediaSearchRouter = Router();
 
-mediaSearchRouter.use(requireAppSession);
-
-mediaSearchRouter.post('/media-search-scan', async (req, res, next) => {
+mediaSearchRouter.post('/media-search-scan', requireAppSession, async (req, res, next) => {
   try {
     res.json(await scanMediaBySearch({
       url: req.body?.url,
@@ -24,7 +22,7 @@ mediaSearchRouter.post('/media-search-scan', async (req, res, next) => {
   }
 });
 
-mediaSearchRouter.post('/media-search-scan/:scanId/save', async (req, res, next) => {
+mediaSearchRouter.post('/media-search-scan/:scanId/save', requireAppSession, async (req, res, next) => {
   try {
     const result = await saveMediaSearchSelection(
       req.params.scanId,
@@ -39,7 +37,7 @@ mediaSearchRouter.post('/media-search-scan/:scanId/save', async (req, res, next)
   }
 });
 
-mediaSearchRouter.delete('/media-search-scan/:scanId/results', async (req, res, next) => {
+mediaSearchRouter.delete('/media-search-scan/:scanId/results', requireAppSession, async (req, res, next) => {
   try {
     res.json(await deleteMediaSearchResults(req.params.scanId));
   } catch (error) {

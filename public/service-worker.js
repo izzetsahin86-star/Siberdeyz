@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260917-channel-load-feedback-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260917-professional-timeline-1';
 
 const APP_SHELL = [
   '/',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   '/webScan.css',
   '/fullSiteScan.css',
   '/channelLoadFeedback.css',
+  '/playerTimelinePro.css',
   '/bottomDock.css',
   '/auroraDock.js',
   '/app.js',
@@ -15,6 +16,7 @@ const APP_SHELL = [
   '/userAccessSettings.js',
   '/webScan.js',
   '/fullSiteScan.js',
+  '/playerTimeline.js',
   '/channelLoadFeedback.js',
   '/accountMultiConnection.js',
   '/manifest.webmanifest',

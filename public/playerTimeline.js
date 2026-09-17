@@ -32,19 +32,38 @@ export function attachPlaybackTimeline(player, elements) {
   let activePointerId = null;
   let previewTime = 0;
 
+  const preview = document.createElement('span');
+  preview.className = 'playback-timeline-preview';
+  preview.hidden = true;
+  preview.setAttribute('aria-hidden', 'true');
+  track.append(preview);
+
   function getDuration() {
     const duration = Number(player.duration);
     return Number.isFinite(duration) && duration > 0 ? duration : 0;
   }
 
+  function bufferedRatio(duration) {
+    if (!duration || !player.buffered) return 0;
+
+    let bufferedEnd = 0;
+    for (let index = 0; index < player.buffered.length; index += 1) {
+      bufferedEnd = Math.max(bufferedEnd, Number(player.buffered.end(index)) || 0);
+    }
+
+    return clamp(bufferedEnd / duration, 0, 1);
+  }
+
   function setVisual(time, duration) {
     const safeTime = clamp(Number(time) || 0, 0, duration || 0);
     const ratio = duration > 0 ? clamp(safeTime / duration, 0, 1) : 0;
+    const buffered = bufferedRatio(duration);
 
     currentTime.textContent = formatTime(safeTime);
     durationTime.textContent = duration > 0 ? formatTime(duration) : '--:--';
     progressFill.style.transform = `translateY(-50%) scaleX(${ratio})`;
     track.style.setProperty('--timeline-progress', `${ratio * 100}%`);
+    track.style.setProperty('--timeline-buffered', `${buffered * 100}%`);
     track.setAttribute('aria-valuemax', String(Math.round(duration || 0)));
     track.setAttribute('aria-valuenow', String(Math.round(safeTime)));
     track.setAttribute('aria-valuetext', formatTime(safeTime) + ' / ' + formatTime(duration));
@@ -55,11 +74,14 @@ export function attachPlaybackTimeline(player, elements) {
     const seekable = duration > 0;
 
     root.hidden = !seekable;
+    root.setAttribute('aria-hidden', String(!seekable));
     track.tabIndex = seekable ? 0 : -1;
 
     if (!seekable) {
       dragging = false;
       activePointerId = null;
+      preview.hidden = true;
+      delete root.dataset.seeking;
       setVisual(0, 0);
       return;
     }
@@ -110,6 +132,10 @@ export function attachPlaybackTimeline(player, elements) {
     if (!duration) return;
 
     previewTime = timeFromClientX(clientX);
+    const ratio = clamp(previewTime / duration, 0, 1);
+    preview.textContent = formatTime(previewTime);
+    preview.style.left = (ratio * 100) + '%';
+    preview.hidden = false;
     setVisual(previewTime, duration);
   }
 
@@ -135,6 +161,7 @@ export function attachPlaybackTimeline(player, elements) {
 
     dragging = true;
     activePointerId = event.pointerId;
+    root.dataset.seeking = 'true';
     previewAt(event.clientX);
 
     try {
@@ -162,6 +189,8 @@ export function attachPlaybackTimeline(player, elements) {
 
     dragging = false;
     activePointerId = null;
+    preview.hidden = true;
+    delete root.dataset.seeking;
 
     try {
       track.releasePointerCapture(event.pointerId);
@@ -191,7 +220,7 @@ export function attachPlaybackTimeline(player, elements) {
     sync();
   }
 
-  ['loadedmetadata', 'durationchange', 'timeupdate', 'seeking', 'seeked', 'ratechange', 'emptied']
+  ['loadedmetadata', 'durationchange', 'timeupdate', 'progress', 'loadeddata', 'seeking', 'seeked', 'ratechange', 'emptied']
     .forEach((eventName) => player.addEventListener(eventName, sync));
 
   player.addEventListener('play', start);
@@ -210,6 +239,7 @@ export function attachPlaybackTimeline(player, elements) {
     sync,
     destroy() {
       stop();
+      preview.remove();
     },
   };
 }

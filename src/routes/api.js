@@ -13,6 +13,7 @@ import {
   savePlaylistSources,
   saveUploadedPlaylistSource,
   setActivePlaylistSource,
+  appendM3uYayinimChannel,
 } from '../modules/sourceStorage.js';
 import { parseUploadedPlaylist } from '../modules/uploadedPlaylistParser.js';
 import { proxyStream } from '../modules/streamProxy.js';
@@ -179,7 +180,14 @@ apiRouter.post('/settings/cache/clear', async (req, res, next) => {
 
 apiRouter.post('/mailru-m3u/resolve', async (req, res, next) => {
   try {
-    res.json(await resolveMailRuVideo(req.body?.url));
+    const resolved = await resolveMailRuVideo(req.body?.url);
+    const saved = await appendM3uYayinimChannel({
+      name: resolved.title,
+      url: resolved.best.url,
+      pageUrl: resolved.sourceUrl,
+    });
+    clearChannelCache();
+    res.json({ ...resolved, saved });
   } catch (error) {
     next(error);
   }

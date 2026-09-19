@@ -4,7 +4,6 @@ import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
 import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
-import { createMediaFinderProController } from './mediaFinderPro.js';
 import { createMediaFinderProV2Controller } from './mediaFinderProV2.js';
 import { createChannelLoadFeedback } from './channelLoadFeedback.js';
 
@@ -63,7 +62,6 @@ let settingsController = null;
 let userAccessController = null;
 let webScanController = null;
 let fullSiteScanController = null;
-let mediaFinderProController = null;
 let mediaFinderProV2Controller = null;
 let channelLoadFeedback = null;
 let startupSessionReset = Promise.resolve();
@@ -1867,28 +1865,6 @@ webScanController = createWebScanController({
 });
 
 fullSiteScanController = createFullSiteScanController({
-  async onSaved(data) {
-    setSourceState(data);
-    stopPlayback({ message: '', resetSound: false });
-    state.group = 'Tumu';
-    state.type = 'all';
-    state.favoritesOnly = false;
-    state.search = '';
-    state.channels = [];
-    state.hasMore = false;
-    elements.searchInput.value = '';
-    renderGroups();
-    renderChannels();
-
-    try {
-      await loadChannels({ force: true, reset: true });
-    } catch (error) {
-      setStatus(error.message, 'error');
-    }
-  },
-});
-
-mediaFinderProController = createMediaFinderProController({
   async onSaved(data) {
     setSourceState(data);
     stopPlayback({ message: '', resetSound: false });

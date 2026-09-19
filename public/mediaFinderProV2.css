@@ -19,3 +19,6 @@
 /* Tiny action pills */
 .media-pro-v2-actions{justify-content:flex-start;align-items:center;gap:5px}
 .media-pro-v2-actions button{flex:0 0 auto;width:auto;min-width:0;min-height:22px;height:22px;padding:2px 9px;border-radius:999px;font-size:8px;line-height:1;white-space:nowrap}
+
+/* Prevent iOS focus zoom in Pro V2 form controls */
+.media-pro-v2 input,.media-pro-v2 select,.media-pro-v2 textarea{font-size:16px!important}

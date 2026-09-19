@@ -4,6 +4,7 @@ import { createAppSettingsController } from './appSettings.js';
 import { createUserAccessSettingsController } from './userAccessSettings.js';
 import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
+import { createSiteNameScanController } from './siteNameScan.js';
 import { createChannelLoadFeedback } from './channelLoadFeedback.js';
 
 const PAGE_SIZE = 100;
@@ -61,6 +62,7 @@ let settingsController = null;
 let userAccessController = null;
 let webScanController = null;
 let fullSiteScanController = null;
+let siteNameScanController = null;
 let channelLoadFeedback = null;
 let startupSessionReset = Promise.resolve();
 
@@ -1853,6 +1855,28 @@ webScanController = createWebScanController({
 });
 
 fullSiteScanController = createFullSiteScanController({
+  async onSaved(data) {
+    setSourceState(data);
+    stopPlayback({ message: '', resetSound: false });
+    state.group = 'Tumu';
+    state.type = 'all';
+    state.favoritesOnly = false;
+    state.search = '';
+    state.channels = [];
+    state.hasMore = false;
+    elements.searchInput.value = '';
+    renderGroups();
+    renderChannels();
+
+    try {
+      await loadChannels({ force: true, reset: true });
+    } catch (error) {
+      setStatus(error.message, 'error');
+    }
+  },
+});
+
+siteNameScanController = createSiteNameScanController({
   async onSaved(data) {
     setSourceState(data);
     stopPlayback({ message: '', resetSound: false });

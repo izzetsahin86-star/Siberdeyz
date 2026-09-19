@@ -1,0 +1,31 @@
+function api(path,options){return fetch('/api/media-finder-pro-v2'+path,options).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'V2 istegi basarisiz.');return d;});}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ensureUi(){
+  if(document.querySelector('#mediaProV2Section'))return;
+  const tabs=document.querySelector('#webScanView .web-scan-mode-tabs'); if(!tabs)return;
+  const tab=document.createElement('button');tab.type='button';tab.className='web-scan-mode-tab';tab.dataset.webScanMode='prov2';tab.textContent='Yayin Bul Pro V2';tabs.append(tab);
+  const section=document.createElement('section');section.id='mediaProV2Section';section.className='web-scan-mode-section media-pro-v2';section.hidden=true;
+  section.innerHTML='<div class="media-pro-v2-toolbar"><select id="mediaProV2Mode"><option value="search">Site + Film/Oyuncu</option><option value="direct">Dogrudan Yayin/Sayfa Linki</option></select><input id="mediaProV2Url" placeholder="https://site.com" inputmode="url"><input id="mediaProV2Query" placeholder="Film veya oyuncu adi"><button id="mediaProV2Start">V2 Derin Tara</button></div><div id="mediaProV2Status" class="media-pro-v2-status">Hazir.</div><div id="mediaProV2Stats" class="media-pro-v2-stats"></div><div class="media-pro-v2-actions"><button id="mediaProV2Stop" hidden>Durdur</button><button id="mediaProV2Clear">Sonuclari Temizle</button></div><div id="mediaProV2Results" class="media-pro-v2-results"></div><details><summary>Bulunup elenen adaylar</summary><div id="mediaProV2Rejected" class="media-pro-v2-results"></div></details><div id="mediaProV2SaveBar" class="media-pro-v2-save" hidden><input id="mediaProV2Label" placeholder="Kayit adi (istege bagli)"><button id="mediaProV2Save">Secilenleri Kaydet</button></div>';
+  document.querySelector('#webScanView').append(section);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/mediaFinderProV2.css';document.head.append(link);
+}
+export function createMediaFinderProV2Controller({onSaved}={}){
+  ensureUi(); const $=s=>document.querySelector(s); let job=null,timer=null;
+  function show(){document.querySelectorAll('#webScanView .web-scan-mode-section').forEach(x=>x.hidden=x.id!=='mediaProV2Section');document.querySelectorAll('#webScanView .web-scan-mode-tab').forEach(x=>x.classList.toggle('is-active',x.dataset.webScanMode==='prov2'));}
+  document.querySelector('[data-web-scan-mode="prov2"]')?.addEventListener('click',show);
+  $('#mediaProV2Mode')?.addEventListener('change',()=>{$('#mediaProV2Query').hidden=$('#mediaProV2Mode').value==='direct';});
+  function render(d){
+    if(!d)return;job=d;$('#mediaProV2Status').textContent=d.message||'';$('#mediaProV2Status').dataset.type=d.status==='failed'?'error':'';
+    const p=d.progress||{};$('#mediaProV2Stats').innerHTML=['Sayfa '+(p.pagesOpened||0),'Player tiklama '+(p.playerClicks||0),'Aday '+(p.candidates||0),'Test '+(p.tested||0),'Calisan '+(p.accepted||0),'Elenen '+(p.rejected||0)].map(x=>'<span class="media-pro-v2-badge">'+esc(x)+'</span>').join('');
+    $('#mediaProV2Stop').hidden=!['running','stopping'].includes(d.status);
+    $('#mediaProV2Results').innerHTML=(d.results||[]).map(x=>'<label class="media-pro-v2-card"><span><input type="checkbox" data-v2-id="'+esc(x.id)+'" checked> <strong>'+esc(x.name)+'</strong></span><small>'+esc(x.kind)+' · '+esc(x.discoveredBy)+'</small><small>'+esc(x.url)+'</small></label>').join('')||'<div class="media-pro-v2-card">Henuz dogrulanmis yayin yok.</div>';
+    $('#mediaProV2Rejected').innerHTML=(d.rejected||[]).map(x=>'<div class="media-pro-v2-card media-pro-v2-rejected"><strong>'+esc(x.reason)+'</strong><span>'+esc(x.url)+'</span></div>').join('')||'<div class="media-pro-v2-card">Elenen aday yok.</div>';
+    $('#mediaProV2SaveBar').hidden=!(d.results||[]).length;
+  }
+  async function poll(){try{const d=await api('/status');render(d);if(d&&['running','stopping'].includes(d.status)){timer=setTimeout(poll,1200);}}catch{}}
+  $('#mediaProV2Start')?.addEventListener('click',async()=>{clearTimeout(timer);try{const mode=$('#mediaProV2Mode').value;const d=await api('/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode,url:$('#mediaProV2Url').value,query:$('#mediaProV2Query').value})});render(d);poll();}catch(e){$('#mediaProV2Status').textContent=e.message;$('#mediaProV2Status').dataset.type='error';}});
+  $('#mediaProV2Stop')?.addEventListener('click',async()=>render(await api('/stop',{method:'POST'})));
+  $('#mediaProV2Clear')?.addEventListener('click',async()=>{if(!job)return;await api('/'+encodeURIComponent(job.jobId)+'/results',{method:'DELETE'});job=null;render({message:'Sonuclar temizlendi.',progress:{},results:[],rejected:[]});});
+  $('#mediaProV2Save')?.addEventListener('click',async()=>{if(!job)return;const ids=[...document.querySelectorAll('[data-v2-id]:checked')].map(x=>x.dataset.v2Id);try{const d=await api('/'+encodeURIComponent(job.jobId)+'/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ids,label:$('#mediaProV2Label').value})});$('#mediaProV2Status').textContent=ids.length+' yayin kaydedildi.';await onSaved?.(d);}catch(e){$('#mediaProV2Status').textContent=e.message;}});
+  poll(); return{show,refresh:poll};
+}

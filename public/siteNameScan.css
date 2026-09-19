@@ -1,3 +1,7 @@
+.web-scan-mode-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .site-name-scan-section {
   display: grid;
   gap: 14px;

@@ -45,9 +45,9 @@ function delay(ms) {
 
 function normalizeText(value) {
   return String(value || '')
+    .toLocaleLowerCase('tr-TR')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -242,6 +242,340 @@ function pageTitleFromHtml(html) {
   return match ? stripHtml(match[1]).slice(0, 180) : '';
 }
 
+
+function queryScore(value, query) {
+  const haystack = normalizeText(value);
+  const needle = normalizeText(query);
+  if (!haystack || !needle) return 0;
+
+  let score = haystack.includes(needle) ? 24 : 0;
+  const tokens = needle.split(' ').filter((token) => token.length >= 2);
+  let tokenHits = 0;
+
+  for (const token of tokens) {
+    if (haystack.includes(token)) {
+      tokenHits += 1;
+      score += token.length >= 5 ? 4 : 2;
+    }
+  }
+
+  if (tokens.length > 1 && tokenHits === tokens.length) score += 8;
+  return score;
+}
+
+async function configureSafeSearchPage(page) {
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.setUserAgent(USER_AGENT);
+  await page.setRequestInterception(true);
+
+  page.on('dialog', (dialog) => dialog.dismiss().catch(() => {}));
+  page.on('request', async (request) => {
+    const url = request.url();
+    const resourceType = request.resourceType();
+
+    if (url.startsWith('data:') || url.startsWith('blob:')) {
+      request.continue().catch(() => {});
+      return;
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      request.abort().catch(() => {});
+      return;
+    }
+
+    if (resourceType === 'image' || resourceType === 'font') {
+      request.abort().catch(() => {});
+      return;
+    }
+
+    try {
+      await assertPublicHttpUrl(url);
+      request.continue().catch(() => {});
+    } catch {
+      request.abort().catch(() => {});
+    }
+  });
+}
+
+async function revealSearchControl(page) {
+  const clicked = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll('button,a,[role="button"]')];
+    const candidate = nodes.find((node) => {
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 10 || rect.height < 10) return false;
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+
+      const description = [
+        node.textContent,
+        node.getAttribute('aria-label'),
+        node.getAttribute('title'),
+        node.id,
+        node.className,
+      ].join(' ').toLowerCase();
+
+      return /\b(search|ara|arama|bul)\b/.test(description);
+    });
+
+    if (!candidate) return false;
+    try {
+      candidate.click();
+      return true;
+    } catch {
+      return false;
+    }
+  }).catch(() => false);
+
+  if (clicked) await delay(450);
+  return clicked;
+}
+
+async function findBestSearchInput(page) {
+  return page.evaluate(() => {
+    document.querySelectorAll('[data-siberdeyz-name-search]').forEach((element) => {
+      element.removeAttribute('data-siberdeyz-name-search');
+    });
+
+    let best = null;
+
+    for (const element of document.querySelectorAll('input,textarea,[contenteditable="true"]')) {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      if (rect.width < 70 || rect.height < 18 || style.display === 'none' || style.visibility === 'hidden') continue;
+
+      const type = String(element.getAttribute('type') || '').toLowerCase();
+      if (['password', 'email', 'tel', 'number', 'file', 'checkbox', 'radio'].includes(type)) continue;
+
+      const description = [
+        element.id,
+        element.className,
+        element.getAttribute('name'),
+        element.getAttribute('placeholder'),
+        element.getAttribute('aria-label'),
+        element.getAttribute('role'),
+      ].join(' ').toLowerCase();
+
+      let score = type === 'search' ? 45 : 0;
+      if (/search|ara|arama|query|film|movie|dizi|oyuncu|keyword/.test(description)) score += 30;
+      if (/\b(q|s|term)\b/.test(description)) score += 10;
+
+      const form = element.closest('form');
+      if (form) {
+        score += 5;
+        const formDescription = [form.action, form.id, form.className].join(' ').toLowerCase();
+        if (/search|ara|arama/.test(formDescription)) score += 20;
+      }
+
+      if (!best || score > best.score) best = { element, score };
+    }
+
+    if (!best || best.score < 12) return { found: false, score: best?.score || 0 };
+    best.element.setAttribute('data-siberdeyz-name-search', '1');
+    return { found: true, score: best.score };
+  });
+}
+
+async function submitSiteSearch(page, query) {
+  let control = await findBestSearchInput(page);
+  if (!control.found) {
+    await revealSearchControl(page);
+    control = await findBestSearchInput(page);
+  }
+
+  if (!control.found) return { found: false, method: 'none', resultUrl: page.url() };
+
+  await page.focus('[data-siberdeyz-name-search="1"]');
+  await page.keyboard.down('Control');
+  await page.keyboard.press('A');
+  await page.keyboard.up('Control');
+  await page.keyboard.type(query, { delay: 18 });
+
+  const before = page.url();
+  await page.keyboard.press('Enter');
+  await delay(1900);
+
+  if (page.url() === before) {
+    const clicked = await page.evaluate(() => {
+      const input = document.querySelector('[data-siberdeyz-name-search="1"]');
+      const form = input?.closest('form');
+      if (!input) return false;
+
+      const nodes = form
+        ? [...form.querySelectorAll('button,input[type="submit"],[role="button"]')]
+        : [...document.querySelectorAll('button,[role="button"]')];
+
+      const button = nodes.find((node) => {
+        const description = [
+          node.textContent,
+          node.value,
+          node.getAttribute?.('aria-label'),
+          node.getAttribute?.('title'),
+          node.className,
+        ].join(' ').toLowerCase();
+        return /\b(search|ara|arama|bul)\b/.test(description);
+      }) || form?.querySelector('button[type="submit"],input[type="submit"]');
+
+      if (button) {
+        button.click();
+        return true;
+      }
+
+      if (form?.requestSubmit) {
+        form.requestSubmit();
+        return true;
+      }
+
+      return false;
+    }).catch(() => false);
+
+    if (clicked) await delay(1700);
+  }
+
+  return { found: true, method: 'search-box', resultUrl: page.url() };
+}
+
+async function collectRelevantSearchLinks(page, siteHost, query) {
+  const rows = await page.evaluate(() => [...document.querySelectorAll('a[href]')].slice(0, 1800).map((anchor) => ({
+    href: anchor.href,
+    text: String(anchor.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 240),
+    title: String(anchor.getAttribute('title') || '').slice(0, 180),
+    aria: String(anchor.getAttribute('aria-label') || '').slice(0, 180),
+    inResults: Boolean(anchor.closest('main,[role="main"],.results,.search-results,.search-result,[class*="result"]')),
+  }))).catch(() => []);
+
+  const ranked = new Map();
+
+  for (const row of rows) {
+    try {
+      const absolute = normalizePageUrl(row.href);
+      if (!absolute || !shouldVisitPage(absolute)) continue;
+
+      const parsed = new URL(absolute);
+      if (!isSameSite(siteHost, parsed.hostname)) continue;
+      if (/logout|login|register|privacy|terms|contact/i.test(parsed.pathname + parsed.search)) continue;
+
+      let score = queryScore(
+        [row.text, row.title, row.aria, parsed.pathname, parsed.search].join(' '),
+        query
+      );
+
+      if (row.inResults) score += 4;
+      if (/watch|izle|film|movie|video|episode|player|dizi/i.test(parsed.pathname)) score += 3;
+      if (score < 4) continue;
+
+      const existing = ranked.get(absolute);
+      if (!existing || score > existing.score) {
+        ranked.set(absolute, {
+          url: absolute,
+          title: row.text || row.title || 'Arama Sonucu',
+          score,
+        });
+      }
+    } catch {
+      // Gecersiz sonuc linki yok sayilir.
+    }
+  }
+
+  return [...ranked.values()]
+    .sort((left, right) => right.score - left.score)
+    .slice(0, MAX_MATCH_PAGES);
+}
+
+async function discoverSearchSeeds(siteUrl, query) {
+  const browser = await puppeteer.launch({
+    executablePath: getChromiumPath(),
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-background-networking',
+      '--disable-popup-blocking',
+    ],
+  });
+
+  const root = new URL(siteUrl);
+  const found = new Map();
+  let method = 'none';
+
+  async function inspectCurrentPage(page, label = '') {
+    const currentUrl = normalizePageUrl(page.url());
+    const title = String(await page.title().catch(() => '')).replace(/\s+/g, ' ').trim();
+    const body = await page.evaluate(() => String(document.body?.innerText || '').slice(0, 160000)).catch(() => '');
+
+    if (currentUrl && queryScore(title + ' ' + body + ' ' + currentUrl, query) >= 8) {
+      found.set(currentUrl, {
+        url: currentUrl,
+        title: title || label || new URL(currentUrl).pathname || root.hostname,
+        score: 40,
+      });
+    }
+
+    for (const entry of await collectRelevantSearchLinks(page, root.hostname, query)) {
+      const old = found.get(entry.url);
+      if (!old || entry.score > old.score) found.set(entry.url, entry);
+    }
+  }
+
+  try {
+    const page = await browser.newPage();
+    await configureSafeSearchPage(page);
+
+    try {
+      await page.goto(siteUrl, { waitUntil: 'domcontentloaded', timeout: BROWSER_TIMEOUT_MS });
+      await delay(700);
+
+      const search = await submitSiteSearch(page, query);
+      if (search.found) {
+        method = search.method;
+        await inspectCurrentPage(page, query);
+      }
+
+      if (found.size === 0) {
+        const encoded = encodeURIComponent(query);
+        const commonUrls = [
+          new URL('/search?q=' + encoded, root),
+          new URL('/search?query=' + encoded, root),
+          new URL('/?s=' + encoded, root),
+          new URL('/arama?q=' + encoded, root),
+          new URL('/arama?search=' + encoded, root),
+        ];
+
+        for (const candidate of commonUrls) {
+          try {
+            await assertPublicHttpUrl(candidate);
+            await page.goto(candidate.toString(), {
+              waitUntil: 'domcontentloaded',
+              timeout: Math.min(BROWSER_TIMEOUT_MS, 10000),
+            });
+            await delay(650);
+            await inspectCurrentPage(page, query);
+
+            if (found.size > 0) {
+              method = 'common-search-url';
+              break;
+            }
+          } catch {
+            // Bir arama yolu calismazsa digerleri denenir.
+          }
+        }
+      }
+    } finally {
+      await page.close().catch(() => {});
+    }
+  } finally {
+    await browser.close().catch(() => {});
+  }
+
+  return {
+    method,
+    pages: [...found.values()]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, MAX_MATCH_PAGES),
+  };
+}
+
 function extractLinks(html, baseUrl, siteHost) {
   const found = new Set();
   const pattern = /\bhref\s*=\s*["']([^"'#]+)["']/gi;
@@ -345,11 +679,12 @@ function safeMediaName(url, fallbackIndex, title = '') {
   }
 }
 
-async function probeHls(url, depth = 0) {
-  const response = await safeFetch(url, {
+async function probeHls(candidate, depth = 0) {
+  const response = await safeFetch(candidate.url, {
     signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     headers: {
       accept: 'application/vnd.apple.mpegurl,application/x-mpegURL,text/plain,*/*',
+      ...(candidate.sourcePage ? { referer: candidate.sourcePage } : {}),
     },
   });
 
@@ -362,7 +697,12 @@ async function probeHls(url, depth = 0) {
     for (let index = 0; index < lines.length; index += 1) {
       if (!lines[index].trim().startsWith('#EXT-X-STREAM-INF')) continue;
       const next = lines.slice(index + 1).find((line) => line.trim() && !line.trim().startsWith('#'));
-      if (next) return probeHls(new URL(next.trim(), response.url || url).toString(), depth + 1);
+      if (next) {
+        return probeHls({
+          ...candidate,
+          url: new URL(next.trim(), response.url || candidate.url).toString(),
+        }, depth + 1);
+      }
     }
   }
 
@@ -380,16 +720,23 @@ async function probeHls(url, depth = 0) {
   };
 }
 
-function ffprobe(url) {
+function ffprobe(candidate) {
   return new Promise((resolve, reject) => {
     const args = [
       '-v', 'error',
       '-rw_timeout', String(PROBE_TIMEOUT_MS * 1000),
       '-user_agent', USER_AGENT,
+    ];
+
+    if (candidate.sourcePage) {
+      args.push('-headers', 'Referer: ' + candidate.sourcePage + '\r\n');
+    }
+
+    args.push(
       '-show_entries', 'format=duration,format_name',
       '-of', 'json',
-      url,
-    ];
+      candidate.url
+    );
 
     const child = spawn('ffprobe', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
@@ -440,16 +787,16 @@ function ffprobe(url) {
   });
 }
 
-async function probeCandidate(url) {
-  await assertPublicHttpUrl(url);
-  if (extensionOf(url) === 'm3u8') {
+async function probeCandidate(candidate) {
+  await assertPublicHttpUrl(candidate.url);
+  if (extensionOf(candidate.url) === 'm3u8') {
     try {
-      return await probeHls(url);
+      return await probeHls(candidate);
     } catch {
-      return ffprobe(url);
+      return ffprobe(candidate);
     }
   }
-  return ffprobe(url);
+  return ffprobe(candidate);
 }
 
 async function writeJob(job) {
@@ -759,14 +1106,44 @@ async function runJob(job) {
     const root = new URL(job.siteUrl);
     const siteHost = root.hostname;
     const queryKey = normalizeText(job.query);
-    const queue = [normalizePageUrl(job.siteUrl)];
-    const queued = new Set(queue);
     const visited = new Set();
     const matches = [];
 
     job.phase = 'searching';
-    job.message = 'Site icinde isim eslesmeleri araniyor...';
+    job.message = 'Sitenin arama kutusunda isim araniyor...';
     await persist(job);
+
+    let searchSeeds = { method: 'none', pages: [] };
+    try {
+      searchSeeds = await discoverSearchSeeds(job.siteUrl, job.query);
+    } catch {
+      job.progress.pageErrors += 1;
+    }
+
+    for (const seed of searchSeeds.pages) {
+      if (matches.length >= MAX_MATCH_PAGES) break;
+      if (matches.some((item) => item.url === seed.url)) continue;
+      matches.push({
+        id: 'match_' + crypto.createHash('sha1').update(seed.url).digest('hex').slice(0, 12),
+        url: seed.url,
+        title: String(seed.title || '').slice(0, 180) || new URL(seed.url).pathname || root.hostname,
+        searchMatched: true,
+      });
+    }
+
+    job.matches = matches;
+    job.progress.matchesFound = matches.length;
+    job.progress.searchMethod = searchSeeds.method;
+    job.message = matches.length > 0
+      ? matches.length + ' arama sonucu bulundu. Ilgili sayfalar kontrol ediliyor...'
+      : 'Site aramasinda sonuc cikmadi. Sayfalar taranarak isim araniyor...';
+    await persist(job);
+
+    const queue = [
+      ...searchSeeds.pages.map((item) => item.url),
+      normalizePageUrl(job.siteUrl),
+    ].filter(Boolean);
+    const queued = new Set(queue);
 
     while (queue.length > 0 && visited.size < job.pageLimit && matches.length < MAX_MATCH_PAGES) {
       if (!(await waitIfPaused(job))) break;
@@ -868,7 +1245,7 @@ async function runJob(job) {
 
       const candidate = mediaCandidates[index];
       try {
-        const probe = await probeCandidate(candidate.url);
+        const probe = await probeCandidate(candidate);
         job.progress.mediaTested += 1;
 
         if (Number.isFinite(probe.durationSeconds) && probe.durationSeconds < MIN_DURATION_SECONDS) {

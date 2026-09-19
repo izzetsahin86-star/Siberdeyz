@@ -1,1 +1,20 @@
-.media-pro-v2{display:grid;gap:12px;padding:12px 0}.media-pro-v2-toolbar,.media-pro-v2-actions,.media-pro-v2-stats{display:flex;gap:8px;flex-wrap:wrap}.media-pro-v2 input,.media-pro-v2 select{min-width:0;flex:1;background:#0c1119;color:#fff;border:1px solid #263244;border-radius:10px;padding:11px}.media-pro-v2 button{border:0;border-radius:10px;padding:10px 13px;font-weight:700}.media-pro-v2-card{background:#0b1017;border:1px solid #243044;border-radius:12px;padding:11px;display:grid;gap:5px}.media-pro-v2-results{display:grid;gap:8px}.media-pro-v2-status{padding:10px;border-radius:10px;background:#111827}.media-pro-v2-status[data-type="error"]{outline:1px solid #7f1d1d}.media-pro-v2-rejected{font-size:12px;opacity:.8;overflow-wrap:anywhere}.media-pro-v2-badge{font-size:11px;padding:3px 7px;border-radius:999px;background:#172033}.media-pro-v2-save{position:sticky;bottom:0;background:#080b10;padding:8px 0}.media-pro-v2 [hidden]{display:none!important}@media(max-width:600px){.media-pro-v2-toolbar>*{flex-basis:100%}.media-pro-v2-actions button{flex:1}}
+/* Compact isolated Yayin Bul Pro V2 - aligned with Tum Site */
+.media-pro-v2{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;min-height:0;height:100%;padding:0}
+.media-pro-v2-toolbar{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(105px,.7fr) 92px;gap:5px}
+.media-pro-v2-toolbar input,.media-pro-v2-toolbar select,.media-pro-v2-save input{min-width:0;min-height:36px;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035);color:#fff;font-size:11px}
+.media-pro-v2-toolbar button,.media-pro-v2-actions button,.media-pro-v2-save button{min-height:34px;padding:5px 8px;border:1px solid rgba(10,132,255,.26);border-radius:9px;color:#fff;background:rgba(10,132,255,.14);font-size:9px;font-weight:750}
+.media-pro-v2-status{padding:5px 7px;border-radius:9px;color:#a5cfff;background:rgba(10,132,255,.07);font-size:10px;line-height:1.35}
+.media-pro-v2-status[data-type="error"]{color:#ffaaa5;background:rgba(255,69,58,.07)}
+.media-pro-v2-stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(62px,1fr);gap:4px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.media-pro-v2-stats::-webkit-scrollbar{display:none}
+.media-pro-v2-badge{display:grid;place-items:center;min-height:27px;padding:3px;border:1px solid rgba(255,255,255,.06);border-radius:7px;background:rgba(255,255,255,.025);font-size:8px;white-space:nowrap}
+.media-pro-v2-actions{display:flex;gap:4px}.media-pro-v2-actions button{flex:1;min-height:27px;border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.045)}
+.media-pro-v2-results{display:grid;align-content:start;gap:4px;min-height:0;overflow-y:auto;padding:4px;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(0,0,0,.13);-webkit-overflow-scrolling:touch}
+.media-pro-v2-card{display:grid;gap:2px;padding:6px;border:1px solid rgba(255,255,255,.06);border-radius:9px;background:rgba(255,255,255,.025);font-size:9px;overflow:hidden}
+.media-pro-v2-card strong,.media-pro-v2-card small,.media-pro-v2-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.media-pro-v2-card small{color:#8f9aa7;font-size:8px}
+.media-pro-v2-rejected{font-size:8px;opacity:.82;overflow-wrap:anywhere}
+.media-pro-v2 details{min-height:0;font-size:9px}.media-pro-v2 details[open]{max-height:22svh;overflow:auto}.media-pro-v2 summary{padding:4px 2px;color:#8f9aa7;cursor:pointer}
+.media-pro-v2-save{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:5px;position:relative;z-index:3;background:rgba(22,24,31,.96)}
+.media-pro-v2 [hidden]{display:none!important}
+@media(max-width:860px){.media-pro-v2-toolbar{grid-template-columns:92px minmax(0,1fr) 92px}.media-pro-v2-toolbar #mediaProV2Query{grid-column:1/3}.media-pro-v2-results{max-height:30svh}}
+@media(max-width:390px){.media-pro-v2-toolbar{grid-template-columns:86px minmax(0,1fr) 84px}.media-pro-v2-toolbar #mediaProV2Query{grid-column:1/3}.media-pro-v2-save{grid-template-columns:minmax(0,1fr) 102px}}

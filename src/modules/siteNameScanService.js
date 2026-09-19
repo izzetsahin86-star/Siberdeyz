@@ -916,6 +916,41 @@ function extractLinks(html, baseUrl, siteHost) {
   return [...found];
 }
 
+
+function extractPrioritizedLinks(html, baseUrl, siteHost, query) {
+  const scored = new Map();
+  const anchorPattern = /<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of String(html || '').matchAll(anchorPattern)) {
+    try {
+      const absolute = normalizePageUrl(new URL(match[1].trim(), baseUrl).toString());
+      if (!absolute || !shouldVisitPage(absolute)) continue;
+
+      const parsed = new URL(absolute);
+      if (!isSameSite(siteHost, parsed.hostname)) continue;
+
+      const label = stripHtml(match[2]).slice(0, 220);
+      const score = queryScore(label + ' ' + absolute, query);
+      const old = scored.get(absolute);
+
+      if (!old || score > old.score) {
+        scored.set(absolute, { url: absolute, score });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const url of extractLinks(html, baseUrl, siteHost)) {
+    if (!scored.has(url)) {
+      scored.set(url, { url, score: queryScore(url, query) });
+    }
+  }
+
+  return [...scored.values()]
+    .sort((left, right) => right.score - left.score);
+}
+
 function extensionOf(value) {
   try {
     const pathname = new URL(value).pathname.toLowerCase();
@@ -1540,12 +1575,24 @@ async function runJob(job) {
           }
         }
 
-        for (const link of extractLinks(html, finalUrl, siteHost)) {
+        const discoveredLinks = extractPrioritizedLinks(html, finalUrl, siteHost, job.query);
+        const priorityLinks = [];
+        const normalLinks = [];
+
+        for (const entry of discoveredLinks) {
+          const link = entry.url;
           if (visited.has(link) || queued.has(link)) continue;
-          if (visited.size + queue.length >= job.pageLimit * 2) break;
-          queue.push(link);
+          if (visited.size + queue.length + priorityLinks.length + normalLinks.length >= job.pageLimit * 3) break;
+
+          if (entry.score >= 4) priorityLinks.push(link);
+          else normalLinks.push(link);
           queued.add(link);
         }
+
+        if (priorityLinks.length) {
+          queue.splice(0, 0, ...priorityLinks.slice(0, 30));
+        }
+        queue.push(...normalLinks);
 
         job.progress.pagesQueued = queue.length;
       } catch {

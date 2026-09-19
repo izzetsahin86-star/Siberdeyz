@@ -19,6 +19,15 @@ export function createMediaFinderProV2Controller({onSaved}={}){
   ensureUi(); const $=s=>document.querySelector(s); let job=null,timer=null;
   function show(){document.querySelectorAll('#webScanView .web-scan-mode-section').forEach(x=>x.hidden=x.id!=='mediaProV2Section');document.querySelectorAll('#webScanView .web-scan-mode-tab').forEach(x=>x.classList.toggle('is-active',x.dataset.webScanMode==='prov2'));}
   document.querySelector('[data-web-scan-mode="prov2"]')?.addEventListener('click',show);
+  document.querySelector('#webScanView .web-scan-mode-tabs')?.addEventListener('click',(event)=>{
+    const button=event.target.closest('[data-web-scan-mode]');
+    if(!button)return;
+    const mode=button.dataset.webScanMode||'quick';
+    const targetIds={quick:'quickWebScanSection',full:'fullSiteScanSection',mailru:'mailRuM3uSection',prov2:'mediaProV2Section'};
+    const targetId=targetIds[mode];
+    document.querySelectorAll('#webScanView .web-scan-mode-section').forEach(section=>{section.hidden=section.id!==targetId;});
+    document.querySelectorAll('#webScanView .web-scan-mode-tab').forEach(tab=>tab.classList.toggle('is-active',tab===button));
+  });
   $('#mediaProV2Url')?.addEventListener('blur',()=>{const value=normalizeUrlInput($('#mediaProV2Url').value);if(value)$('#mediaProV2Url').value=value;});
   $('#mediaProV2Mode')?.addEventListener('change',()=>{$('#mediaProV2Query').hidden=$('#mediaProV2Mode').value==='direct';});
   function render(d){

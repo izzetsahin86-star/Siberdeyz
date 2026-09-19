@@ -405,6 +405,49 @@ export async function saveWebScanPlaylistSource({ label = '', pageUrl = '', chan
   return getSourceStatus();
 }
 
+
+export async function appendM3uYayinimChannel({ name = '', url = '', pageUrl = '' } = {}) {
+  const clean = cleanUrl(url);
+  const state = await readState();
+  const now = new Date().toISOString();
+  const id = 'm3u_yayinlarim';
+  let source = state.sources.find((item) => item.id === id);
+
+  if (!source) {
+    source = {
+      id,
+      type: 'file',
+      label: 'M3U Yayınlarım',
+      url: '',
+      fileName: 'm3u-yayinlarim.m3u',
+      channels: [],
+      folder: 'M3U Yayınlarım',
+      sourceKind: 'mailru-m3u',
+      pageUrl: '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.sources.push(source);
+  }
+
+  const exists = source.channels.some((channel) => channel.url === clean);
+  if (!exists) {
+    source.channels = normalizeStoredChannels([
+      ...source.channels,
+      { name: String(name || 'Mail.ru Yayını').trim(), url: clean, group: 'M3U Yayınlarım' },
+    ]);
+  }
+  source.label = 'M3U Yayınlarım';
+  source.fileName = 'm3u-yayinlarim.m3u';
+  source.folder = 'M3U Yayınlarım';
+  source.sourceKind = 'mailru-m3u';
+  source.pageUrl = String(pageUrl || source.pageUrl || '').trim();
+  source.updatedAt = now;
+  state.activeSourceId = id;
+  await writeState(state);
+  return { ...(await getSourceStatus()), added: !exists, channelCount: source.channels.length };
+}
+
 export async function deleteActiveWebScanChannel(channelId = '') {
   const state = await readState();
   const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];

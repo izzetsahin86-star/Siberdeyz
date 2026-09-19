@@ -44,6 +44,13 @@ import {
   startMediaFinderPro,
   stopMediaFinderPro,
 } from '../modules/mediaFinderProService.js';
+import {
+  clearMediaFinderProV2,
+  getMediaFinderProV2Status,
+  saveMediaFinderProV2,
+  startMediaFinderProV2,
+  stopMediaFinderProV2,
+} from '../modules/mediaFinderProV2Service.js';
 
 export const apiRouter = Router();
 
@@ -369,6 +376,25 @@ apiRouter.delete('/media-finder-pro/:jobId/results', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+apiRouter.post('/media-finder-pro-v2/start', async (req, res, next) => {
+  try { res.status(202).json(await startMediaFinderProV2(req.body || {})); } catch (error) { next(error); }
+});
+apiRouter.get('/media-finder-pro-v2/status', async (req, res, next) => {
+  try { res.json(await getMediaFinderProV2Status()); } catch (error) { next(error); }
+});
+apiRouter.post('/media-finder-pro-v2/stop', async (req, res, next) => {
+  try { res.json(await stopMediaFinderProV2()); } catch (error) { next(error); }
+});
+apiRouter.post('/media-finder-pro-v2/:jobId/save', async (req, res, next) => {
+  try {
+    const result = await saveMediaFinderProV2(req.params.jobId, req.body?.ids, req.body?.label);
+    clearChannelCache(); await clearFavorites(); res.status(201).json(result);
+  } catch (error) { next(error); }
+});
+apiRouter.delete('/media-finder-pro-v2/:jobId/results', async (req, res, next) => {
+  try { res.json(await clearMediaFinderProV2(req.params.jobId)); } catch (error) { next(error); }
 });
 
 apiRouter.get('/source', async (req, res, next) => {

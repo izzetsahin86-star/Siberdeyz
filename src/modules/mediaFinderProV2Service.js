@@ -47,12 +47,13 @@ async function run(job){
 
     job.phase='testing'; job.message=deep.candidates.length+' aday bulundu; yayinlar dogrulaniyor...'; await persist(job);
     const results=[]; const rejected=[];
-    for(const candidate of deep.candidates.slice(0,160)){
+    const ranked=[...deep.candidates].sort((a,b)=>(b.confidence||0)-(a.confidence||0));
+    for(const candidate of ranked.slice(0,200)){
       if(!(await canRun(job))) break;
       try{
         const probe=await probeMediaCandidate(candidate);
         results.push({
-          id:mediaId(candidate.url), name:safeMediaName(candidate.url,results.length+1,candidate.title),
+          id:mediaId(candidate.url), name:safeMediaName(candidate.url,results.length+1,candidate.title||pages.find(p=>p.url===candidate.sourcePage)?.title||job.query),
           url:candidate.url, kind:probe.kind, sourcePage:candidate.sourcePage,
           discoveredBy:candidate.discoveredBy, durationSeconds:probe.durationSeconds||null,
           live:Boolean(probe.live), confidence:candidate.confidence||0

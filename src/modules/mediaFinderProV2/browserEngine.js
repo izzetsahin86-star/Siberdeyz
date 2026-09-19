@@ -2,9 +2,9 @@ import { existsSync } from 'fs';
 import puppeteer from 'puppeteer-core';
 import { assertPublicHttpUrl, MEDIA_FINDER_USER_AGENT } from '../mediaFinderPro/urlSafety.js';
 import { isMediaContentType, looksLikeMediaUrl, mediaKind } from '../mediaFinderPro/extractors.js';
+import { addAdvancedCandidate, extractEmbeddedMediaUrls, collectFrameResources, adaptiveListen } from './advancedDiscovery.js';
 
 const PAGE_TIMEOUT = 20000;
-const LISTEN_MS = 8500;
 const MAX_PAGES = 30;
 const MAX_CANDIDATES = 220;
 
@@ -103,8 +103,8 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
       });
       if (bodyReads.length < 24 && /mpegurl|dash\+xml|json|javascript|text\/plain/i.test(type)) {
         bodyReads.push(response.text().then((text) => {
-          for (const match of String(text).matchAll(/https?:\/\/[^"'<>\s\\]+?(?:\.m3u8|\.mpd|\.mp4)(?:\?[^"'<>\s\\]*)?/gi)) {
-            addCandidate(candidates, match[0], { sourcePage, title, contentType: type, discoveredBy: 'v2-response-body', confidence: 92 });
+          for (const url of extractEmbeddedMediaUrls(text, response.url())) {
+            addAdvancedCandidate(candidates, url, { sourcePage, title, contentType: type, discoveredBy: 'v2-response-body-advanced', confidence: 94 });
           }
         }).catch(() => {}));
       }
@@ -113,18 +113,14 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
     await page.goto(entry.url, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT }).catch(() => {});
     await sleep(900);
     diagnostics.playerClicks += await clickPlayers(page);
-    await sleep(2200);
-    diagnostics.playerClicks += await clickPlayers(page);
-    await sleep(LISTEN_MS - 3100);
+    await adaptiveListen({ page, candidates, diagnostics, clickMain: clickPlayers, sleep, shouldContinue });
 
     const performanceUrls = await page.evaluate(() => performance.getEntriesByType('resource').map((x) => x.name)).catch(() => []);
     for (const url of performanceUrls) addCandidate(candidates, url, { sourcePage, title, discoveredBy: 'v2-performance', confidence: 82 });
 
     const frames = page.frames().map((frame) => frame.url()).filter((url) => /^https?:\/\//i.test(url));
-    diagnostics.iframes += Math.max(0, frames.length - 1);
-    for (const url of frames) {
-      addCandidate(candidates, url, { sourcePage, title, discoveredBy: 'v2-frame', confidence: 65 });
-    }
+    diagnostics.iframes = Math.max(diagnostics.iframes, Math.max(0, frames.length - 1));
+    await collectFrameResources(page, candidates, { sourcePage, title });
     await Promise.allSettled(bodyReads);
   } finally {
     await page.close().catch(() => {});

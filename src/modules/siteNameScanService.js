@@ -20,6 +20,9 @@ const BROWSER_TIMEOUT_MS = 14000;
 const BROWSER_SETTLE_MS = 2600;
 const PROBE_TIMEOUT_MS = 12000;
 const MAX_BODY_BYTES = 1800000;
+const MAX_SEARCH_ENDPOINTS = 14;
+const MAX_SITEMAP_FILES = 8;
+const MAX_SITEMAP_BYTES = 2800000;
 const USER_AGENT = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36 Siberdeyz-Name-Scanner/1.0';
 const MEDIA_EXTENSIONS = new Set(['m3u8', 'mp4', 'm4v', 'mov', 'webm', 'mkv', 'mpd']);
 const ACTIVE_STATUSES = new Set(['running', 'paused', 'stopping']);
@@ -48,6 +51,7 @@ function normalizeText(value) {
     .toLocaleLowerCase('tr-TR')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -261,6 +265,321 @@ function queryScore(value, query) {
 
   if (tokens.length > 1 && tokenHits === tokens.length) score += 8;
   return score;
+}
+
+
+function addSearchSeed(store, rawUrl, siteHost, query, meta = {}) {
+  if (store.size >= MAX_MATCH_PAGES * 4) return;
+
+  try {
+    const absolute = normalizePageUrl(new URL(String(rawUrl || ''), meta.baseUrl || undefined).toString());
+    if (!absolute || !shouldVisitPage(absolute)) return;
+
+    const parsed = new URL(absolute);
+    if (!isSameSite(siteHost, parsed.hostname)) return;
+
+    const title = String(meta.title || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+    const context = String(meta.context || '');
+    const score = Math.max(
+      Number(meta.score) || 0,
+      queryScore(title + ' ' + context + ' ' + absolute, query)
+    );
+
+    if (score < 4) return;
+
+    const existing = store.get(absolute);
+    if (!existing || score > existing.score) {
+      store.set(absolute, {
+        url: absolute,
+        title: title || 'Arama Sonucu',
+        score,
+        source: String(meta.source || 'indexed-search'),
+      });
+    }
+  } catch {
+    // Gecersiz URL yok sayilir.
+  }
+}
+
+function extractRankedLinksFromHtml(html, baseUrl, siteHost, query, source = 'html-search') {
+  const found = new Map();
+  const pattern = /<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of String(html || '').matchAll(pattern)) {
+    const href = match[1];
+    const label = stripHtml(match[2]).slice(0, 220);
+    addSearchSeed(found, href, siteHost, query, {
+      baseUrl,
+      title: label,
+      context: href,
+      source,
+    });
+  }
+
+  return [...found.values()]
+    .sort((left, right) => right.score - left.score)
+    .slice(0, MAX_MATCH_PAGES * 2);
+}
+
+function collectJsonSearchSeeds(value, baseUrl, siteHost, query, store, depth = 0) {
+  if (depth > 7 || value == null || store.size >= MAX_MATCH_PAGES * 4) return;
+
+  if (Array.isArray(value)) {
+    for (const item of value.slice(0, 250)) {
+      collectJsonSearchSeeds(item, baseUrl, siteHost, query, store, depth + 1);
+    }
+    return;
+  }
+
+  if (typeof value !== 'object') return;
+
+  const title = [
+    value.title?.rendered,
+    value.title,
+    value.name,
+    value.label,
+    value.text,
+    value.caption,
+  ].filter((item) => typeof item === 'string').join(' ');
+
+  const candidates = [
+    value.url,
+    value.link,
+    value.href,
+    value.permalink,
+    value.path,
+  ].filter((item) => typeof item === 'string');
+
+  for (const candidate of candidates) {
+    addSearchSeed(store, candidate, siteHost, query, {
+      baseUrl,
+      title,
+      context: JSON.stringify(value).slice(0, 1600),
+      source: 'json-search',
+    });
+  }
+
+  for (const [key, child] of Object.entries(value).slice(0, 80)) {
+    if (['content', 'description', 'html'].includes(key) && typeof child === 'string') {
+      for (const entry of extractRankedLinksFromHtml(child, baseUrl, siteHost, query, 'json-html')) {
+        addSearchSeed(store, entry.url, siteHost, query, entry);
+      }
+      continue;
+    }
+
+    collectJsonSearchSeeds(child, baseUrl, siteHost, query, store, depth + 1);
+  }
+}
+
+async function discoverCommonEndpointSeeds(siteUrl, query) {
+  const root = new URL(siteUrl);
+  const encoded = encodeURIComponent(query);
+  const endpointUrls = [
+    new URL('/?s=' + encoded, root),
+    new URL('/search?q=' + encoded, root),
+    new URL('/search?query=' + encoded, root),
+    new URL('/search?search=' + encoded, root),
+    new URL('/search/' + encoded + '/', root),
+    new URL('/arama?q=' + encoded, root),
+    new URL('/arama?search=' + encoded, root),
+    new URL('/index.php?do=search&subaction=search&story=' + encoded, root),
+    new URL('/index.php?do=search&story=' + encoded, root),
+    new URL('/wp-json/wp/v2/search?search=' + encoded + '&per_page=50', root),
+    new URL('/wp-json/wp/v2/posts?search=' + encoded + '&per_page=50&_fields=link,title', root),
+    new URL('/wp-json/wp/v2/pages?search=' + encoded + '&per_page=50&_fields=link,title', root),
+    new URL('/api/search?q=' + encoded, root),
+    new URL('/api/v1/search?q=' + encoded, root),
+  ].slice(0, MAX_SEARCH_ENDPOINTS);
+
+  const found = new Map();
+  let checked = 0;
+
+  for (const endpoint of endpointUrls) {
+    try {
+      const response = await safeFetch(endpoint, {
+        signal: AbortSignal.timeout(Math.min(PAGE_TIMEOUT_MS, 9000)),
+        headers: {
+          accept: 'text/html,application/json,text/plain,*/*',
+        },
+      });
+
+      checked += 1;
+      if (!response.ok) continue;
+
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      const body = await readTextLimited(response, 1200000);
+      const baseUrl = response.url || endpoint.toString();
+
+      if (contentType.includes('json') || /^[\s]*[\[{]/.test(body)) {
+        try {
+          collectJsonSearchSeeds(JSON.parse(body), baseUrl, root.hostname, query, found);
+        } catch {
+          for (const entry of extractRankedLinksFromHtml(body, baseUrl, root.hostname, query, 'endpoint-html')) {
+            addSearchSeed(found, entry.url, root.hostname, query, entry);
+          }
+        }
+      } else {
+        for (const entry of extractRankedLinksFromHtml(body, baseUrl, root.hostname, query, 'endpoint-html')) {
+          addSearchSeed(found, entry.url, root.hostname, query, entry);
+        }
+
+        const pageScore = queryScore(pageTitleFromHtml(body) + ' ' + stripHtml(body).slice(0, 120000) + ' ' + baseUrl, query);
+        if (pageScore >= 8) {
+          addSearchSeed(found, baseUrl, root.hostname, query, {
+            baseUrl,
+            title: pageTitleFromHtml(body),
+            context: body.slice(0, 5000),
+            score: pageScore,
+            source: 'endpoint-page',
+          });
+        }
+      }
+
+      if (found.size >= MAX_MATCH_PAGES * 2) break;
+    } catch {
+      // Desteklenmeyen endpoint yok sayilir.
+    }
+  }
+
+  return {
+    checked,
+    pages: [...found.values()]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, MAX_MATCH_PAGES * 2),
+  };
+}
+
+function decodeXml(value) {
+  return String(value || '')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'");
+}
+
+function xmlLocs(xml) {
+  return [...String(xml || '').matchAll(/<loc\b[^>]*>([\s\S]*?)<\/loc>/gi)]
+    .map((match) => decodeXml(match[1]).trim())
+    .filter(Boolean);
+}
+
+async function discoverSitemapSeeds(siteUrl, query) {
+  const root = new URL(siteUrl);
+  const found = new Map();
+  const sitemapQueue = [];
+  const seenSitemaps = new Set();
+
+  try {
+    const robotsUrl = new URL('/robots.txt', root);
+    const response = await safeFetch(robotsUrl, {
+      signal: AbortSignal.timeout(7000),
+      headers: { accept: 'text/plain,*/*' },
+    });
+
+    if (response.ok) {
+      const robots = await readTextLimited(response, 300000);
+      for (const match of robots.matchAll(/^\s*sitemap:\s*(\S+)/gim)) {
+        try {
+          sitemapQueue.push(new URL(match[1].trim(), response.url || robotsUrl).toString());
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } catch {
+    // robots.txt zorunlu degil.
+  }
+
+  for (const pathname of ['/sitemap.xml', '/sitemap_index.xml', '/sitemap-index.xml', '/wp-sitemap.xml']) {
+    sitemapQueue.push(new URL(pathname, root).toString());
+  }
+
+  while (sitemapQueue.length > 0 && seenSitemaps.size < MAX_SITEMAP_FILES) {
+    const sitemapUrl = sitemapQueue.shift();
+    if (!sitemapUrl || seenSitemaps.has(sitemapUrl)) continue;
+    seenSitemaps.add(sitemapUrl);
+
+    try {
+      const response = await safeFetch(sitemapUrl, {
+        signal: AbortSignal.timeout(9000),
+        headers: { accept: 'application/xml,text/xml,text/plain,*/*' },
+      });
+
+      if (!response.ok) continue;
+      const xml = await readTextLimited(response, MAX_SITEMAP_BYTES);
+      if (!/<(?:urlset|sitemapindex|url|sitemap)\b/i.test(xml)) continue;
+
+      if (/<sitemapindex\b/i.test(xml)) {
+        for (const child of xmlLocs(xml).slice(0, 80)) {
+          try {
+            const parsed = new URL(child, response.url || sitemapUrl);
+            if (!isSameSite(root.hostname, parsed.hostname)) continue;
+            if (!seenSitemaps.has(parsed.toString())) sitemapQueue.push(parsed.toString());
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const urlBlocks = [...xml.matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)];
+      for (const blockMatch of urlBlocks.slice(0, 4000)) {
+        const block = blockMatch[1];
+        const loc = xmlLocs(block)[0];
+        if (!loc) continue;
+
+        const score = queryScore(block + ' ' + loc, query);
+        if (score < 4) continue;
+
+        addSearchSeed(found, loc, root.hostname, query, {
+          baseUrl: response.url || sitemapUrl,
+          title: stripHtml(block).slice(0, 160),
+          context: block,
+          score,
+          source: 'sitemap',
+        });
+
+        if (found.size >= MAX_MATCH_PAGES * 3) break;
+      }
+
+      if (found.size >= MAX_MATCH_PAGES * 3) break;
+    } catch {
+      // Bir sitemap calismazsa digerleri denenir.
+    }
+  }
+
+  return {
+    checked: seenSitemaps.size,
+    pages: [...found.values()]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, MAX_MATCH_PAGES * 2),
+  };
+}
+
+async function discoverIndexedSeeds(siteUrl, query) {
+  const [endpointResult, sitemapResult] = await Promise.all([
+    discoverCommonEndpointSeeds(siteUrl, query),
+    discoverSitemapSeeds(siteUrl, query),
+  ]);
+
+  const root = new URL(siteUrl);
+  const merged = new Map();
+
+  for (const entry of [...endpointResult.pages, ...sitemapResult.pages]) {
+    addSearchSeed(merged, entry.url, root.hostname, query, entry);
+  }
+
+  return {
+    method: [
+      endpointResult.pages.length ? 'endpoints' : '',
+      sitemapResult.pages.length ? 'sitemap' : '',
+    ].filter(Boolean).join('+') || 'none',
+    endpointChecks: endpointResult.checked,
+    sitemapChecks: sitemapResult.checked,
+    pages: [...merged.values()]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, MAX_MATCH_PAGES * 2),
+  };
 }
 
 async function configureSafeSearchPage(page) {
@@ -595,6 +914,41 @@ function extractLinks(html, baseUrl, siteHost) {
   }
 
   return [...found];
+}
+
+
+function extractPrioritizedLinks(html, baseUrl, siteHost, query) {
+  const scored = new Map();
+  const anchorPattern = /<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of String(html || '').matchAll(anchorPattern)) {
+    try {
+      const absolute = normalizePageUrl(new URL(match[1].trim(), baseUrl).toString());
+      if (!absolute || !shouldVisitPage(absolute)) continue;
+
+      const parsed = new URL(absolute);
+      if (!isSameSite(siteHost, parsed.hostname)) continue;
+
+      const label = stripHtml(match[2]).slice(0, 220);
+      const score = queryScore(label + ' ' + absolute, query);
+      const old = scored.get(absolute);
+
+      if (!old || score > old.score) {
+        scored.set(absolute, { url: absolute, score });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const url of extractLinks(html, baseUrl, siteHost)) {
+    if (!scored.has(url)) {
+      scored.set(url, { url, score: queryScore(url, query) });
+    }
+  }
+
+  return [...scored.values()]
+    .sort((left, right) => right.score - left.score);
 }
 
 function extensionOf(value) {
@@ -1114,13 +1468,45 @@ async function runJob(job) {
     await persist(job);
 
     let searchSeeds = { method: 'none', pages: [] };
-    try {
-      searchSeeds = await discoverSearchSeeds(job.siteUrl, job.query);
-    } catch {
+    let indexedSeeds = { method: 'none', endpointChecks: 0, sitemapChecks: 0, pages: [] };
+
+    const discoveryResults = await Promise.allSettled([
+      discoverSearchSeeds(job.siteUrl, job.query),
+      discoverIndexedSeeds(job.siteUrl, job.query),
+    ]);
+
+    if (discoveryResults[0].status === 'fulfilled') {
+      searchSeeds = discoveryResults[0].value;
+    } else {
       job.progress.pageErrors += 1;
     }
 
-    for (const seed of searchSeeds.pages) {
+    if (discoveryResults[1].status === 'fulfilled') {
+      indexedSeeds = discoveryResults[1].value;
+    } else {
+      job.progress.pageErrors += 1;
+    }
+
+    const mergedSeeds = new Map();
+    for (const seed of [...indexedSeeds.pages, ...searchSeeds.pages]) {
+      const current = mergedSeeds.get(seed.url);
+      if (!current || Number(seed.score || 0) > Number(current.score || 0)) {
+        mergedSeeds.set(seed.url, seed);
+      }
+    }
+
+    const prioritizedSeeds = [...mergedSeeds.values()]
+      .sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
+      .slice(0, MAX_MATCH_PAGES);
+
+    job.progress.searchMethod = [searchSeeds.method, indexedSeeds.method]
+      .filter((value) => value && value !== 'none')
+      .join('+') || 'crawl';
+    job.progress.searchEndpointChecks = indexedSeeds.endpointChecks;
+    job.progress.sitemapChecks = indexedSeeds.sitemapChecks;
+    job.progress.searchSeedCount = prioritizedSeeds.length;
+
+    for (const seed of prioritizedSeeds) {
       if (matches.length >= MAX_MATCH_PAGES) break;
       if (matches.some((item) => item.url === seed.url)) continue;
       matches.push({
@@ -1133,14 +1519,13 @@ async function runJob(job) {
 
     job.matches = matches;
     job.progress.matchesFound = matches.length;
-    job.progress.searchMethod = searchSeeds.method;
     job.message = matches.length > 0
       ? matches.length + ' arama sonucu bulundu. Ilgili sayfalar kontrol ediliyor...'
       : 'Site aramasinda sonuc cikmadi. Sayfalar taranarak isim araniyor...';
     await persist(job);
 
     const queue = [
-      ...searchSeeds.pages.map((item) => item.url),
+      ...prioritizedSeeds.map((item) => item.url),
       normalizePageUrl(job.siteUrl),
     ].filter(Boolean);
     const queued = new Set(queue);
@@ -1190,12 +1575,24 @@ async function runJob(job) {
           }
         }
 
-        for (const link of extractLinks(html, finalUrl, siteHost)) {
+        const discoveredLinks = extractPrioritizedLinks(html, finalUrl, siteHost, job.query);
+        const priorityLinks = [];
+        const normalLinks = [];
+
+        for (const entry of discoveredLinks) {
+          const link = entry.url;
           if (visited.has(link) || queued.has(link)) continue;
-          if (visited.size + queue.length >= job.pageLimit * 2) break;
-          queue.push(link);
+          if (visited.size + queue.length + priorityLinks.length + normalLinks.length >= job.pageLimit * 3) break;
+
+          if (entry.score >= 4) priorityLinks.push(link);
+          else normalLinks.push(link);
           queued.add(link);
         }
+
+        if (priorityLinks.length) {
+          queue.splice(0, 0, ...priorityLinks.slice(0, 30));
+        }
+        queue.push(...normalLinks);
 
         job.progress.pagesQueued = queue.length;
       } catch {

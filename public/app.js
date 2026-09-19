@@ -1826,6 +1826,16 @@ elements.saveSourceButton.addEventListener('click', () => {
   });
 });
 
+window.addEventListener('siberdeyz:source-updated', (event) => {
+  const data = event.detail;
+  if (data && Array.isArray(data.sources)) {
+    setSourceState(data);
+    renderSources();
+  } else {
+    loadSources().catch(() => {});
+  }
+});
+
 elements.player.playsInline = true;
 elements.player.setAttribute('playsinline', '');
 elements.player.setAttribute('webkit-playsinline', '');

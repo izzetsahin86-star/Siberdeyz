@@ -33,15 +33,6 @@ import {
   startFullSiteScan,
   stopFullSiteScan,
 } from '../modules/fullSiteScanService.js';
-import {
-  deleteSiteNameScanResults,
-  getSiteNameScanStatus,
-  pauseSiteNameScan,
-  resumeSiteNameScan,
-  saveSiteNameScanSelection,
-  startSiteNameScan,
-  stopSiteNameScan,
-} from '../modules/siteNameScanService.js';
 
 export const apiRouter = Router();
 
@@ -281,73 +272,6 @@ apiRouter.post('/full-site-scan/:jobId/save', async (req, res, next) => {
 apiRouter.delete('/full-site-scan/:jobId/results', async (req, res, next) => {
   try {
     res.json(await deleteFullSiteScanResults(req.params.jobId));
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/site-name-scan/start', async (req, res, next) => {
-  try {
-    res.status(202).json(await startSiteNameScan(
-      req.body?.url,
-      req.body?.query,
-      req.body?.limit
-    ));
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.get('/site-name-scan/status', async (req, res, next) => {
-  try {
-    res.json(await getSiteNameScanStatus());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/site-name-scan/pause', async (req, res, next) => {
-  try {
-    res.json(await pauseSiteNameScan());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/site-name-scan/resume', async (req, res, next) => {
-  try {
-    res.json(await resumeSiteNameScan());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/site-name-scan/stop', async (req, res, next) => {
-  try {
-    res.json(await stopSiteNameScan());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/site-name-scan/:jobId/save', async (req, res, next) => {
-  try {
-    const result = await saveSiteNameScanSelection(
-      req.params.jobId,
-      req.body?.ids,
-      req.body?.label
-    );
-    clearChannelCache();
-    await clearFavorites();
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.delete('/site-name-scan/:jobId/results', async (req, res, next) => {
-  try {
-    res.json(await deleteSiteNameScanResults(req.params.jobId));
   } catch (error) {
     next(error);
   }

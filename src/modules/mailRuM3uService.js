@@ -42,6 +42,23 @@ async function fetchText(url, accept = 'text/html,*/*') {
   } finally { clearTimeout(timer); }
 }
 
+function findMetaUrlInHtml(html) {
+  const script = html.match(/<script[^>]+class=["'][^"']*sp-video__page-config[^"']*["'][^>]*>([\s\S]+?)<\/script>/i);
+  if (script) {
+    try {
+      const config = JSON.parse(script[1].trim());
+      const value = config?.metaUrl || config?.video?.metaUrl;
+      if (value) return new URL(value, 'https://my.mail.ru').href;
+    } catch {}
+  }
+  const escaped = html.match(/["']metaUrl["']\s*:\s*["']([^"']+)["']/i);
+  if (escaped) {
+    const value = escaped[1].replace(/\\\//g, '/').replace(/\\u0026/g, '&');
+    try { return new URL(value, 'https://my.mail.ru').href; } catch {}
+  }
+  return null;
+}
+
 function findIdInHtml(html) {
   const patterns = [
     /video\/embed\/(\d{10,})/i,
@@ -87,13 +104,14 @@ function qualityScore(label) {
 export async function resolveMailRuVideo(input) {
   const pageUrl = normalizeInput(input);
   let videoId = extractVideoId(pageUrl);
-  if (!videoId) {
+  let metaUrl = videoId ? 'https://my.mail.ru/+/video/meta/' + encodeURIComponent(videoId) : null;
+  if (!metaUrl) {
     const html = await fetchText(pageUrl.href);
-    videoId = findIdInHtml(html);
+    metaUrl = findMetaUrlInHtml(html);
+    videoId = findIdInHtml(html) || String(metaUrl || '').match(/\/meta\/(\d+)/i)?.[1] || pageUrl.pathname.match(/\/(\d+)\.html$/i)?.[1] || null;
   }
-  if (!videoId) throw httpError('Mail.ru video kimligi bulunamadi', 422);
+  if (!metaUrl) throw httpError('Mail.ru video metadata adresi bulunamadi', 422);
 
-  const metaUrl = 'https://my.mail.ru/+/video/meta/' + encodeURIComponent(videoId);
   const raw = await fetchText(metaUrl, 'application/json,text/plain,*/*');
   let data;
   try { data = JSON.parse(raw); } catch { throw httpError('Mail.ru metadata okunamadi', 502); }
@@ -104,5 +122,5 @@ export async function resolveMailRuVideo(input) {
   const title = String(data?.meta?.title || data?.title || ('Mail.ru ' + videoId)).replace(/[\r\n]+/g, ' ').trim();
   const best = videos[0];
   const m3u = '#EXTM3U\n#EXTINF:-1,' + title + '\n' + best.url + '\n';
-  return { videoId, title, sourceUrl: pageUrl.href, best, videos, m3u };
+  return { videoId: videoId || 'video', title, sourceUrl: pageUrl.href, best, videos, m3u };
 }

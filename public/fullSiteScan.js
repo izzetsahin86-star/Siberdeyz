@@ -43,6 +43,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
     modeButtons: document.querySelectorAll('[data-web-scan-mode]'),
     quickSection: document.querySelector('#quickWebScanSection'),
     fullSection: document.querySelector('#fullSiteScanSection'),
+    mailRuSection: document.querySelector('#mailRuM3uSection'),
     url: document.querySelector('#fullSiteScanUrl'),
     limit: document.querySelector('#fullSiteScanLimit'),
     start: document.querySelector('#fullSiteScanStart'),
@@ -80,13 +81,15 @@ export function createFullSiteScanController({ onSaved } = {}) {
 
   function setMode(mode) {
     const full = mode === 'full';
+    const mailru = mode === 'mailru';
 
     elements.modeButtons.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.webScanMode === mode);
     });
 
-    if (elements.quickSection) elements.quickSection.hidden = full;
+    if (elements.quickSection) elements.quickSection.hidden = full || mailru;
     if (elements.fullSection) elements.fullSection.hidden = !full;
+    if (elements.mailRuSection) elements.mailRuSection.hidden = !mailru;
 
     if (full) {
       const quickUrl = String(document.querySelector('#webScanUrl')?.value || '').trim();

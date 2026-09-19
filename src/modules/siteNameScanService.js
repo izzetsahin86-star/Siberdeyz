@@ -1177,7 +1177,7 @@ async function runJob(job) {
         const visibleText = stripHtml(html).slice(0, 350000);
         const haystack = normalizeText(title + ' ' + visibleText + ' ' + finalUrl);
 
-        if (queryKey && haystack.includes(queryKey)) {
+        if (queryKey && queryScore(haystack, job.query) >= 8) {
           const exists = matches.some((item) => item.url === finalUrl);
           if (!exists) {
             matches.push({

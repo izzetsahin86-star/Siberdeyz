@@ -22,3 +22,11 @@
 
 /* Prevent iOS focus zoom in Pro V2 form controls */
 .media-pro-v2 input,.media-pro-v2 select,.media-pro-v2 textarea{font-size:16px!important}
+
+/* Ultra-compact verified result rows */
+.media-pro-v2-results{gap:2px;padding:2px;border-radius:8px}
+.media-pro-v2-card{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:3px 5px;border-radius:7px;font-size:8px;line-height:1.15}
+.media-pro-v2-card>span{display:flex;align-items:center;gap:4px;min-width:0}
+.media-pro-v2-card input[type="checkbox"]{flex:0 0 auto;width:13px;height:13px;margin:0}
+.media-pro-v2-card strong{font-size:9px;line-height:1.15}
+.media-pro-v2-card small{font-size:7px;line-height:1.1}

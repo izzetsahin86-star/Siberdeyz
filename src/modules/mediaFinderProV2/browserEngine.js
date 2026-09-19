@@ -76,12 +76,19 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
     await page.setUserAgent(MEDIA_FINDER_USER_AGENT);
     await page.setViewport({ width: 1365, height: 900 });
     await page.setRequestInterception(true);
+    const safeHosts = new Map();
     page.on('request', async (request) => {
+      const url = request.url();
+      if (!/^https?:\/\//i.test(url)) {
+        request.continue().catch(() => {});
+        return;
+      }
       try {
-        const url = request.url();
-        await assertPublicHttpUrl(url);
+        const host = new URL(url).hostname;
+        if (!safeHosts.has(host)) safeHosts.set(host, assertPublicHttpUrl(url).then(() => true));
+        await safeHosts.get(host);
         addCandidate(candidates, url, { sourcePage, title, discoveredBy: 'v2-request', confidence: 84 });
-        request.continue();
+        request.continue().catch(() => {});
       } catch {
         diagnostics.blockedRequests += 1;
         request.abort('blockedbyclient').catch(() => {});

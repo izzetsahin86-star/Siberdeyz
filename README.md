@@ -18,6 +18,8 @@ Basit ve moduler IPTV yayin listeleme/oynatma sistemi.
 | `src/modules/m3uParser.js` | M3U metnini kanal listesine cevirir. |
 | `src/modules/playlistService.js` | Yayin listesini ceker ve cache yapar. |
 | `src/modules/streamProxy.js` | Secilen kanali tarayiciya proxy eder. |
+| `src/modules/mediaFinderProService.js` | Site + film/oyuncu veya dogrudan yayin linkiyle calisan bagimsiz Yayin Bul Pro is akisini yonetir. |
+| `src/modules/mediaFinderPro/*` | Guvenli URL, coklu arama, tarayici kesfi ve yayin dogrulama motorlari. |
 | `src/routes/api.js` | API rotalarini tutar. |
 | `public/*` | Basit kullanici arayuzu. |
 

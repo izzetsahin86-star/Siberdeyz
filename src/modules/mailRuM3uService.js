@@ -72,6 +72,14 @@ function findIdInHtml(html) {
   return null;
 }
 
+function normalizeMediaUrl(value) {
+  const raw = String(value || '').trim().replace(/\\u0026/g, '&').replace(/\\\//g, '/');
+  if (!raw) return '';
+  if (raw.startsWith('//')) return 'https:' + raw;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return '';
+}
+
 function collectVideos(value, out = []) {
   if (!value) return out;
   if (Array.isArray(value)) {
@@ -79,14 +87,21 @@ function collectVideos(value, out = []) {
     return out;
   }
   if (typeof value !== 'object') return out;
-  const url = typeof value.url === 'string' ? value.url : '';
-  if (/^https?:\/\//i.test(url) && (/\.m3u8(?:\?|$)/i.test(url) || /\.mp4(?:\?|$)/i.test(url) || /video/i.test(url))) {
-    out.push({ url, quality: String(value.key || value.quality || value.name || value.label || 'auto') });
+
+  for (const [key, child] of Object.entries(value)) {
+    if (typeof child === 'string') {
+      const url = normalizeMediaUrl(child);
+      const mediaKey = /^(url|src|file|video|stream|hls|mp4)$/i.test(key);
+      const looksMedia = /\.m3u8(?:\?|$)/i.test(url) || /\.mp4(?:\?|$)/i.test(url) || /\/hv\//i.test(url) || /cdn\d*\.my\.mail\.ru/i.test(url);
+      if (url && (mediaKey || looksMedia) && !/\.(?:jpg|jpeg|png|gif|webp|css|js)(?:\?|$)/i.test(url)) {
+        out.push({ url, quality: String(value.key || value.quality || value.name || value.label || key || 'auto') });
+      }
+    } else if (child && typeof child === 'object') {
+      collectVideos(child, out);
+    }
   }
-  for (const child of Object.values(value)) if (child && typeof child === 'object') collectVideos(child, out);
   return out;
 }
-
 function uniqueVideos(videos) {
   const seen = new Set();
   return videos.filter((item) => {

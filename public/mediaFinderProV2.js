@@ -1,4 +1,10 @@
 function api(path,options){return fetch('/api/media-finder-pro-v2'+path,options).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'V2 istegi basarisiz.');return d;});}
+function normalizeUrlInput(value){
+  const text=String(value||'').trim();
+  if(!text)return '';
+  if(/^https?:\/\//i.test(text))return text;
+  return 'https://'+text.replace(/^\/+/, '');
+}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function ensureUi(){
   if(document.querySelector('#mediaProV2Section'))return;
@@ -13,6 +19,7 @@ export function createMediaFinderProV2Controller({onSaved}={}){
   ensureUi(); const $=s=>document.querySelector(s); let job=null,timer=null;
   function show(){document.querySelectorAll('#webScanView .web-scan-mode-section').forEach(x=>x.hidden=x.id!=='mediaProV2Section');document.querySelectorAll('#webScanView .web-scan-mode-tab').forEach(x=>x.classList.toggle('is-active',x.dataset.webScanMode==='prov2'));}
   document.querySelector('[data-web-scan-mode="prov2"]')?.addEventListener('click',show);
+  $('#mediaProV2Url')?.addEventListener('blur',()=>{const value=normalizeUrlInput($('#mediaProV2Url').value);if(value)$('#mediaProV2Url').value=value;});
   $('#mediaProV2Mode')?.addEventListener('change',()=>{$('#mediaProV2Query').hidden=$('#mediaProV2Mode').value==='direct';});
   function render(d){
     if(!d)return;job=d;$('#mediaProV2Status').textContent=d.message||'';$('#mediaProV2Status').dataset.type=d.status==='failed'?'error':'';
@@ -21,7 +28,7 @@ export function createMediaFinderProV2Controller({onSaved}={}){
     $('#mediaProV2SaveBar').hidden=!(d.results||[]).length;
   }
   async function poll(){try{const d=await api('/status');render(d);if(d&&['running','stopping'].includes(d.status)){timer=setTimeout(poll,1200);}}catch{}}
-  $('#mediaProV2Start')?.addEventListener('click',async()=>{clearTimeout(timer);try{const mode=$('#mediaProV2Mode').value;const d=await api('/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode,url:$('#mediaProV2Url').value,query:$('#mediaProV2Query').value})});render(d);poll();}catch(e){$('#mediaProV2Status').textContent=e.message;$('#mediaProV2Status').dataset.type='error';}});
+  $('#mediaProV2Start')?.addEventListener('click',async()=>{clearTimeout(timer);try{const mode=$('#mediaProV2Mode').value;const normalizedUrl=normalizeUrlInput($('#mediaProV2Url').value);$('#mediaProV2Url').value=normalizedUrl;const d=await api('/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode,url:normalizedUrl,query:$('#mediaProV2Query').value})});render(d);poll();}catch(e){$('#mediaProV2Status').textContent=e.message;$('#mediaProV2Status').dataset.type='error';}});
   $('#mediaProV2Stop')?.addEventListener('click',async()=>render(await api('/stop',{method:'POST'})));
   $('#mediaProV2Clear')?.addEventListener('click',async()=>{if(!job)return;await api('/'+encodeURIComponent(job.jobId)+'/results',{method:'DELETE'});job=null;render({message:'Sonuclar temizlendi.',progress:{},results:[],rejected:[]});});
   $('#mediaProV2Save')?.addEventListener('click',async()=>{if(!job)return;const ids=[...document.querySelectorAll('[data-v2-id]:checked')].map(x=>x.dataset.v2Id);try{const d=await api('/'+encodeURIComponent(job.jobId)+'/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ids,label:$('#mediaProV2Label').value})});$('#mediaProV2Status').textContent=ids.length+' yayin kaydedildi.';await onSaved?.(d);}catch(e){$('#mediaProV2Status').textContent=e.message;}});

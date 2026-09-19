@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { resolveMailRuVideo } from '../modules/mailRuM3uService.js';
 import { loginSession, logoutSession, requireAdminSession, requireAppSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
@@ -171,6 +172,14 @@ apiRouter.post('/settings/cache/clear', async (req, res, next) => {
   try {
     clearChannelCache();
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/mailru-m3u/resolve', async (req, res, next) => {
+  try {
+    res.json(await resolveMailRuVideo(req.body?.url));
   } catch (error) {
     next(error);
   }

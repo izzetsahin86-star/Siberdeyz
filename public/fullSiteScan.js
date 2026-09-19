@@ -44,6 +44,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
     quickSection: document.querySelector('#quickWebScanSection'),
     fullSection: document.querySelector('#fullSiteScanSection'),
     mailRuSection: document.querySelector('#mailRuM3uSection'),
+    proV2Section: document.querySelector('#mediaProV2Section'),
     url: document.querySelector('#fullSiteScanUrl'),
     limit: document.querySelector('#fullSiteScanLimit'),
     start: document.querySelector('#fullSiteScanStart'),
@@ -90,6 +91,7 @@ export function createFullSiteScanController({ onSaved } = {}) {
     if (elements.quickSection) elements.quickSection.hidden = full || mailru;
     if (elements.fullSection) elements.fullSection.hidden = !full;
     if (elements.mailRuSection) elements.mailRuSection.hidden = !mailru;
+    if (elements.proV2Section) elements.proV2Section.hidden = mode !== 'prov2';
 
     if (full) {
       const quickUrl = String(document.querySelector('#webScanUrl')?.value || '').trim();

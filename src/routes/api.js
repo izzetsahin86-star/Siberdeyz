@@ -36,15 +36,6 @@ import {
   stopFullSiteScan,
 } from '../modules/fullSiteScanService.js';
 import {
-  deleteMediaFinderProResults,
-  getMediaFinderProStatus,
-  pauseMediaFinderPro,
-  resumeMediaFinderPro,
-  saveMediaFinderProSelection,
-  startMediaFinderPro,
-  stopMediaFinderPro,
-} from '../modules/mediaFinderProService.js';
-import {
   clearMediaFinderProV2,
   getMediaFinderProV2Status,
   saveMediaFinderProV2,
@@ -305,74 +296,6 @@ apiRouter.post('/full-site-scan/:jobId/save', async (req, res, next) => {
 apiRouter.delete('/full-site-scan/:jobId/results', async (req, res, next) => {
   try {
     res.json(await deleteFullSiteScanResults(req.params.jobId));
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/media-finder-pro/start', async (req, res, next) => {
-  try {
-    res.status(202).json(await startMediaFinderPro({
-      mode: req.body?.mode,
-      url: req.body?.url,
-      query: req.body?.query,
-      limit: req.body?.limit,
-    }));
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.get('/media-finder-pro/status', async (req, res, next) => {
-  try {
-    res.json(await getMediaFinderProStatus());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/media-finder-pro/pause', async (req, res, next) => {
-  try {
-    res.json(await pauseMediaFinderPro());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/media-finder-pro/resume', async (req, res, next) => {
-  try {
-    res.json(await resumeMediaFinderPro());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/media-finder-pro/stop', async (req, res, next) => {
-  try {
-    res.json(await stopMediaFinderPro());
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.post('/media-finder-pro/:jobId/save', async (req, res, next) => {
-  try {
-    const result = await saveMediaFinderProSelection(
-      req.params.jobId,
-      req.body?.ids,
-      req.body?.label
-    );
-    clearChannelCache();
-    await clearFavorites();
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-apiRouter.delete('/media-finder-pro/:jobId/results', async (req, res, next) => {
-  try {
-    res.json(await deleteMediaFinderProResults(req.params.jobId));
   } catch (error) {
     next(error);
   }

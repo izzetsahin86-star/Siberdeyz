@@ -8,11 +8,11 @@ import { assertPublicHttpUrl } from './mediaFinderPro/urlSafety.js';
 import { deepDiscoverV2 } from './mediaFinderProV2/browserEngine.js';
 import { getTenantDataDir, getTenantId } from './tenantContext.js';
 import { saveWebScanPlaylistSource } from './sourceStorage.js';
+import { mediaFinderProV2ClientSnapshot } from './mediaFinderProV2/clientSnapshot.js';
 
 const jobs = new Map();
 const ACTIVE = new Set(['running','stopping']);
 function filePath(){ return path.join(getTenantDataDir(),'media-finder-pro-v2-job.json'); }
-function snapshot(j){ return j ? JSON.parse(JSON.stringify(j)) : null; }
 async function persist(j){ j.updatedAt=new Date().toISOString(); await fs.mkdir(getTenantDataDir(),{recursive:true}); await fs.writeFile(filePath(),JSON.stringify(j,null,2)); }
 async function stored(){ try{return JSON.parse(await fs.readFile(filePath(),'utf8'));}catch(e){if(e.code==='ENOENT')return null;throw e;} }
 async function canRun(j){ return j.status==='running'; }
@@ -66,8 +66,9 @@ async function run(job){
       job.progress.accepted=results.length;
       job.progress.rejected=rejected.length;
       job.results=results.slice(0,100);
-      job.rejected=rejected.slice(-60);
-      if(job.progress.tested%4===0) await persist(job);
+      job.rejected=rejected.slice(-20);
+      if(job.progress.tested%12===0) await persist(job);
+      await new Promise((resolve)=>setImmediate(resolve));
     }
     job.status='completed';job.phase='completed';
     job.message=results.length?results.length+' calisan yayin bulundu.':deep.candidates.length?'Adaylar yakalandi ancak dogrulama gecemedi. Nedenleri asagida listelendi.':'Oynatici tetiklendi ancak medya istegi yakalanamadi.';
@@ -85,9 +86,9 @@ export async function startMediaFinderProV2({mode,url,query}={}){
   if(selected==='search'&&q.length<2){const e=new Error('Film veya oyuncu adi en az 2 karakter olmali.');e.status=400;throw e;}
   const now=new Date().toISOString();
   const job={tenantId,jobId:'prov2_'+crypto.randomBytes(10).toString('hex'),mode:selected,targetUrl,query:selected==='search'?q:'',status:'running',phase:'queued',message:'Yayin Bul Pro V2 hazirlaniyor...',createdAt:now,updatedAt:now,progress:{pagesVisited:0,matchesFound:0,pagesOpened:0,playerClicks:0,candidates:0,tested:0,accepted:0,rejected:0},diagnostics:{},matches:[],results:[],rejected:[]};
-  jobs.set(tenantId,job);await persist(job);setImmediate(()=>run(job));return snapshot(job);
+  jobs.set(tenantId,job);await persist(job);setImmediate(()=>run(job));return mediaFinderProV2ClientSnapshot(job);
 }
-export async function getMediaFinderProV2Status(){return snapshot(jobs.get(getTenantId())||await stored());}
-export async function stopMediaFinderProV2(){const j=jobs.get(getTenantId());if(j){j.status='stopping';j.message='V2 durduruluyor...';await persist(j);}return snapshot(j||await stored());}
+export async function getMediaFinderProV2Status(){return mediaFinderProV2ClientSnapshot(jobs.get(getTenantId())||await stored());}
+export async function stopMediaFinderProV2(){const j=jobs.get(getTenantId());if(j){j.status='stopping';j.message='V2 durduruluyor...';await persist(j);}return mediaFinderProV2ClientSnapshot(j||await stored());}
 export async function clearMediaFinderProV2(jobId){const j=jobs.get(getTenantId())||await stored();if(!j||j.jobId!==jobId){const e=new Error('V2 sonucu bulunamadi.');e.status=404;throw e;}if(ACTIVE.has(j.status)){const e=new Error('Calisan V2 taramasi once durdurulmali.');e.status=409;throw e;}await fs.unlink(filePath()).catch(e=>{if(e.code!=='ENOENT')throw e;});return{cleared:true};}
 export async function saveMediaFinderProV2(jobId,ids,label=''){const j=jobs.get(getTenantId())||await stored();if(!j||j.jobId!==jobId){const e=new Error('V2 sonucu bulunamadi.');e.status=404;throw e;}const set=new Set((ids||[]).map(String));const selected=(j.results||[]).filter(x=>set.has(x.id));if(!selected.length){const e=new Error('En az bir yayin secin.');e.status=400;throw e;}return saveWebScanPlaylistSource({label:String(label||'').trim()||('Yayin Bul Pro V2 · '+(j.query||new URL(j.targetUrl).hostname)),pageUrl:j.targetUrl,channels:selected.map(x=>({name:x.name,group:'Yayin Bul Pro V2',url:x.url,webDurationSeconds:x.durationSeconds||null,webDurationStatus:x.durationSeconds?'known':'unknown'}))});}

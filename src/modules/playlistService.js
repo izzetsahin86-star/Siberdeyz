@@ -60,11 +60,13 @@ function readStoredPlaylist(source) {
     group: channel.group || 'Genel',
     tvgId: channel.tvgId || '',
     url: channel.url,
-    pageUrl: channel.pageUrl || (source.sourceKind === 'mailru-m3u' ? source.pageUrl || '' : ''),
+    pageUrl: channel.pageUrl || '',
     sourceKind: source.sourceKind || '',
     mailRuLegacyPageUrl: source.sourceKind === 'mailru-m3u'
-      && !String(channel.pageUrl || '').trim()
-      && Boolean(String(source.pageUrl || '').trim()),
+      && !String(channel.pageUrl || '').trim(),
+    mailRuLegacySourcePageUrl: source.sourceKind === 'mailru-m3u'
+      ? String(source.pageUrl || '').trim()
+      : '',
   }));
 }
 

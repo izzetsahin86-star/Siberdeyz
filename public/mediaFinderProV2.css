@@ -1,35 +1,300 @@
-/* Compact isolated Yayin Bul Pro V2 - aligned with Tum Site */
-.media-pro-v2{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;min-height:0;height:100%;padding:0}
-.media-pro-v2-toolbar{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(105px,.7fr) 92px;gap:5px}
-.media-pro-v2-toolbar input,.media-pro-v2-toolbar select,.media-pro-v2-save input{min-width:0;min-height:36px;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035);color:#fff;font-size:11px}
-.media-pro-v2-toolbar button,.media-pro-v2-actions button,.media-pro-v2-save button{min-height:34px;padding:5px 8px;border:1px solid rgba(10,132,255,.26);border-radius:9px;color:#fff;background:rgba(10,132,255,.14);font-size:9px;font-weight:750}
-.media-pro-v2-status{padding:5px 7px;border-radius:9px;color:#a5cfff;background:rgba(10,132,255,.07);font-size:10px;line-height:1.35}
-.media-pro-v2-status[data-type="error"]{color:#ffaaa5;background:rgba(255,69,58,.07)}
-.media-pro-v2-actions{display:flex;gap:4px}.media-pro-v2-actions button{flex:1;min-height:27px;border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.045)}
-.media-pro-v2-results{display:grid;align-content:start;gap:4px;min-height:0;overflow-y:auto;padding:4px;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(0,0,0,.13);-webkit-overflow-scrolling:touch}
-.media-pro-v2-card{display:grid;gap:2px;padding:6px;border:1px solid rgba(255,255,255,.06);border-radius:9px;background:rgba(255,255,255,.025);font-size:9px;overflow:hidden}
-.media-pro-v2-card strong,.media-pro-v2-card small,.media-pro-v2-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.media-pro-v2-card small{color:#8f9aa7;font-size:8px}
-.media-pro-v2-rejected{font-size:8px;opacity:.82;overflow-wrap:anywhere}
-.media-pro-v2 details{min-height:0;font-size:9px}.media-pro-v2 details[open]{max-height:22svh;overflow:auto}.media-pro-v2 summary{padding:4px 2px;color:#8f9aa7;cursor:pointer}
-.media-pro-v2-save{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:5px;position:relative;z-index:3;background:rgba(22,24,31,.96)}
-.media-pro-v2 [hidden]{display:none!important}
-@media(max-width:860px){.media-pro-v2-toolbar{grid-template-columns:92px minmax(0,1fr) 92px}.media-pro-v2-toolbar #mediaProV2Query{grid-column:1/3}.media-pro-v2-results{max-height:30svh}}
-@media(max-width:390px){.media-pro-v2-toolbar{grid-template-columns:86px minmax(0,1fr) 84px}.media-pro-v2-toolbar #mediaProV2Query{grid-column:1/3}.media-pro-v2-save{grid-template-columns:minmax(0,1fr) 102px}}
+/* Account-style interface for Yayin Bul Pro V2. The scanning engine is unchanged. */
+.pro-v2-accounts-ui{
+  display:grid;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto;
+  gap:5px;
+  height:100%;
+  min-height:0;
+  padding:6px 7px 7px;
+}
 
-/* Tiny action pills */
-.media-pro-v2-actions{justify-content:flex-start;align-items:center;gap:5px}
-.media-pro-v2-actions button{flex:0 0 auto;width:auto;min-width:0;min-height:22px;height:22px;padding:2px 9px;border-radius:999px;font-size:8px;line-height:1;white-space:nowrap}
+.pro-v2-account-tools{
+  display:grid;
+  grid-template-columns:120px minmax(0,1fr) minmax(120px,.72fr) 92px;
+  gap:5px;
+  padding:4px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:13px;
+  background:rgba(255,255,255,.035);
+  box-shadow:inset 0 1px rgba(255,255,255,.025);
+}
 
-/* Prevent iOS focus zoom in Pro V2 form controls */
-.media-pro-v2 input,.media-pro-v2 select,.media-pro-v2 textarea{font-size:16px!important}
+.pro-v2-account-tools input,
+.pro-v2-account-tools select,
+.pro-v2-account-save input{
+  min-width:0;
+  min-height:34px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:10px;
+  padding:6px 8px;
+  color:#fff;
+  background:rgba(20,20,22,.72);
+  box-shadow:inset 0 1px rgba(255,255,255,.02);
+  font-size:16px;
+}
 
-/* Ultra-compact verified result rows */
-.media-pro-v2-results{gap:2px;padding:2px;border-radius:8px}
-.media-pro-v2-card{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:3px 5px;border-radius:7px;font-size:8px;line-height:1.15}
-.media-pro-v2-card>span{display:flex;align-items:center;gap:4px;min-width:0}
-.media-pro-v2-card input[type="checkbox"]{flex:0 0 auto;width:13px;height:13px;margin:0}
-.media-pro-v2-card strong{font-size:9px;line-height:1.15}
-.media-pro-v2-card small{font-size:7px;line-height:1.1}
+.pro-v2-account-tools input:focus,
+.pro-v2-account-tools select:focus,
+.pro-v2-account-save input:focus{
+  border-color:rgba(10,132,255,.48);
+  box-shadow:0 0 0 2px rgba(10,132,255,.10);
+  outline:0;
+}
 
-/* Keep iOS repaint work local while the scanner updates its result list. */
-.content-panel.is-pro-v2-working{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(22,24,31,.98)}
+.pro-v2-account-tools button,
+.pro-v2-account-save button{
+  min-height:34px;
+  border:1px solid rgba(10,132,255,.30);
+  border-radius:10px;
+  padding:6px 9px;
+  color:#fff;
+  background:linear-gradient(180deg,rgba(10,132,255,.20),rgba(10,132,255,.11));
+  box-shadow:inset 0 1px rgba(255,255,255,.045);
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.pro-v2-account-status{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-height:24px;
+  padding:4px 7px;
+  border:1px solid rgba(10,132,255,.16);
+  border-radius:8px;
+  color:#aac0d8;
+  background:linear-gradient(90deg,rgba(10,132,255,.09),rgba(255,255,255,.025));
+  font-size:9px;
+  line-height:1.25;
+}
+
+.pro-v2-account-status::before{
+  content:"";
+  flex:0 0 auto;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#64d2ff;
+  box-shadow:0 0 0 3px rgba(100,210,255,.09);
+}
+
+.pro-v2-account-status[data-type="error"]{
+  border-color:rgba(255,69,58,.18);
+  color:#ffaaa5;
+  background:rgba(255,69,58,.07);
+}
+
+.pro-v2-account-status[data-type="error"]::before{background:#ff453a}
+
+.pro-v2-account-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  min-height:30px;
+  padding:2px 3px;
+}
+
+.pro-v2-account-title,
+.pro-v2-account-actions{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+
+.pro-v2-account-title strong{
+  color:#f5f5f7;
+  font-size:11px;
+  letter-spacing:-.01em;
+}
+
+.pro-v2-account-title span{
+  display:grid;
+  place-items:center;
+  min-width:20px;
+  height:20px;
+  padding:0 6px;
+  border:1px solid rgba(10,132,255,.28);
+  border-radius:999px;
+  color:#c6e1ff;
+  background:rgba(10,132,255,.14);
+  font-size:9px;
+  font-weight:800;
+}
+
+.pro-v2-account-actions{
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.pro-v2-account-actions::-webkit-scrollbar{display:none}
+
+.pro-v2-account-actions button{
+  flex:0 0 auto;
+  min-height:25px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:999px;
+  padding:4px 8px;
+  color:#d8d8de;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.04));
+  box-shadow:inset 0 1px rgba(255,255,255,.035);
+  font-size:8px;
+  font-weight:800;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+.pro-v2-account-actions #mediaProV2Stop{
+  border-color:rgba(255,214,10,.18);
+  color:#ffe07b;
+}
+
+.pro-v2-account-actions #mediaProV2Clear{
+  border-color:rgba(255,69,58,.18);
+  color:#ffaaa5;
+}
+
+.pro-v2-account-list{
+  display:flex;
+  flex-wrap:wrap;
+  align-content:flex-start;
+  gap:4px;
+  min-height:0;
+  overflow:auto;
+  padding:1px 1px 3px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.pro-v2-account-list::-webkit-scrollbar{display:none}
+
+.pro-v2-account-item{
+  display:grid;
+  grid-template-columns:16px 52px minmax(0,1fr);
+  align-items:center;
+  flex:1 1 220px;
+  width:auto;
+  max-width:330px;
+  min-height:40px;
+  gap:6px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  padding:5px 7px;
+  color:#f5f5f7;
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(255,255,255,.032));
+  box-shadow:inset 0 1px rgba(255,255,255,.035),0 5px 14px rgba(0,0,0,.08);
+  cursor:pointer;
+}
+
+.pro-v2-account-item:has(.pro-v2-account-checkbox:checked){
+  border-color:rgba(10,132,255,.38);
+  background:linear-gradient(90deg,rgba(10,132,255,.15),rgba(10,132,255,.06) 42%,rgba(255,255,255,.032));
+  box-shadow:inset 3px 0 #0a84ff,inset 0 1px rgba(255,255,255,.04),0 5px 14px rgba(10,132,255,.06);
+}
+
+.pro-v2-account-checkbox{
+  display:block;
+  width:15px;
+  height:15px;
+  min-height:15px;
+  margin:0;
+  accent-color:#0a84ff;
+  appearance:auto;
+  -webkit-appearance:checkbox;
+}
+
+.pro-v2-account-badge{
+  display:block;
+  min-width:48px;
+  max-width:52px;
+  overflow:hidden;
+  border:1px solid rgba(10,132,255,.18);
+  border-radius:999px;
+  padding:4px 5px;
+  color:#a9d3ff;
+  background:rgba(10,132,255,.12);
+  font-size:7px;
+  font-weight:850;
+  text-align:center;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.pro-v2-account-copy{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+}
+
+.pro-v2-account-copy strong,
+.pro-v2-account-copy small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.pro-v2-account-copy strong{
+  color:#f5f5f7;
+  font-size:10px;
+  line-height:1.2;
+}
+
+.pro-v2-account-copy small{
+  margin-top:2px;
+  color:#8f99a8;
+  font-size:8px;
+  line-height:1.15;
+}
+
+.pro-v2-account-empty{
+  display:grid;
+  place-items:center;
+  width:100%;
+  min-height:76px;
+  border:1px dashed rgba(255,255,255,.08);
+  border-radius:12px;
+  color:#8f99a8;
+  background:rgba(255,255,255,.02);
+  font-size:9px;
+}
+
+.pro-v2-account-save{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 138px;
+  gap:5px;
+  padding:4px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:13px;
+  background:rgba(255,255,255,.035);
+  box-shadow:inset 0 1px rgba(255,255,255,.025);
+}
+
+.pro-v2-account-save button:disabled{opacity:.45;cursor:default}
+.pro-v2-accounts-ui [hidden]{display:none!important}
+
+/* Reduce iOS glass repaint cost only while the V2 job is active. */
+.content-panel.is-pro-v2-working{
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  background:rgba(22,24,31,.98);
+}
+
+@media(max-width:860px){
+  .pro-v2-accounts-ui{padding:5px}
+  .pro-v2-account-tools{grid-template-columns:92px minmax(0,1fr) 92px}
+  .pro-v2-account-tools #mediaProV2Mode{grid-column:1;grid-row:1}
+  .pro-v2-account-tools #mediaProV2Url{grid-column:2/4;grid-row:1}
+  .pro-v2-account-tools #mediaProV2Query{grid-column:1/3;grid-row:2}
+  .pro-v2-account-tools #mediaProV2Start{grid-column:3;grid-row:2}
+  .pro-v2-account-tools.is-direct #mediaProV2Start{grid-column:1/4;grid-row:2}
+  .pro-v2-account-save{grid-template-columns:minmax(0,1fr) 120px}
+}
+
+@media(max-width:390px){
+  .pro-v2-account-tools{grid-template-columns:86px minmax(0,1fr) 84px}
+  .pro-v2-account-item{flex-basis:100%;max-width:none}
+  .pro-v2-account-save{grid-template-columns:minmax(0,1fr) 108px}
+  .pro-v2-account-save button{padding-inline:6px;font-size:9px}
+}

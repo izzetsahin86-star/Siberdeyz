@@ -15,6 +15,7 @@ import {
 } from '../src/modules/mediaFinderPro/urlSafety.js';
 import { parseMp4Duration } from '../src/modules/mediaFinderPro/probe.js';
 import { mediaFinderProV2ClientSnapshot } from '../src/modules/mediaFinderProV2/clientSnapshot.js';
+import { extractQualityHeight, groupQualityVariantCandidates, qualityVariantKey } from '../src/modules/mediaFinderProV2/qualityDeduper.js';
 
 test('normalizes public web addresses without accepting unsafe protocols', () => {
   assert.equal(normalizeHttpUrl('example.com/watch').toString(), 'https://example.com/watch');
@@ -109,4 +110,35 @@ test('keeps Pro V2 polling payload small without exposing stream URLs', () => {
     discoveredBy: 'v2-response',
   }]);
   assert.equal(JSON.stringify(snapshot).includes('very-long-token'), false);
+});
+
+
+test('groups 360p 480p 720p variants and keeps the highest candidate first', () => {
+  const variants = [
+    { url: 'https://cdn.example.com/movie/360/index.m3u8', confidence: 99 },
+    { url: 'https://cdn.example.com/movie/720/index.m3u8', confidence: 80 },
+    { url: 'https://cdn.example.com/movie/480/index.m3u8', confidence: 90 },
+  ];
+
+  assert.equal(extractQualityHeight(variants[0].url), 360);
+  assert.equal(
+    qualityVariantKey(variants[0]),
+    qualityVariantKey(variants[1]),
+  );
+
+  const groups = groupQualityVariantCandidates(variants);
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].map((item) => item.qualityHeight), [720, 480, 360]);
+});
+
+test('groups quality query parameters while keeping unrelated videos separate', () => {
+  const variants = [
+    { url: 'https://cdn.example.com/movie.m3u8?quality=360&token=a' },
+    { url: 'https://cdn.example.com/movie.m3u8?quality=1080&token=a' },
+    { url: 'https://cdn.example.com/other.m3u8?quality=720&token=a' },
+  ];
+
+  const groups = groupQualityVariantCandidates(variants);
+  assert.equal(groups.length, 2);
+  assert.equal(groups.find((group) => group.length === 2)?.[0].qualityHeight, 1080);
 });

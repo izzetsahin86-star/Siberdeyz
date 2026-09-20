@@ -14,6 +14,7 @@ import {
   normalizeHttpUrl,
 } from '../src/modules/mediaFinderPro/urlSafety.js';
 import { parseMp4Duration } from '../src/modules/mediaFinderPro/probe.js';
+import { mediaFinderProV2ClientSnapshot } from '../src/modules/mediaFinderProV2/clientSnapshot.js';
 
 test('normalizes public web addresses without accepting unsafe protocols', () => {
   assert.equal(normalizeHttpUrl('example.com/watch').toString(), 'https://example.com/watch');
@@ -85,4 +86,27 @@ test('reads movie duration from an MP4 mvhd atom without an external process', (
 
   assert.equal(parseMp4Duration(versionZero), 120);
   assert.equal(parseMp4Duration(Buffer.from('not an mp4')), null);
+});
+
+test('keeps Pro V2 polling payload small without exposing stream URLs', () => {
+  const snapshot = mediaFinderProV2ClientSnapshot({
+    jobId: 'job-1',
+    status: 'running',
+    progress: { accepted: 1 },
+    results: [{
+      id: 'stream-1',
+      name: 'Ornek Film',
+      url: 'https://cdn.example.com/movie.m3u8?very-long-token=secret',
+      kind: 'HLS',
+      discoveredBy: 'v2-response',
+    }],
+  });
+
+  assert.deepEqual(snapshot.results, [{
+    id: 'stream-1',
+    name: 'Ornek Film',
+    kind: 'HLS',
+    discoveredBy: 'v2-response',
+  }]);
+  assert.equal(JSON.stringify(snapshot).includes('very-long-token'), false);
 });

@@ -9,6 +9,7 @@ import { deepDiscoverV2 } from './mediaFinderProV2/browserEngine.js';
 import { getTenantDataDir, getTenantId } from './tenantContext.js';
 import { saveWebScanPlaylistSource } from './sourceStorage.js';
 import { mediaFinderProV2ClientSnapshot } from './mediaFinderProV2/clientSnapshot.js';
+import { groupQualityVariantCandidates } from './mediaFinderProV2/qualityDeduper.js';
 
 const jobs = new Map();
 const ACTIVE = new Set(['running','stopping']);
@@ -47,24 +48,36 @@ async function run(job){
 
     job.phase='testing'; job.message=deep.candidates.length+' aday bulundu; yayinlar dogrulaniyor...'; await persist(job);
     const results=[]; const rejected=[];
-    const ranked=[...deep.candidates].sort((a,b)=>(b.confidence||0)-(a.confidence||0));
-    for(const candidate of ranked.slice(0,200)){
-      if(!(await canRun(job))) break;
-      try{
-        const probe=await probeMediaCandidate(candidate);
-        results.push({
-          id:mediaId(candidate.url), name:String(candidate.title||pages.find(p=>p.url===candidate.sourcePage)?.title||job.query||safeMediaName(candidate.url,results.length+1,'')).trim(),
-          url:candidate.url, kind:probe.kind, sourcePage:candidate.sourcePage,
-          discoveredBy:candidate.discoveredBy, durationSeconds:probe.durationSeconds||null,
-          live:Boolean(probe.live), confidence:candidate.confidence||0
-        });
-      }catch(error){
-        const reason=String(error?.message||'Dogrulanamadi').slice(0,180);
-        rejected.push({url:candidate.url,kind:candidate.kind||'',reason,sourcePage:candidate.sourcePage});
+    const groups=groupQualityVariantCandidates(deep.candidates)
+      .sort((left,right)=>Math.max(...right.map(item=>Number(item.confidence||0)))-Math.max(...left.map(item=>Number(item.confidence||0))));
+    let attempts=0;
+    for(const group of groups){
+      if(!(await canRun(job))||attempts>=200) break;
+      let accepted=null;
+      for(const candidate of group){
+        if(!(await canRun(job))||attempts>=200) break;
+        attempts+=1;
+        try{
+          const probe=await probeMediaCandidate(candidate);
+          accepted={
+            id:mediaId(candidate.url), name:String(candidate.title||pages.find(p=>p.url===candidate.sourcePage)?.title||job.query||safeMediaName(candidate.url,results.length+1,'')).trim(),
+            url:candidate.url, kind:probe.kind, sourcePage:candidate.sourcePage,
+            discoveredBy:candidate.discoveredBy, durationSeconds:probe.durationSeconds||null,
+            live:Boolean(probe.live), confidence:candidate.confidence||0,
+            qualityHeight:candidate.qualityHeight||null
+          };
+        }catch(error){
+          const reason=String(error?.message||'Dogrulanamadi').slice(0,180);
+          rejected.push({url:candidate.url,kind:candidate.kind||'',reason,sourcePage:candidate.sourcePage});
+        }
+        job.progress.tested=(job.progress.tested||0)+1;
+        job.progress.rejected=rejected.length;
+        if(accepted) break;
+        if(job.progress.tested%12===0) await persist(job);
+        await new Promise((resolve)=>setImmediate(resolve));
       }
-      job.progress.tested=(job.progress.tested||0)+1;
+      if(accepted) results.push(accepted);
       job.progress.accepted=results.length;
-      job.progress.rejected=rejected.length;
       job.results=results.slice(0,100);
       job.rejected=rejected.slice(-20);
       if(job.progress.tested%12===0) await persist(job);

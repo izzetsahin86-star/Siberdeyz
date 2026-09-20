@@ -53,7 +53,7 @@ async function run(job){
       try{
         const probe=await probeMediaCandidate(candidate);
         results.push({
-          id:mediaId(candidate.url), name:safeMediaName(candidate.url,results.length+1,candidate.title||pages.find(p=>p.url===candidate.sourcePage)?.title||job.query),
+          id:mediaId(candidate.url), name:String(candidate.title||pages.find(p=>p.url===candidate.sourcePage)?.title||job.query||safeMediaName(candidate.url,results.length+1,'')).trim(),
           url:candidate.url, kind:probe.kind, sourcePage:candidate.sourcePage,
           discoveredBy:candidate.discoveredBy, durationSeconds:probe.durationSeconds||null,
           live:Boolean(probe.live), confidence:candidate.confidence||0

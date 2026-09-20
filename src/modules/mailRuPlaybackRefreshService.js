@@ -3,6 +3,7 @@ import { updateM3uYayinimChannelPlayback } from './sourceStorage.js';
 
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 const pendingRefreshes = new Map();
+const refreshedVideos = new Map();
 
 function parseExpireAtMs(value) {
   const raw = String(value || '').trim();
@@ -30,11 +31,20 @@ async function resolveFreshMailRuVideo(pageUrl) {
   const key = String(pageUrl || '').trim();
   if (!key) throw new Error('Mail.ru kaynak sayfasi bulunamadi.');
 
+  const cached = refreshedVideos.get(key);
+  if (cached?.best?.url && !needsRefresh(cached.best.url)) {
+    return cached;
+  }
+
   if (pendingRefreshes.has(key)) {
     return pendingRefreshes.get(key);
   }
 
   const pending = resolveMailRuVideo(key)
+    .then((resolved) => {
+      refreshedVideos.set(key, resolved);
+      return resolved;
+    })
     .finally(() => pendingRefreshes.delete(key));
 
   pendingRefreshes.set(key, pending);
@@ -63,11 +73,15 @@ export async function refreshMailRuChannelForPlayback(channel) {
   channel.url = freshUrl;
   channel.pageUrl = freshPageUrl;
 
-  await updateM3uYayinimChannelPlayback({
-    channelId: channel.id,
-    url: freshUrl,
-    pageUrl: freshPageUrl,
-  });
+  // Legacy records only had one source-level pageUrl. Do not rewrite those
+  // stored channels because doing so could collapse/reindex old quality variants.
+  if (!channel.mailRuLegacyPageUrl) {
+    await updateM3uYayinimChannelPlayback({
+      channelId: channel.id,
+      url: freshUrl,
+      pageUrl: freshPageUrl,
+    });
+  }
 
   return channel;
 }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { resolveMailRuVideo } from '../modules/mailRuM3uService.js';
+import { refreshMailRuChannelForPlayback } from '../modules/mailRuPlaybackRefreshService.js';
 import { loginSession, logoutSession, requireAdminSession, requireAppSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
@@ -522,7 +523,17 @@ apiRouter.get('/playback/:id', async (req, res, next) => {
       res.status(404).json({ error: 'Yayin bulunamadi' });
       return;
     }
-    res.json(getPlaybackInfo(channel));
+
+    const playableChannel = await refreshMailRuChannelForPlayback(channel);
+    const info = getPlaybackInfo(playableChannel);
+
+    res.json({
+      ...info,
+      directUrl: playableChannel.sourceKind === 'mailru-m3u'
+        ? String(playableChannel.url || '')
+        : '',
+      refreshed: playableChannel.sourceKind === 'mailru-m3u',
+    });
   } catch (error) {
     next(error);
   }

@@ -60,6 +60,8 @@ function readStoredPlaylist(source) {
     group: channel.group || 'Genel',
     tvgId: channel.tvgId || '',
     url: channel.url,
+    pageUrl: channel.pageUrl || (source.sourceKind === 'mailru-m3u' ? source.pageUrl || '' : ''),
+    sourceKind: source.sourceKind || '',
   }));
 }
 

@@ -116,6 +116,80 @@ function qualityScore(label) {
   return n;
 }
 
+function decodeSearchHtml(value) {
+  return String(value || '')
+    .replace(/\\u002F/gi, '/')
+    .replace(/\\u003A/gi, ':')
+    .replace(/\\u0026/gi, '&')
+    .replace(/\\\//g, '/')
+    .replace(/&amp;/gi, '&')
+    .replace(/&#x2F;/gi, '/')
+    .replace(/&#47;/g, '/');
+}
+
+function normalizeMailRuCandidate(value) {
+  const raw = decodeSearchHtml(value).trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw, 'https://my.mail.ru');
+    if (!MAIL_HOSTS.has(url.hostname.toLowerCase())) return '';
+
+    if (/\/video\/embed\/\d+/i.test(url.pathname)) {
+      const id = url.pathname.match(/\/video\/embed\/(\d+)/i)?.[1];
+      return id ? 'https://my.mail.ru/video/embed/' + id : '';
+    }
+
+    if (!/\/video\//i.test(url.pathname) || !/\.html$/i.test(url.pathname)) return '';
+    return 'https://my.mail.ru' + url.pathname;
+  } catch {
+    return '';
+  }
+}
+
+function collectSearchCandidates(html, limit = 12) {
+  const decoded = decodeSearchHtml(html);
+  const out = [];
+  const seen = new Set();
+
+  function add(value) {
+    const normalized = normalizeMailRuCandidate(value);
+    if (!normalized || seen.has(normalized) || out.length >= limit) return;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+
+  for (const match of decoded.matchAll(/https?:\/\/(?:my|m)\.mail\.ru\/[^"'<>\s]+/gi)) {
+    add(match[0]);
+    if (out.length >= limit) break;
+  }
+
+  if (out.length < limit) {
+    for (const match of decoded.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
+      add(match[1]);
+      if (out.length >= limit) break;
+    }
+  }
+
+  if (out.length < limit) {
+    for (const match of decoded.matchAll(/video\/embed\/(\d{10,})/gi)) {
+      add('https://my.mail.ru/video/embed/' + match[1]);
+      if (out.length >= limit) break;
+    }
+  }
+
+  return out;
+}
+
+export async function searchMailRuVideos(query, limit = 12) {
+  const text = String(query || '').trim();
+  if (!text) return [];
+
+  const url = 'https://my.mail.ru/video/search?q=' + encodeURIComponent(text);
+  const html = await fetchText(url);
+  return collectSearchCandidates(html, Math.max(1, Math.min(Number(limit) || 12, 24)));
+}
+
 export async function resolveMailRuVideo(input) {
   const pageUrl = normalizeInput(input);
   let videoId = extractVideoId(pageUrl);

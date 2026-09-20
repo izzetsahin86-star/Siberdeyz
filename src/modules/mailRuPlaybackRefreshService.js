@@ -1,4 +1,4 @@
-import { resolveMailRuVideo } from './mailRuM3uService.js';
+import { resolveMailRuVideo, searchMailRuVideos } from './mailRuM3uService.js';
 import { updateM3uYayinimChannelPlayback } from './sourceStorage.js';
 
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
@@ -81,6 +81,31 @@ function collectLegacyIdCandidates(url) {
   return [...ids];
 }
 
+function cleanLegacyTitle(value) {
+  let text = String(value || '').replace(/\+/g, ' ');
+  try { text = decodeURIComponent(text); } catch {}
+
+  return text
+    .replace(/\.(?:mp4|m3u8|mov|m4v|3gp|3g2)$/i, '')
+    .replace(/\b(?:2160|1440|1080|720|576|540|480|360|240)p\b/gi, ' ')
+    .replace(/\b(?:turkce|türkçe)\s+altyazili\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function legacySearchQueries(channel) {
+  const full = cleanLegacyTitle(channel?.name);
+  if (!full) return [];
+
+  const simplified = full
+    .replace(/\b(?:uncensored|erotik\s+film\s+izle|altyazıhub)\b/gi, ' ')
+    .replace(/[|•]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return [...new Set([full, simplified].filter((item) => item.length >= 4))].slice(0, 2);
+}
+
 async function resolveFreshMailRuVideo(pageUrl) {
   const key = String(pageUrl || '').trim();
   if (!key) throw new Error('Mail.ru kaynak sayfasi bulunamadi.');
@@ -108,7 +133,10 @@ async function resolveFreshMailRuVideo(pageUrl) {
 async function recoverLegacySource(channel) {
   const originalUrl = String(channel?.url || '').trim();
 
+  // Older CDN URLs sometimes contain a usable long Mail.ru embed id.
   for (const candidate of collectLegacyIdCandidates(originalUrl)) {
+    if (candidate.length < 10) continue;
+
     const pageUrl = 'https://my.mail.ru/video/embed/' + encodeURIComponent(candidate);
 
     try {
@@ -119,6 +147,7 @@ async function recoverLegacySource(channel) {
     } catch {}
   }
 
+  // The old source-level page URL is only valid when its CDN identity matches.
   const fallbackPageUrl = String(channel?.mailRuLegacySourcePageUrl || '').trim();
   if (fallbackPageUrl) {
     try {
@@ -129,8 +158,37 @@ async function recoverLegacySource(channel) {
     } catch {}
   }
 
+  // Final recovery: search Mail.ru by the saved channel title, then verify
+  // every candidate against the original CDN media identity before accepting.
+  for (const query of legacySearchQueries(channel)) {
+    let candidates = [];
+
+    try {
+      candidates = await searchMailRuVideos(query, 10);
+    } catch {
+      continue;
+    }
+
+    for (let offset = 0; offset < candidates.length; offset += 4) {
+      const batch = candidates.slice(offset, offset + 4);
+      const results = await Promise.all(batch.map(async (pageUrl) => {
+        try {
+          const resolved = await resolveFreshMailRuVideo(pageUrl);
+          return resolvedMatchesOriginal(resolved, originalUrl)
+            ? { resolved, pageUrl: String(resolved?.sourceUrl || pageUrl).trim() }
+            : null;
+        } catch {
+          return null;
+        }
+      }));
+
+      const match = results.find(Boolean);
+      if (match) return match;
+    }
+  }
+
   const error = new Error(
-    'Bu eski Mail.ru kaydinin ozgun kaynak adresi bulunamadi. Yanlis video acilmamasi icin otomatik eslestirme durduruldu.'
+    'Bu eski Mail.ru kaydinin ozgun kaynak adresi otomatik bulunamadi. Yanlis video acilmamasi icin oynatma durduruldu.'
   );
   error.status = 422;
   throw error;

@@ -69,7 +69,7 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
   const page = await browser.newPage();
   diagnostics.pagesOpened += 1;
   const sourcePage = entry.url;
-  const title = entry.title || '';
+  let title = entry.title || '';
   const bodyReads = [];
 
   try {
@@ -111,6 +111,12 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
     });
 
     await page.goto(entry.url, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT }).catch(() => {});
+    const pageTitle = await page.evaluate(() => {
+      const video = document.querySelector('video');
+      const meta = document.querySelector('meta[property="og:title"],meta[name="twitter:title"]');
+      return String(meta?.content || video?.getAttribute('title') || document.title || '').trim();
+    }).catch(() => '');
+    if (pageTitle) title = pageTitle.slice(0, 180);
     await sleep(900);
     diagnostics.playerClicks += await clickPlayers(page);
     await adaptiveListen({ page, candidates, diagnostics, clickMain: clickPlayers, sleep, shouldContinue });

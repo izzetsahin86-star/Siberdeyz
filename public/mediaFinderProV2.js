@@ -16,7 +16,7 @@ function ensureUi(){
   const link=document.createElement('link');link.rel='stylesheet';link.href='/mediaFinderProV2.css';document.head.append(link);
 }
 export function createMediaFinderProV2Controller({onSaved}={}){
-  ensureUi(); const $=s=>document.querySelector(s); let job=null,timer=null;
+  ensureUi(); const $=s=>document.querySelector(s); let job=null,timer=null,lastResultsKey='';
   function show(){document.querySelectorAll('#webScanView .web-scan-mode-section').forEach(x=>x.hidden=x.id!=='mediaProV2Section');document.querySelectorAll('#webScanView .web-scan-mode-tab').forEach(x=>x.classList.toggle('is-active',x.dataset.webScanMode==='prov2'));}
   document.querySelector('[data-web-scan-mode="prov2"]')?.addEventListener('click',show);
   document.querySelector('#webScanView .web-scan-mode-tabs')?.addEventListener('click',(event)=>{
@@ -33,8 +33,15 @@ export function createMediaFinderProV2Controller({onSaved}={}){
   function render(d){
     if(!d)return;job=d;$('#mediaProV2Status').textContent=d.message||'';$('#mediaProV2Status').dataset.type=d.status==='failed'?'error':'';
     $('#mediaProV2Stop').hidden=!['running','stopping'].includes(d.status);
-    $('#mediaProV2Results').innerHTML=(d.results||[]).map(x=>'<label class="media-pro-v2-card"><span><input type="checkbox" data-v2-id="'+esc(x.id)+'" checked> <strong>'+esc(x.name)+'</strong></span><small>'+esc(x.kind)+' · '+esc(x.discoveredBy)+'</small><small>'+esc(x.url)+'</small></label>').join('')||'<div class="media-pro-v2-card">Henuz dogrulanmis yayin yok.</div>';
-    $('#mediaProV2SaveBar').hidden=!(d.results||[]).length;
+    const results=d.results||[];
+    const resultsKey=results.map(x=>x.id+'|'+x.name).join('||');
+    if(resultsKey!==lastResultsKey){
+      const checked=new Set([...document.querySelectorAll('[data-v2-id]:checked')].map(x=>x.dataset.v2Id));
+      const hadResults=lastResultsKey!=='';
+      $('#mediaProV2Results').innerHTML=results.map(x=>'<label class="media-pro-v2-card"><span><input type="checkbox" data-v2-id="'+esc(x.id)+'" '+((!hadResults||checked.has(x.id))?'checked':'')+'> <strong>'+esc(x.name)+'</strong></span><small>'+esc(x.kind)+' · '+esc(x.discoveredBy)+'</small><small>'+esc(x.url)+'</small></label>').join('')||'<div class="media-pro-v2-card">Henuz dogrulanmis yayin yok.</div>';
+      lastResultsKey=resultsKey;
+    }
+    $('#mediaProV2SaveBar').hidden=!results.length;
   }
   async function poll(){try{const d=await api('/status');render(d);if(d&&['running','stopping'].includes(d.status)){timer=setTimeout(poll,1200);}}catch{}}
   $('#mediaProV2Start')?.addEventListener('click',async()=>{clearTimeout(timer);try{const mode=$('#mediaProV2Mode').value;const normalizedUrl=normalizeUrlInput($('#mediaProV2Url').value);$('#mediaProV2Url').value=normalizedUrl;const d=await api('/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode,url:normalizedUrl,query:$('#mediaProV2Query').value})});render(d);poll();}catch(e){$('#mediaProV2Status').textContent=e.message;$('#mediaProV2Status').dataset.type='error';}});

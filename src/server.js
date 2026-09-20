@@ -31,5 +31,4 @@ app.listen(config.port, () => {
   startAccountAutoScanScheduler().catch((error) => {
     console.error('Automatic account scanner could not start:', error);
   });
-
 });

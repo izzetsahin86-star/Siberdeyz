@@ -321,6 +321,8 @@ function clearPlaybackFallback() {
 }
 
 function getDirectPlaybackUrl(channel) {
+  if (channel?.sourceKind === 'mailru-m3u') return '';
+
   try {
     const parsed = new URL(String(channel?.url || ''), window.location.href);
     const extensionMatch = parsed.pathname.toLocaleLowerCase('tr-TR').match(/\.([a-z0-9]+)$/i);

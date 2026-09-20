@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { apiRouter } from './routes/api.js';
 import { startAccountAutoScanScheduler } from './modules/accountAutoScanScheduler.js';
+import { getPlaylistSourceById } from './modules/sourceStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,4 +32,24 @@ app.listen(config.port, () => {
   startAccountAutoScanScheduler().catch((error) => {
     console.error('Automatic account scanner could not start:', error);
   });
+
+  getPlaylistSourceById('m3u_yayinlarim')
+    .then((source) => {
+      if (!source) return;
+      const rows = (source.channels || []).map((channel) => {
+        let mediaId = '';
+        try {
+          const base = new URL(String(channel.url || '')).pathname.split('/').pop() || '';
+          mediaId = base.match(/\d{6,20}/)?.[0] || '';
+        } catch {}
+        return {
+          id: String(channel.id || ''),
+          name: String(channel.name || ''),
+          mediaId,
+          hasPageUrl: Boolean(String(channel.pageUrl || '').trim()),
+        };
+      });
+      console.log('MAILRU_LEGACY_IDENTITIES ' + JSON.stringify(rows));
+    })
+    .catch((error) => console.error('MAILRU_LEGACY_IDENTITIES_ERROR', error?.message || error));
 });

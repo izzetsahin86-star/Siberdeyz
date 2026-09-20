@@ -1,4 +1,4 @@
-import { resolveMailRuVideo, searchMailRuVideos } from './mailRuM3uService.js';
+import { resolveMailRuVideo } from './mailRuM3uService.js';
 import { updateM3uYayinimChannelPlayback } from './sourceStorage.js';
 
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
@@ -27,85 +27,6 @@ function needsRefresh(url) {
   }
 }
 
-function mediaIdentity(url) {
-  try {
-    const parsed = new URL(String(url || ''));
-    const pathname = decodeURIComponent(parsed.pathname || '').toLocaleLowerCase('tr-TR');
-    const base = pathname.split('/').pop() || '';
-    const numeric = base.match(/\d{6,}/)?.[0];
-
-    if (numeric) return 'id:' + numeric;
-
-    return 'file:' + base
-      .replace(/\.(?:mp4|m3u8|mov|m4v|3gp|3g2)$/i, '')
-      .replace(/(?:^|[-_.\s])(2160|1440|1080|720|576|540|480|360|240)p?(?=$|[-_.\s])/gi, '')
-      .replace(/[^a-z0-9\u00c0-\u024f]+/gi, '')
-      .trim();
-  } catch {
-    return '';
-  }
-}
-
-function resolvedMatchesOriginal(resolved, originalUrl) {
-  const originalIdentity = mediaIdentity(originalUrl);
-  if (!originalIdentity) return false;
-
-  return (resolved?.videos || []).some((item) => mediaIdentity(item?.url) === originalIdentity);
-}
-
-function collectLegacyIdCandidates(url) {
-  const ids = new Set();
-
-  try {
-    const parsed = new URL(String(url || ''));
-    const values = [
-      parsed.pathname,
-      parsed.searchParams.get('video_key') || '',
-      parsed.searchParams.get('p') || '',
-      ...parsed.searchParams.getAll('slave[]'),
-    ];
-
-    for (const value of values) {
-      let decoded = String(value || '');
-      try { decoded = decodeURIComponent(decoded); } catch {}
-
-      for (const match of decoded.matchAll(/\d{6,20}/g)) {
-        ids.add(match[0]);
-        if (ids.size >= 6) break;
-      }
-
-      if (ids.size >= 6) break;
-    }
-  } catch {}
-
-  return [...ids];
-}
-
-function cleanLegacyTitle(value) {
-  let text = String(value || '').replace(/\+/g, ' ');
-  try { text = decodeURIComponent(text); } catch {}
-
-  return text
-    .replace(/\.(?:mp4|m3u8|mov|m4v|3gp|3g2)$/i, '')
-    .replace(/\b(?:2160|1440|1080|720|576|540|480|360|240)p\b/gi, ' ')
-    .replace(/\b(?:turkce|türkçe)\s+altyazili\b/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function legacySearchQueries(channel) {
-  const full = cleanLegacyTitle(channel?.name);
-  if (!full) return [];
-
-  const simplified = full
-    .replace(/\b(?:uncensored|erotik\s+film\s+izle|altyazıhub)\b/gi, ' ')
-    .replace(/[|•]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return [...new Set([full, simplified].filter((item) => item.length >= 4))].slice(0, 2);
-}
-
 async function resolveFreshMailRuVideo(pageUrl) {
   const key = String(pageUrl || '').trim();
   if (!key) throw new Error('Mail.ru kaynak sayfasi bulunamadi.');
@@ -130,91 +51,13 @@ async function resolveFreshMailRuVideo(pageUrl) {
   return pending;
 }
 
-async function recoverLegacySource(channel) {
-  const originalUrl = String(channel?.url || '').trim();
-
-  // Older CDN URLs sometimes contain a usable long Mail.ru embed id.
-  for (const candidate of collectLegacyIdCandidates(originalUrl)) {
-    if (candidate.length < 10) continue;
-
-    const pageUrl = 'https://my.mail.ru/video/embed/' + encodeURIComponent(candidate);
-
-    try {
-      const resolved = await resolveFreshMailRuVideo(pageUrl);
-      if (resolvedMatchesOriginal(resolved, originalUrl)) {
-        return { resolved, pageUrl };
-      }
-    } catch {}
-  }
-
-  // The old source-level page URL is only valid when its CDN identity matches.
-  const fallbackPageUrl = String(channel?.mailRuLegacySourcePageUrl || '').trim();
-  if (fallbackPageUrl) {
-    try {
-      const resolved = await resolveFreshMailRuVideo(fallbackPageUrl);
-      if (resolvedMatchesOriginal(resolved, originalUrl)) {
-        return { resolved, pageUrl: String(resolved?.sourceUrl || fallbackPageUrl).trim() };
-      }
-    } catch {}
-  }
-
-  // Final recovery: search Mail.ru by the saved channel title, then verify
-  // every candidate against the original CDN media identity before accepting.
-  for (const query of legacySearchQueries(channel)) {
-    let candidates = [];
-
-    try {
-      candidates = await searchMailRuVideos(query, 10);
-    } catch {
-      continue;
-    }
-
-    for (let offset = 0; offset < candidates.length; offset += 4) {
-      const batch = candidates.slice(offset, offset + 4);
-      const results = await Promise.all(batch.map(async (pageUrl) => {
-        try {
-          const resolved = await resolveFreshMailRuVideo(pageUrl);
-          return resolvedMatchesOriginal(resolved, originalUrl)
-            ? { resolved, pageUrl: String(resolved?.sourceUrl || pageUrl).trim() }
-            : null;
-        } catch {
-          return null;
-        }
-      }));
-
-      const match = results.find(Boolean);
-      if (match) return match;
-    }
-  }
-
-  const error = new Error(
-    'Bu eski Mail.ru kaydinin ozgun kaynak adresi otomatik bulunamadi. Yanlis video acilmamasi icin oynatma durduruldu.'
-  );
-  error.status = 422;
-  throw error;
-}
-
 export async function refreshMailRuChannelForPlayback(channel) {
   if (!channel || channel.sourceKind !== 'mailru-m3u') return channel;
-  if (!needsRefresh(channel.url)) return channel;
 
-  let pageUrl = String(channel.pageUrl || '').trim();
-  let resolved;
-  let recoveredLegacy = false;
+  const pageUrl = String(channel.pageUrl || '').trim();
+  if (!pageUrl || !needsRefresh(channel.url)) return channel;
 
-  if (pageUrl) {
-    resolved = await resolveFreshMailRuVideo(pageUrl);
-  } else if (channel.mailRuLegacyPageUrl) {
-    const recovered = await recoverLegacySource(channel);
-    resolved = recovered.resolved;
-    pageUrl = recovered.pageUrl;
-    recoveredLegacy = true;
-  } else {
-    const error = new Error('Mail.ru kaynak sayfasi bulunamadi.');
-    error.status = 422;
-    throw error;
-  }
-
+  const resolved = await resolveFreshMailRuVideo(pageUrl);
   const freshUrl = String(resolved?.best?.url || '').trim();
 
   if (!freshUrl) {
@@ -223,24 +66,22 @@ export async function refreshMailRuChannelForPlayback(channel) {
     throw error;
   }
 
-  // Never accept a legacy recovery that resolves to a different video.
-  if (recoveredLegacy && !resolvedMatchesOriginal(resolved, channel.url)) {
-    const error = new Error('Eski Mail.ru kaydi farkli bir videoya eslesti; oynatma iptal edildi.');
-    error.status = 409;
-    throw error;
-  }
-
   const freshPageUrl = String(resolved?.sourceUrl || pageUrl).trim();
 
+  // findChannel() returns the cached channel object. Mutating it keeps the
+  // current playback request in sync while the persistent copy is updated.
   channel.url = freshUrl;
   channel.pageUrl = freshPageUrl;
-  channel.mailRuLegacyPageUrl = false;
 
-  await updateM3uYayinimChannelPlayback({
-    channelId: channel.id,
-    url: freshUrl,
-    pageUrl: freshPageUrl,
-  });
+  // Legacy records only had one source-level pageUrl. Do not rewrite those
+  // stored channels because doing so could collapse/reindex old quality variants.
+  if (!channel.mailRuLegacyPageUrl) {
+    await updateM3uYayinimChannelPlayback({
+      channelId: channel.id,
+      url: freshUrl,
+      pageUrl: freshPageUrl,
+    });
+  }
 
   return channel;
 }

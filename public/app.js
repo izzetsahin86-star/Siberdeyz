@@ -336,11 +336,11 @@ function getDirectPlaybackUrl(channel) {
   }
 }
 
-function setPlaybackSource(channel, directOverride = '') {
+function setPlaybackSource(channel) {
   clearPlaybackFallback();
 
   const fallbackUrl = `/api/play/${channel.id}`;
-  const directUrl = directOverride || getDirectPlaybackUrl(channel);
+  const directUrl = getDirectPlaybackUrl(channel);
   const mode = state.appSettings.playbackMode || 'auto';
 
   playbackUsingCompatibility = mode === 'compatibility' || !directUrl;
@@ -387,36 +387,6 @@ function setPlaybackSource(channel, directOverride = '') {
   };
 
   elements.player.addEventListener('error', playbackErrorHandler);
-}
-
-async function preparePlaybackSource(channel) {
-  if (channel?.sourceKind !== 'mailru-m3u') {
-    setPlaybackSource(channel);
-    return;
-  }
-
-  setStatus('Mail.ru yayin baglantisi hazirlaniyor...');
-
-  try {
-    const response = await fetch(`/api/playback/${encodeURIComponent(channel.id)}`, {
-      cache: 'no-store',
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Mail.ru yayin baglantisi hazirlanamadi.');
-    }
-
-    const directUrl = String(data.directUrl || '').trim();
-    if (!directUrl) {
-      throw new Error('Guncel Mail.ru yayin adresi alinamadi.');
-    }
-
-    setPlaybackSource(channel, directUrl);
-  } catch (error) {
-    setPlaybackSource(channel);
-    throw error;
-  }
 }
 
 function stopPlayback({ message = 'Yayin kapatildi.', resetSound = false } = {}) {
@@ -1636,13 +1606,7 @@ async function playChannel(channelId) {
   elements.currentChannel.textContent = channel.name;
   updateSelectedWebScanDeleteButton();
   elements.player.muted = !state.soundEnabled;
-
-  try {
-    await preparePlaybackSource(channel);
-  } catch (error) {
-    setStatus(error.message || 'Yayin baglantisi hazirlanamadi.', 'warning');
-  }
-
+  setPlaybackSource(channel);
   elements.player.play().catch(() => {
     setStatus('Kanal secildi. Oynat tusuna basin.', 'warning');
   });

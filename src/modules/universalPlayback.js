@@ -6,7 +6,6 @@ import os from 'os';
 import path from 'path';
 import { findChannel } from './playlistService.js';
 import { proxyStream } from './streamProxy.js';
-import { refreshMailRuChannelForPlayback } from './mailRuPlaybackRefreshService.js';
 import { getTenantId } from './tenantContext.js';
 
 const HLS_RESOURCE_TTL_MS = 15 * 60 * 1000;
@@ -368,11 +367,10 @@ export async function playUniversal(req, res) {
     return;
   }
 
-  const playableChannel = await refreshMailRuChannelForPlayback(channel);
-  const kind = classifyChannel(playableChannel);
+  const kind = classifyChannel(channel);
 
   if (kind === 'hls') {
-    await proxyHlsUrl(playableChannel.url, req, res);
+    await proxyHlsUrl(channel.url, req, res);
     return;
   }
 
@@ -382,7 +380,7 @@ export async function playUniversal(req, res) {
   }
 
   try {
-    await serveTranscodedManifest(req, res, playableChannel);
+    await serveTranscodedManifest(req, res, channel);
   } catch (error) {
     if (res.headersSent) throw error;
     await proxyStream(req, res);

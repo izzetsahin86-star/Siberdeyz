@@ -70,7 +70,6 @@ function normalizeStoredChannels(channels) {
       group: String(channel?.group || 'Genel').trim() || 'Genel',
       tvgId: String(channel?.tvgId || '').trim(),
       url,
-      pageUrl: String(channel?.pageUrl || '').trim(),
       webDurationSeconds: channel?.webDurationSeconds !== null
         && channel?.webDurationSeconds !== undefined
         && Number.isFinite(Number(channel.webDurationSeconds))
@@ -431,27 +430,11 @@ export async function appendM3uYayinimChannel({ name = '', url = '', pageUrl = '
     state.sources.push(source);
   }
 
-  const normalizedPageUrl = String(pageUrl || '').trim();
-  const existingChannel = source.channels.find((channel) => (
-    channel.url === clean
-    || (normalizedPageUrl && String(channel.pageUrl || '').trim() === normalizedPageUrl)
-  ));
-  const exists = Boolean(existingChannel);
-
-  if (existingChannel) {
-    existingChannel.name = String(name || existingChannel.name || 'Mail.ru Yayını').trim();
-    existingChannel.url = clean;
-    existingChannel.pageUrl = normalizedPageUrl || existingChannel.pageUrl || '';
-    existingChannel.group = 'M3U Yayınlarım';
-  } else {
+  const exists = source.channels.some((channel) => channel.url === clean);
+  if (!exists) {
     source.channels = normalizeStoredChannels([
       ...source.channels,
-      {
-        name: String(name || 'Mail.ru Yayını').trim(),
-        url: clean,
-        pageUrl: normalizedPageUrl,
-        group: 'M3U Yayınlarım',
-      },
+      { name: String(name || 'Mail.ru Yayını').trim(), url: clean, group: 'M3U Yayınlarım' },
     ]);
   }
   source.label = 'M3U Yayınlarım';
@@ -463,27 +446,6 @@ export async function appendM3uYayinimChannel({ name = '', url = '', pageUrl = '
   state.activeSourceId = id;
   await writeState(state);
   return { ...(await getSourceStatus()), added: !exists, channelCount: source.channels.length };
-}
-
-export async function updateM3uYayinimChannelPlayback({ channelId = '', url = '', pageUrl = '' } = {}) {
-  const clean = cleanUrl(url);
-  const state = await readState();
-  const source = state.sources.find((item) => item.id === 'm3u_yayinlarim');
-
-  if (!source || source.type !== 'file' || source.sourceKind !== 'mailru-m3u') {
-    return false;
-  }
-
-  const id = String(channelId || '').trim();
-  const channel = source.channels.find((item) => String(item.id) === id);
-  if (!channel) return false;
-
-  channel.url = clean;
-  channel.pageUrl = String(pageUrl || channel.pageUrl || source.pageUrl || '').trim();
-  source.updatedAt = new Date().toISOString();
-
-  await writeState(state);
-  return true;
 }
 
 export async function deleteActiveWebScanChannel(channelId = '') {

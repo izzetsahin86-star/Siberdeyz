@@ -38,7 +38,7 @@ export function createMediaFinderProV2Controller({onSaved}={}){
     if(resultsKey!==lastResultsKey){
       const checked=new Set([...document.querySelectorAll('[data-v2-id]:checked')].map(x=>x.dataset.v2Id));
       const hadResults=lastResultsKey!=='';
-      $('#mediaProV2Results').innerHTML=results.map(x=>'<label class="media-pro-v2-card"><span><input type="checkbox" data-v2-id="'+esc(x.id)+'" '+((!hadResults||checked.has(x.id))?'checked':'')+'> <strong>'+esc(x.name)+'</strong></span><small>'+esc(x.kind)+' · '+esc(x.discoveredBy)+'</small><small>'+esc(x.url)+'</small></label>').join('')||'<div class="media-pro-v2-card">Henuz dogrulanmis yayin yok.</div>';
+      $('#mediaProV2Results').innerHTML=results.map(x=>'<label class="media-pro-v2-card"><span><input type="checkbox" data-v2-id="'+esc(x.id)+'" '+((!hadResults||checked.has(x.id))?'checked':'')+'> <strong>'+esc(x.name)+'</strong></span><small>'+esc(x.kind)+' · '+esc(x.discoveredBy)+'</small></label>').join('')||'<div class="media-pro-v2-card">Henuz dogrulanmis yayin yok.</div>';
       lastResultsKey=resultsKey;
     }
     $('#mediaProV2SaveBar').hidden=!results.length;

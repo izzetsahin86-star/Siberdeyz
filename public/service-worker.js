@@ -1,6 +1,8 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260917-active-account-header-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260923-desktop-layout-1';
 
 const APP_SHELL = [
+  '/desktopLayout.css',
+  '/desktopLayout.js',
   '/',
   '/index.html',
   '/styles.css',
@@ -32,6 +34,8 @@ const APP_SHELL = [
 ];
 
 const NETWORK_FIRST_ASSETS = new Set([
+  '/desktopLayout.css',
+  '/desktopLayout.js',
   '/',
   '/index.html',
   '/styles.css',

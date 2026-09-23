@@ -6,6 +6,7 @@ import { createWebScanController } from './webScan.js';
 import { createFullSiteScanController } from './fullSiteScan.js';
 import { createMediaFinderProV2Controller } from './mediaFinderProV2.js';
 import { createChannelLoadFeedback } from './channelLoadFeedback.js';
+import { attachDesktopLayout, isDesktopLayout } from './desktopLayout.js';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_PAGE_SIZE = 100;
@@ -455,6 +456,8 @@ function closePanel() {
 }
 
 function setPanelCompact(isCompact) {
+  // Desktop keeps the library alongside the existing player.
+  if (isDesktopLayout()) return;
   elements.bottomPanel.dataset.compact = isCompact ? 'true' : 'false';
 
   if (isCompact) {
@@ -1936,6 +1939,7 @@ settingsController = createAppSettingsController({
 });
 
 applyStandaloneClass();
+attachDesktopLayout({ openPanel: switchPanel });
 registerServiceWorker();
 startupSessionReset = clearPreviousAdminSession();
 renderGroups();

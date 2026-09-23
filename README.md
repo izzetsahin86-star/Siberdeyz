@@ -47,3 +47,19 @@ Sonra tarayicida `http://localhost:3000` adresini ac.
 ## Gelistirme Notu
 
 Yeni ozellik eklerken mevcut modulleri bozma. Ornegin favoriler icin `src/modules/favoritesService.js`, admin icin `src/routes/admin.js` gibi ayri dosyalar acilabilir.
+# Masaüstü arayüz modülü
+
+`public/desktopLayout.js` ve `public/desktopLayout.css`, en az 1024 CSS piksel
+genişliğinde, fare/trackpad kullanan masaüstü ekranlarında ayrı bir düzen sağlar.
+iPhone, iPad ve iPad'in masaüstü Safari modu bu düzenin dışında tutulur.
+Dar pencere veya dokunmatik kullanımda mevcut arayüz devam eder.
+
+- Sol menü, yan yana oynatıcı ve içerik paneli; masaüstünde yayın seçimi listeyi kapatmaz.
+- Hesaplar, ayarlar ve dört web tarama modu mevcut kontrolleri ve servisleri kullanır.
+- `/` kanal aramasını açar; `Alt+1/2/3/4` bölümlere geçer. Form yazarken kısayollar devre dışıdır.
+- Ekran boyutu değiştiğinde video, alanlar ve olay dinleyicileri yeniden oluşturulmaz.
+- Mobil stil dosyaları değiştirilmez; masaüstü CSS'i hem medya sorgusu hem cihaz sınıfıyla sınırlanır.
+
+Kontrol: `npm ci && npm test`. Masaüstü regresyon testleri cihaz seçimini,
+mobil DOM'un korunmasını, ekran geçişlerini ve kısayolları kapsar. Gerçek iOS
+Safari ve oturum açılmış canlı yayın testi ayrıca yapılmalıdır.

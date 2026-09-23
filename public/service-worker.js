@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260924-favorite-selector-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260924-favorite-filter-1';
 
 const APP_SHELL = [
   '/desktopLayout.css',

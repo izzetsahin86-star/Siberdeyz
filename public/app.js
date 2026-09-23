@@ -8,6 +8,7 @@ import { createMediaFinderProV2Controller } from './mediaFinderProV2.js';
 import { createChannelLoadFeedback } from './channelLoadFeedback.js';
 import { attachDesktopLayout, isDesktopLayout } from './desktopLayout.js';
 import { attachAccountHealthRefresh } from './accountHealthRefresh.js';
+import { createAccountFavoritesController } from './accountFavorites.js';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_PAGE_SIZE = 100;
@@ -68,6 +69,7 @@ let webScanController = null;
 let fullSiteScanController = null;
 let mediaFinderProV2Controller = null;
 let channelLoadFeedback = null;
+let accountFavoritesController = null;
 let startupSessionReset = Promise.resolve();
 
 function applyStandaloneClass() {
@@ -505,6 +507,7 @@ function switchPanel(panelName) {
   if (panelName === 'accounts') {
     loadAccountHealth().catch((error) => setSourceStatus(error.message, 'error'));
     loadAccountTransferUsers().catch((error) => setSourceStatus(error.message, 'error'));
+    accountFavoritesController?.load().catch((error) => setSourceStatus(error.message, 'error'));
   }
 }
 
@@ -938,6 +941,7 @@ function renderSources() {
       const isPersistentFailed = healthStatus === 'failed' && state.accountPersistentFailedIds.has(source.id);
       const failureRecord = state.accountFailureRecords[source.id];
       const isWebScan = source.sourceKind === 'web-scan' || source.folder === 'Web Tarama';
+      const favoriteAccount = accountFavoritesController?.isFavorite(source.id) || false;
       const statusLabel = isWebScan
         ? 'Web Tarama'
         : (isPersistentFailed ? 'Kalici calismiyor' : accountStatusLabel(healthStatus));
@@ -980,6 +984,7 @@ function renderSources() {
         showManualScan
           ? '<button class="source-pill-scan" type="button" data-account-scan="' + escapeHtml(source.id) + '"' + (scanning ? ' disabled' : '') + '>' + (scanning ? '...' : 'Tara') + '</button>'
           : '',
+        '<button class="source-pill-favorite' + (favoriteAccount ? ' is-active' : '') + '" type="button" data-account-favorite="' + escapeHtml(source.id) + '">' + (favoriteAccount ? 'Favoride' : 'Favorilere') + '</button>',
         '<button class="source-pill-delete" type="button" data-source-delete="' + escapeHtml(source.id) + '" aria-label="Hesabi sil">Sil</button>',
         '</div>',
         '</article>',
@@ -1022,6 +1027,7 @@ function setSourceState(data) {
   );
 
   renderSources();
+  accountFavoritesController?.render();
   renderActiveAccountHeader();
   updateSelectedWebScanDeleteButton();
 
@@ -1759,6 +1765,13 @@ elements.sourceList.addEventListener('click', (event) => {
     return;
   }
 
+  const favoriteButton = event.target.closest('[data-account-favorite]');
+  if (favoriteButton) {
+    accountFavoritesController?.toggle(favoriteButton.dataset.accountFavorite)
+      .catch((error) => setSourceStatus(error.message, 'error'));
+    return;
+  }
+
   const deleteButton = event.target.closest('[data-source-delete]');
   if (deleteButton) {
     deleteSource(deleteButton.dataset.sourceDelete).catch((error) => setSourceStatus(error.message, 'error'));
@@ -1865,6 +1878,14 @@ window.addEventListener('siberdeyz:source-updated', (event) => {
 elements.player.playsInline = true;
 elements.player.setAttribute('playsinline', '');
 elements.player.setAttribute('webkit-playsinline', '');
+
+accountFavoritesController = createAccountFavoritesController({
+  accountsView: elements.accountsView,
+  getSources: () => state.sources,
+  activateSource,
+  setStatus: setSourceStatus,
+  onChanged: renderSources,
+});
 
 userAccessController = createUserAccessSettingsController();
 

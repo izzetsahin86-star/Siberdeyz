@@ -1,9 +1,10 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260923-expired-cleanup-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260923-bulk-url-upload-1';
 
 const APP_SHELL = [
   '/desktopLayout.css',
   '/desktopLayout.js',
   '/accountHealthRefresh.js',
+  '/bulkUrlUpload.js',
   '/',
   '/index.html',
   '/styles.css',
@@ -39,6 +40,7 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/desktopLayout.css',
   '/desktopLayout.js',
   '/accountHealthRefresh.js',
+  '/bulkUrlUpload.js',
   '/',
   '/index.html',
   '/styles.css',

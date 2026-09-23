@@ -147,6 +147,18 @@ function isGenericSourcePrefix(value) {
   ].some((token) => normalized === token.toLocaleLowerCase('tr-TR'));
 }
 
+function isSequencePrefix(value) {
+  const normalized = String(value || '')
+    .trim()
+    .replace(/['"]/g, '')
+    .replace(/[\s,;]+$/g, '')
+    .trim();
+
+  // Toplu listelerdeki "1", "2.", "3)" gibi degerler hesap adi degil,
+  // yalnizca satir sirasidir.
+  return /^\[?\d+\]?[.):-]?$/.test(normalized);
+}
+
 function addPlaylistSource(sources, seen, sourceUrl, labelCandidate, fallback) {
   if (!sourceUrl || looksLikeDirectStream(sourceUrl)) return false;
 
@@ -155,7 +167,9 @@ function addPlaylistSource(sources, seen, sourceUrl, labelCandidate, fallback) {
 
   seen.add(identity);
   const cleanedCandidate = cleanName(labelCandidate);
-  const label = cleanedCandidate && !isGenericSourcePrefix(cleanedCandidate)
+  const label = cleanedCandidate
+    && !isGenericSourcePrefix(cleanedCandidate)
+    && !isSequencePrefix(cleanedCandidate)
     ? cleanedCandidate
     : sourceDefaultLabel(sourceUrl, fallback + ' ' + (sources.length + 1));
 

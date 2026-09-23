@@ -95,7 +95,6 @@ otomatik taramada başarısız bulunursa silinir. Aktif sonuç sayacı sıfırla
 Yeni kullanıcılar için başlangıç değeri 50'dir; mevcut ayarı olmayan
 kullanıcılarda da 50 korunur.
 
-
 ### Süresi biten hesaplar
 
 Sağlayıcı API'sinin `expired` durumu veya geçmiş bitiş tarihiyle süresi bittiği
@@ -103,3 +102,12 @@ doğrulanan URL hesabı, otomatik tarama sırasında beklemeden kalıcı silinir
 Bu hesaplara gün veya tarama sayısı uygulanmaz. Elle tarama yalnızca durumu
 gösterir; silme işlemini otomatik tarama yapar. Otomatik tarama kapalıysa bu
 temizlik de çalışmaz. Dosya hesapları kapsam dışındadır.
+
+## Toplu URL dosyası yükleme
+
+Hesaplar → Dosya Ekle alanı M3U ve TXT dosyalarının yanında CSV/TSV dosyalarını
+da kabul eder. Bir dosyada her satıra bir playlist URL'si yazılarak birden fazla
+URL hesabı tek işlemde eklenebilir. Satırların başında `1`, `2.`, `3)` gibi sıra
+numaraları bulunabilir; bunlar hesap adı olarak kaydedilmez. Hesap adı verilmezse
+alan adı ve kullanıcı adı kullanılır. Aynı hesap bilgilerini taşıyan yinelenen
+satırlar tek hesap olarak kaydedilir.

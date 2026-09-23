@@ -90,10 +90,17 @@ export function recordAccountScanResults(results = [], { automatic = false, scan
       const sourceUpdatedAt = String(result.sourceUpdatedAt || saved.sourceUpdatedAt);
       const previous = saved.sourceUpdatedAt && saved.sourceUpdatedAt !== sourceUpdatedAt
         ? publicRecord() : saved;
-      if (status === 'active' || status === 'expired') {
+      if (status === 'active') {
         state.accounts[id] = { ...previous, sourceUpdatedAt, consecutiveFailures: 0,
           lastStatus: status, persistentFailedAt: '', firstAutomaticFailureAt: '',
           lastAutomaticScanAt: automatic ? scannedAt : previous.lastAutomaticScanAt };
+      } else if (status === 'expired') {
+        state.accounts[id] = { ...previous, sourceUpdatedAt, consecutiveFailures: 0,
+          lastStatus: status, persistentFailedAt: '', firstAutomaticFailureAt: '',
+          lastAutomaticScanAt: automatic ? scannedAt : previous.lastAutomaticScanAt };
+        // Expiration comes from the provider account API/expiry date. Only the
+        // scheduled scanner may turn that result into permanent deletion.
+        if (automatic) candidates.push(id);
       } else if (automatic && status === 'failed') {
         // Retrying the same scheduled batch must never count it twice.
         const failures = previous.consecutiveFailures + (previous.lastAutomaticScanAt === scannedAt ? 0 : 1);

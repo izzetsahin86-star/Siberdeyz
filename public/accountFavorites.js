@@ -76,6 +76,7 @@ export function createAccountFavoritesController({
 
     ids = new Set(data.ids || []);
     render();
+    onChanged?.();
   }
 
   async function setFavorite(id, favorite) {

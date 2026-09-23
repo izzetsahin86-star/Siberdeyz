@@ -2,6 +2,12 @@ import { Router } from 'express';
 import { resolveMailRuVideo } from '../modules/mailRuM3uService.js';
 import { loginSession, logoutSession, requireAdminSession, requireAppSession } from '../modules/sessionAuthService.js';
 import { listFavorites, addFavorite, removeFavorite, clearFavorites } from '../modules/favoritesService.js';
+import {
+  addAccountFavorite,
+  clearAccountFavorites,
+  listAccountFavorites,
+  removeAccountFavorite,
+} from '../modules/accountFavoritesService.js';
 import { clearChannelCache, findChannel, getChannels } from '../modules/playlistService.js';
 import { getPlaybackInfo } from '../modules/playbackService.js';
 import {
@@ -362,6 +368,35 @@ apiRouter.get('/account-failures', async (req, res, next) => {
   }
 });
 
+apiRouter.get('/account-favorites', async (req, res, next) => {
+  try {
+    const status = await getSourceStatus();
+    res.json(await listAccountFavorites(status.sources.map((source) => source.id)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/account-favorites/:id', async (req, res, next) => {
+  try {
+    const status = await getSourceStatus();
+    res.status(201).json(await addAccountFavorite(
+      req.params.id,
+      status.sources.map((source) => source.id)
+    ));
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/account-favorites/:id', async (req, res, next) => {
+  try {
+    res.json(await removeAccountFavorite(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.post('/account-health/:id/scan', async (req, res, next) => {
   try {
     res.json(await scanAccount(req.params.id));
@@ -439,6 +474,7 @@ apiRouter.delete('/source/:id', async (req, res, next) => {
   try {
     const status = await deletePlaylistSource(req.params.id);
     await removeAccountHealth(req.params.id);
+    await removeAccountFavorite(req.params.id);
     clearChannelCache();
     await clearFavorites();
     res.json(status);
@@ -451,6 +487,7 @@ apiRouter.delete('/source', async (req, res, next) => {
   try {
     const status = await deletePlaylistSource();
     await removeAccountHealth();
+    await clearAccountFavorites();
     clearChannelCache();
     await clearFavorites();
     res.json(status);

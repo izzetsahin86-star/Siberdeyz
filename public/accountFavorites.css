@@ -1,0 +1,150 @@
+.favorite-accounts {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px 0 2px;
+}
+
+.favorite-accounts[hidden] {
+  display: none !important;
+}
+
+.favorite-accounts-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.favorite-accounts-head strong {
+  color: #f4f4f7;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.favorite-accounts-head span {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #ffe37f;
+  background: rgba(255,214,10,.12);
+  font-size: 9px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.favorite-account-pills {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 1px 1px 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.favorite-account-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.favorite-account-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(255,214,10,.22);
+  border-radius: 999px;
+  background: rgba(255,214,10,.075);
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+
+.favorite-account-pill.is-active {
+  border-color: rgba(48,209,88,.34);
+  background: rgba(48,209,88,.11);
+}
+
+.favorite-account-open,
+.favorite-account-remove {
+  border: 0;
+  color: #ffe78f;
+  background: transparent;
+  cursor: pointer;
+}
+
+.favorite-account-open {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 230px;
+  min-height: 30px;
+  padding: 5px 8px 5px 10px;
+}
+
+.favorite-account-open strong {
+  max-width: 185px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-account-remove {
+  min-width: 27px;
+  padding: 0 8px 0 5px;
+  color: rgba(255,255,255,.56);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.favorite-account-open:hover,
+.favorite-account-remove:hover {
+  background: rgba(255,255,255,.055);
+}
+
+.source-pill-favorite {
+  min-width: 62px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding: 0 7px;
+  color: #ffe37f;
+  background: rgba(255,214,10,.055);
+  font-size: 8.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.source-pill-favorite.is-active {
+  color: #fff0a8;
+  background: rgba(255,214,10,.13);
+}
+
+@media (max-width: 860px) {
+  .favorite-accounts {
+    padding-top: 6px;
+  }
+
+  .favorite-account-open {
+    max-width: 190px;
+    min-height: 29px;
+  }
+
+  .favorite-account-open strong {
+    max-width: 145px;
+    font-size: 9px;
+  }
+
+  .source-pill-favorite {
+    min-width: 49px;
+    padding: 0 5px;
+    font-size: 7.5px;
+  }
+}
+
+@media (max-width: 390px) {
+  .source-pill-favorite {
+    min-width: 44px;
+    padding: 0 4px;
+    font-size: 7px;
+  }
+}

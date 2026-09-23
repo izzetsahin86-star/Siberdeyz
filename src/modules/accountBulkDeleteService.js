@@ -1,5 +1,6 @@
 import { deletePlaylistSource, getSourceStatus } from './sourceStorage.js';
 import { removeAccountHealth } from './accountHealthService.js';
+import { removeAccountFavorites } from './accountFavoritesService.js';
 
 const MAX_BATCH_DELETE = 100;
 
@@ -21,6 +22,7 @@ export async function deleteAccountsByIds(sourceIds = []) {
     await deletePlaylistSource(id);
     await removeAccountHealth(id);
   }
+  await removeAccountFavorites(ids);
 
   return {
     deleted: ids.length,

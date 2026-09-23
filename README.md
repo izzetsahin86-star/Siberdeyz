@@ -89,4 +89,8 @@ otomatik taramadan itibaren süre hesaplanır; eski kayıtlarda mevcut kalıcı 
 tarihi kullanılır, tarih bilinmiyorsa yeni başarısız taramada başlar.
 Süre dolması tek başına silmez: kalıcı hata eşiğini geçmiş hesabın sonraki
 otomatik taramada da başarısız bulunması gerekir. Aktif sonuç süreyi sıfırlar.
-Gün ayarı yapılmadığında veya “50 otomatik tarama” seçildiğinde eski kural sürer.
+Tarama sayısına göre modunda kullanıcı 1–10000 arasında istediği tam sayıyı
+(örneğin 1, 2, 34 veya 1234) girebilir. Hesap seçilen sayı kadar art arda
+otomatik taramada başarısız bulunursa silinir. Aktif sonuç sayacı sıfırlar.
+Yeni kullanıcılar için başlangıç değeri 50'dir; mevcut ayarı olmayan
+kullanıcılarda da 50 korunur.

@@ -8,7 +8,7 @@ test('settings UI loads saved days, saves exact day value, validates input and c
   const dom = new JSDOM(readFileSync(new URL('../public/index.html', import.meta.url), 'utf8'));
   const previousFetch = globalThis.fetch;
   globalThis.document = dom.window.document;
-  let saved = { automaticDeleteDays: 14 };
+  let saved = { automaticDeleteDays: 14, automaticDeleteScans: 83 };
   const patches = [];
   globalThis.fetch = async (url, options) => {
     assert.equal(url, '/api/settings');
@@ -25,14 +25,17 @@ test('settings UI loads saved days, saves exact day value, validates input and c
     await controller.load();
     const mode = document.querySelector('#accountCleanupMode');
     const days = document.querySelector('#accountCleanupDays');
+    const scans = document.querySelector('#accountCleanupScans');
     const button = document.querySelector('#saveAccountCleanupDays');
     assert.equal(mode.value, 'days');
     assert.equal(days.value, '14');
     assert.equal(days.disabled, false);
+    assert.equal(scans.value, '83');
+    assert.equal(scans.disabled, true);
     days.value = '9';
     button.click();
     await settle();
-    assert.deepEqual(patches, [{ automaticDeleteDays: 9 }]);
+    assert.deepEqual(patches, [{ automaticDeleteDays: 9, automaticDeleteScans: 83 }]);
     assert.equal(controller.getSettings().automaticDeleteDays, 9);
     days.value = '0';
     button.click();
@@ -41,9 +44,11 @@ test('settings UI loads saved days, saves exact day value, validates input and c
     mode.value = 'scans';
     mode.dispatchEvent(new dom.window.Event('change'));
     assert.equal(days.disabled, true);
+    assert.equal(scans.disabled, false);
+    scans.value = '1234';
     button.click();
     await settle();
-    assert.deepEqual(patches[1], { automaticDeleteDays: 0 });
+    assert.deepEqual(patches[1], { automaticDeleteDays: 0, automaticDeleteScans: 1234 });
   } finally {
     dom.window.close();
     delete globalThis.document;

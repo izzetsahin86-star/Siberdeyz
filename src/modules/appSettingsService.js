@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   autoScanMinutes: 60,
   failureThreshold: 3,
   automaticDeleteDays: 0,
+  automaticDeleteScans: 50,
   playbackMode: 'auto',
   autoRetry: true,
   retryCount: 3,
@@ -50,6 +51,8 @@ function sanitizeSettings(input = {}) {
     failureThreshold: sanitizeNumber(input.failureThreshold, ALLOWED_FAILURE_THRESHOLDS, DEFAULT_SETTINGS.failureThreshold),
     automaticDeleteDays: Number.isInteger(Number(input.automaticDeleteDays)) && Number(input.automaticDeleteDays) >= 0 && Number(input.automaticDeleteDays) <= 3650
       ? Number(input.automaticDeleteDays) : DEFAULT_SETTINGS.automaticDeleteDays,
+    automaticDeleteScans: Number.isInteger(Number(input.automaticDeleteScans)) && Number(input.automaticDeleteScans) >= 1 && Number(input.automaticDeleteScans) <= 10000
+      ? Number(input.automaticDeleteScans) : DEFAULT_SETTINGS.automaticDeleteScans,
     playbackMode: sanitizeString(input.playbackMode, ALLOWED_PLAYBACK_MODES, DEFAULT_SETTINGS.playbackMode),
     autoRetry: sanitizeBoolean(input.autoRetry, DEFAULT_SETTINGS.autoRetry),
     retryCount: sanitizeNumber(input.retryCount, ALLOWED_RETRY_COUNTS, DEFAULT_SETTINGS.retryCount),
@@ -77,6 +80,12 @@ export async function updateAppSettings(patch = {}) {
   if (Object.hasOwn(patch || {}, 'automaticDeleteDays') &&
       (typeof patch.automaticDeleteDays !== 'number' || !Number.isInteger(patch.automaticDeleteDays) || patch.automaticDeleteDays < 0 || patch.automaticDeleteDays > 3650)) {
     const error = new Error('Silme suresi 1–3650 tam gun olmali; 0 mevcut 50 tarama kuralidir.');
+    error.status = 400;
+    throw error;
+  }
+  if (Object.hasOwn(patch || {}, 'automaticDeleteScans') &&
+      (typeof patch.automaticDeleteScans !== 'number' || !Number.isInteger(patch.automaticDeleteScans) || patch.automaticDeleteScans < 1 || patch.automaticDeleteScans > 10000)) {
+    const error = new Error('Tarama sayisi 1–10000 arasinda tam sayi olmali.');
     error.status = 400;
     throw error;
   }

@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { scanAccounts } from './accountHealthService.js';
-import { recordAutomaticScanResults } from './accountFailureTracker.js';
 import { getAppSettings } from './appSettingsService.js';
 import { getTenantDataDir, getTenantId, runWithTenantId } from './tenantContext.js';
 
@@ -34,6 +33,7 @@ function defaultStatus() {
     lastCompletedAt: '',
     nextRunAt: '',
     lastScannedCount: 0,
+    lastDeletedCount: 0,
     totalAccounts: 0,
     lastError: '',
   };
@@ -143,7 +143,7 @@ async function scheduleNextFrom(status, baseTime = Date.now()) {
   return nextStatus;
 }
 
-async function runAutomaticAccountScan() {
+export async function runAutomaticAccountScan() {
   const runtime = schedulerState();
   if (runtime.running) return;
 
@@ -169,6 +169,7 @@ async function runAutomaticAccountScan() {
     nextRunAt: new Date(startedAtMs + config.intervalMs).toISOString(),
     totalAccounts: ids.length,
     lastScannedCount: 0,
+    lastDeletedCount: 0,
     lastError: '',
   };
   await writeStatus(status);
@@ -178,10 +179,10 @@ async function runAutomaticAccountScan() {
   try {
     for (let offset = 0; offset < ids.length; offset += BATCH_SIZE) {
       const batch = ids.slice(offset, offset + BATCH_SIZE);
-      const scanResult = await scanAccounts(batch);
-      await recordAutomaticScanResults(scanResult.results, status.lastStartedAt);
+      const scanResult = await scanAccounts(batch, { automatic: true, scannedAt: status.lastStartedAt });
       scannedCount += batch.length;
-      status = { ...status, running: true, lastScannedCount: scannedCount };
+      status = { ...status, running: true, lastScannedCount: scannedCount,
+        lastDeletedCount: status.lastDeletedCount + (scanResult.deletedIds?.length || 0) };
       await writeStatus(status);
     }
 
@@ -257,6 +258,7 @@ export async function getAccountAutoScanStatus() {
     lastCompletedAt: String(status.lastCompletedAt || ''),
     nextRunAt: config.enabled ? String(status.nextRunAt || '') : '',
     lastScannedCount: Number(status.lastScannedCount) || 0,
+    lastDeletedCount: Number(status.lastDeletedCount) || 0,
     totalAccounts: Number(status.totalAccounts) || 0,
     lastError: String(status.lastError || ''),
   };

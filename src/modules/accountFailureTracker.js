@@ -1,7 +1,10 @@
+import { withTenantMutation } from './tenantMutationQueue.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { getAppSettings } from './appSettingsService.js';
 import { getTenantDataDir } from './tenantContext.js';
+
+export const AUTOMATIC_DELETE_THRESHOLD = 50;
 
 function getStorageDir() {
   return getTenantDataDir();
@@ -36,7 +39,9 @@ async function readJson(filePath, fallback) {
 
 async function writeState(state) {
   await fs.mkdir(getStorageDir(), { recursive: true });
-  await fs.writeFile(getTrackerFile(), JSON.stringify(state, null, 2));
+  const file = getTrackerFile();
+  await fs.writeFile(file + '.tmp', JSON.stringify(state, null, 2));
+  await fs.rename(file + '.tmp', file);
 }
 
 async function readState() {
@@ -64,49 +69,59 @@ async function readCurrentUrlIds() {
 function publicRecord(record = {}) {
   return {
     consecutiveFailures: Math.max(0, Number(record.consecutiveFailures) || 0),
+    sourceUpdatedAt: String(record.sourceUpdatedAt || ''),
     lastStatus: String(record.lastStatus || ''),
     lastAutomaticScanAt: String(record.lastAutomaticScanAt || ''),
     persistentFailedAt: String(record.persistentFailedAt || ''),
   };
 }
 
-export async function recordAutomaticScanResults(results = [], scannedAt = new Date().toISOString()) {
-  const state = await readState();
-  const threshold = state.threshold;
-
-  for (const result of Array.isArray(results) ? results : []) {
-    const id = String(result?.id || '').trim();
-    if (!id) continue;
-
-    const status = String(result?.health?.status || '');
-    const previous = publicRecord(state.accounts[id]);
-
-    if (status === 'failed') {
-      const consecutiveFailures = previous.consecutiveFailures + 1;
-      state.accounts[id] = {
-        consecutiveFailures,
-        lastStatus: status,
-        lastAutomaticScanAt: scannedAt,
-        persistentFailedAt: consecutiveFailures >= threshold
-          ? (previous.persistentFailedAt || scannedAt)
-          : '',
-      };
-      continue;
+export function recordAccountScanResults(results = [], { automatic = false, scannedAt = new Date().toISOString() } = {}) {
+  return withTenantMutation('failures', async () => {
+    const state = await readState();
+    const validIds = await readCurrentUrlIds();
+    const candidates = [];
+    const seen = new Set();
+    for (const result of Array.isArray(results) ? results : []) {
+      const id = String(result?.id || '').trim();
+      if (!validIds.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      const status = String(result?.health?.status || '');
+      const saved = publicRecord(state.accounts[id]);
+      const sourceUpdatedAt = String(result.sourceUpdatedAt || saved.sourceUpdatedAt);
+      const previous = saved.sourceUpdatedAt && saved.sourceUpdatedAt !== sourceUpdatedAt
+        ? publicRecord() : saved;
+      if (status === 'active' || status === 'expired') {
+        state.accounts[id] = { ...previous, sourceUpdatedAt, consecutiveFailures: 0,
+          lastStatus: status, persistentFailedAt: '',
+          lastAutomaticScanAt: automatic ? scannedAt : previous.lastAutomaticScanAt };
+      } else if (automatic && status === 'failed') {
+        // Retrying the same scheduled batch must never count it twice.
+        const failures = previous.consecutiveFailures + (previous.lastAutomaticScanAt === scannedAt ? 0 : 1);
+        state.accounts[id] = { sourceUpdatedAt, consecutiveFailures: failures, lastStatus: status,
+          lastAutomaticScanAt: scannedAt,
+          persistentFailedAt: failures >= state.threshold ? (previous.persistentFailedAt || scannedAt) : '' };
+        if (failures >= AUTOMATIC_DELETE_THRESHOLD) candidates.push(id);
+      }
     }
-
-    state.accounts[id] = {
-      consecutiveFailures: 0,
-      lastStatus: status,
-      lastAutomaticScanAt: scannedAt,
-      persistentFailedAt: '',
-    };
-  }
-
-  state.threshold = threshold;
-  await writeState(state);
+    await writeState(state);
+    return candidates;
+  });
 }
 
-export async function getPersistentFailureStatus() {
+export function recordAutomaticScanResults(results = [], scannedAt = new Date().toISOString()) {
+  return recordAccountScanResults(results, { automatic: true, scannedAt });
+}
+
+export function removeAccountFailureRecords(ids = []) {
+  return withTenantMutation('failures', async () => {
+    const state = await readState();
+    for (const id of ids) delete state.accounts[id];
+    await writeState(state);
+  });
+}
+
+async function getPersistentFailureStatusUnlocked() {
   const [state, validIds] = await Promise.all([readState(), readCurrentUrlIds()]);
   const threshold = state.threshold;
   const accounts = {};
@@ -141,5 +156,9 @@ export async function getPersistentFailureStatus() {
     ))
     .map(([id]) => id);
 
-  return { threshold, persistentIds, count: persistentIds.length, accounts };
+  return { threshold, automaticDeleteThreshold: AUTOMATIC_DELETE_THRESHOLD, persistentIds, count: persistentIds.length, accounts };
+}
+
+export function getPersistentFailureStatus() {
+  return withTenantMutation('failures', getPersistentFailureStatusUnlocked);
 }

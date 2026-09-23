@@ -7,6 +7,7 @@ import { createFullSiteScanController } from './fullSiteScan.js';
 import { createMediaFinderProV2Controller } from './mediaFinderProV2.js';
 import { createChannelLoadFeedback } from './channelLoadFeedback.js';
 import { attachDesktopLayout, isDesktopLayout } from './desktopLayout.js';
+import { attachAccountHealthRefresh } from './accountHealthRefresh.js';
 
 const PAGE_SIZE = 100;
 const ACCOUNT_PAGE_SIZE = 100;
@@ -48,6 +49,7 @@ const state = {
   accountHealth: {},
   accountAutoScanStatus: null,
   accountFailureThreshold: 3,
+  accountAutomaticDeleteThreshold: 50,
   accountFailureRecords: {},
   accountPersistentFailedIds: new Set(),
   accountScanningIds: new Set(),
@@ -769,6 +771,7 @@ function renderAccountAutoScanStatus() {
   }
 
   if (nextRun) parts.push('Sonraki ' + nextRun);
+  if (status.lastDeletedCount) parts.push('Otomatik silinen: ' + status.lastDeletedCount);
   if (status.lastError) parts.push('Son hata: ' + status.lastError);
 
   elements.accountAutoScanStatus.textContent = parts.join(' · ');
@@ -931,7 +934,7 @@ function renderSources() {
       const title = source.label || 'Hesap ' + (sourceIndex + 1);
       const connection = accountConnectionLabel(health);
       const expiry = accountExpiryLabel(health);
-      const isPersistentFailed = state.accountPersistentFailedIds.has(source.id);
+      const isPersistentFailed = healthStatus === 'failed' && state.accountPersistentFailedIds.has(source.id);
       const failureRecord = state.accountFailureRecords[source.id];
       const isWebScan = source.sourceKind === 'web-scan' || source.folder === 'Web Tarama';
       const statusLabel = isWebScan
@@ -942,7 +945,7 @@ function renderSources() {
       if (isPersistentFailed) {
         metaParts.push(
           (failureRecord?.consecutiveFailures || state.accountFailureThreshold)
-          + ' otomatik taramada ust uste calismadi'
+          + '/' + state.accountAutomaticDeleteThreshold + ' otomatik hata; sinirda silinir'
         );
       }
 
@@ -1067,6 +1070,12 @@ async function resetActiveSourceForNewSession() {
 }
 
 async function loadAccountHealth() {
+  const previousActiveId = state.activeSourceId;
+  await loadSourceStatus();
+  if (previousActiveId && !state.sources.some(source => source.id === previousActiveId)) {
+    stopPlayback({ message: 'Secili hesap kaldirildi.' });
+    clearChannelState();
+  }
   const response = await fetch('/api/account-health');
   const data = await response.json();
 
@@ -1090,6 +1099,7 @@ async function loadAccountFailureStatus() {
     if (!response.ok) return false;
 
     state.accountFailureThreshold = Number(data.threshold) || 3;
+    state.accountAutomaticDeleteThreshold = Number(data.automaticDeleteThreshold) || 50;
     state.accountFailureRecords = data.accounts || {};
     state.accountPersistentFailedIds = new Set(data.persistentIds || []);
     return true;
@@ -1113,6 +1123,7 @@ async function scanSingleAccount(sourceId) {
     }
 
     state.accountHealth[data.id] = data.health;
+    await loadAccountFailureStatus();
     renderSources();
     setSourceStatus('Hesap taramasi tamamlandi.');
   } finally {
@@ -1162,6 +1173,7 @@ async function scanAllAccounts() {
         state.accountHealth[result.id] = result.health;
       }
 
+      await loadAccountFailureStatus();
       renderSources();
     }
 
@@ -1940,6 +1952,11 @@ settingsController = createAppSettingsController({
 
 applyStandaloneClass();
 attachDesktopLayout({ openPanel: switchPanel });
+attachAccountHealthRefresh({
+  shouldRefresh: () => !elements.appShell.hidden && state.activePanel === 'accounts'
+    && !state.accountScanningAll && state.accountScanningIds.size === 0,
+  refresh: loadAccountHealth,
+});
 registerServiceWorker();
 startupSessionReset = clearPreviousAdminSession();
 renderGroups();

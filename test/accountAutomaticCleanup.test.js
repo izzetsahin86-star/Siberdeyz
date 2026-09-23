@@ -209,3 +209,28 @@ test('day settings persist, reject invalid input, and retain old mode when unset
     assert.equal((await getAppSettings()).automaticDeleteDays, 14);
   });
 });
+
+test('user-defined scan count deletes exactly on the selected automatic failure', async () => {
+  await fixture(async ({ id }) => {
+    await updateAppSettings({ automaticDeleteDays: 0, automaticDeleteScans: 4 });
+    for (let i = 1; i <= 3; i++) await scanAccounts([id], automatic(i));
+    assert.ok(await getPlaylistSourceById(id));
+    const status = await getPersistentFailureStatus();
+    assert.equal(status.automaticDeleteThreshold, 4);
+    assert.equal(status.accounts[id].consecutiveFailures, 3);
+    await scanAccounts([id], automatic(4));
+    assert.equal(await getPlaylistSourceById(id), null);
+  });
+});
+
+test('scan count accepts arbitrary whole numbers and rejects invalid values', async () => {
+  await fixture(async () => {
+    const { getAppSettings } = await import('../src/modules/appSettingsService.js');
+    await updateAppSettings({ automaticDeleteScans: 1234 });
+    assert.equal((await getAppSettings()).automaticDeleteScans, 1234);
+    for (const invalid of [0, -1, 1.5, 10001, '34', null]) {
+      await assert.rejects(updateAppSettings({ automaticDeleteScans: invalid }), /Tarama sayisi/);
+    }
+    assert.equal((await getAppSettings()).automaticDeleteScans, 1234);
+  });
+});

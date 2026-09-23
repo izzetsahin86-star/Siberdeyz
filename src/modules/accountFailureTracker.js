@@ -47,6 +47,7 @@ async function readState() {
   return {
     threshold,
     automaticDeleteDays: settings.automaticDeleteDays || 0,
+    automaticDeleteScans: settings.automaticDeleteScans || AUTOMATIC_DELETE_THRESHOLD,
     accounts: saved && typeof saved.accounts === 'object' && saved.accounts ? saved.accounts : {},
   };
 }
@@ -104,7 +105,7 @@ export function recordAccountScanResults(results = [], { automatic = false, scan
         const elapsed = Date.parse(scannedAt) - Date.parse(firstAutomaticFailureAt);
         const shouldDelete = state.automaticDeleteDays > 0
           ? failures >= state.threshold && Number.isFinite(elapsed) && elapsed >= state.automaticDeleteDays * 86400000
-          : failures >= AUTOMATIC_DELETE_THRESHOLD;
+          : failures >= state.automaticDeleteScans;
         if (shouldDelete) candidates.push(id);
       }
     }
@@ -160,7 +161,7 @@ async function getPersistentFailureStatusUnlocked() {
     ))
     .map(([id]) => id);
 
-  return { threshold, automaticDeleteDays: state.automaticDeleteDays, automaticDeleteThreshold: AUTOMATIC_DELETE_THRESHOLD, persistentIds, count: persistentIds.length, accounts };
+  return { threshold, automaticDeleteDays: state.automaticDeleteDays, automaticDeleteThreshold: state.automaticDeleteScans, persistentIds, count: persistentIds.length, accounts };
 }
 
 export function getPersistentFailureStatus() {

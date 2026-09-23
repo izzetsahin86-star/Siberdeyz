@@ -5,6 +5,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   autoScanMinutes: 60,
   failureThreshold: 3,
   automaticDeleteDays: 0,
+  automaticDeleteScans: 50,
   playbackMode: 'auto',
   autoRetry: true,
   retryCount: 3,

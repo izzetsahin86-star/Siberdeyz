@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260923-cleanup-days-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260923-cleanup-scans-1';
 
 const APP_SHELL = [
   '/desktopLayout.css',

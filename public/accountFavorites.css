@@ -1,105 +1,55 @@
-.favorite-accounts {
-  display: grid;
+.app-header {
+  display: flex;
+  align-items: center;
   gap: 7px;
-  min-width: 0;
-  padding: 8px 0 2px;
 }
 
-.favorite-accounts[hidden] {
+.favorite-account-selector {
+  display: flex;
+  flex: 0 1 270px;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 5px 7px 5px 9px;
+  border: 1px solid rgba(255,214,10,.18);
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(40,35,18,.78), rgba(19,20,24,.88));
+}
+
+.favorite-account-selector[hidden] {
   display: none !important;
 }
 
-.favorite-accounts-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.favorite-accounts-head strong {
-  color: #f4f4f7;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.favorite-accounts-head span {
-  min-width: 20px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  color: #ffe37f;
-  background: rgba(255,214,10,.12);
-  font-size: 9px;
-  font-weight: 850;
-  text-align: center;
-}
-
-.favorite-account-pills {
-  display: flex;
-  gap: 6px;
-  min-width: 0;
-  overflow-x: auto;
-  padding: 1px 1px 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.favorite-account-pills::-webkit-scrollbar {
-  display: none;
-}
-
-.favorite-account-pill {
+.favorite-account-selector > span {
   display: inline-flex;
   flex: 0 0 auto;
-  align-items: stretch;
-  overflow: hidden;
-  border: 1px solid rgba(255,214,10,.22);
-  border-radius: 999px;
-  background: rgba(255,214,10,.075);
-  box-shadow: inset 0 1px rgba(255,255,255,.035);
-}
-
-.favorite-account-pill.is-active {
-  border-color: rgba(48,209,88,.34);
-  background: rgba(48,209,88,.11);
-}
-
-.favorite-account-open,
-.favorite-account-remove {
-  border: 0;
-  color: #ffe78f;
-  background: transparent;
-  cursor: pointer;
-}
-
-.favorite-account-open {
-  display: flex;
   align-items: center;
   gap: 5px;
-  max-width: 230px;
-  min-height: 30px;
-  padding: 5px 8px 5px 10px;
-}
-
-.favorite-account-open strong {
-  max-width: 185px;
-  overflow: hidden;
-  font-size: 10px;
+  color: #d7c57d;
+  font-size: 8px;
   font-weight: 800;
-  text-overflow: ellipsis;
+  letter-spacing: .04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.favorite-account-remove {
-  min-width: 27px;
-  padding: 0 8px 0 5px;
-  color: rgba(255,255,255,.56);
-  font-size: 15px;
-  line-height: 1;
+.favorite-account-selector > span i {
+  color: #ffe37f;
+  font-style: normal;
 }
 
-.favorite-account-open:hover,
-.favorite-account-remove:hover {
-  background: rgba(255,255,255,.055);
+.favorite-account-selector select {
+  min-width: 0;
+  width: 100%;
+  height: 27px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  padding: 0 24px 0 8px;
+  color: #f7f2d9;
+  background: rgba(9,13,19,.72);
+  font-size: 10px;
+  font-weight: 750;
 }
 
 .source-pill-favorite {
@@ -120,17 +70,27 @@
 }
 
 @media (max-width: 860px) {
-  .favorite-accounts {
-    padding-top: 6px;
+  .app-header {
+    gap: 5px;
   }
 
-  .favorite-account-open {
-    max-width: 190px;
-    min-height: 29px;
+  .active-account-header {
+    flex: 1 1 52%;
   }
 
-  .favorite-account-open strong {
-    max-width: 145px;
+  .favorite-account-selector {
+    flex: 1 1 48%;
+    min-height: 34px;
+    padding: 4px 5px 4px 7px;
+    border-radius: 11px;
+  }
+
+  .favorite-account-selector > span {
+    font-size: 7px;
+  }
+
+  .favorite-account-selector select {
+    height: 25px;
     font-size: 9px;
   }
 
@@ -138,6 +98,18 @@
     min-width: 49px;
     padding: 0 5px;
     font-size: 7.5px;
+  }
+}
+
+@media (max-width: 560px) {
+  .favorite-account-selector > span {
+    width: 14px;
+    overflow: hidden;
+    font-size: 0;
+  }
+
+  .favorite-account-selector > span i {
+    font-size: 11px;
   }
 }
 

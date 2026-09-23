@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siberdeyz-pwa-20260923-auto-cleanup-1';
+const CACHE_NAME = 'siberdeyz-pwa-20260923-cleanup-days-1';
 
 const APP_SHELL = [
   '/desktopLayout.css',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   '/auroraDock.js',
   '/app.js',
   '/appSettings.js',
+  '/accountCleanupSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
   '/fullSiteScan.js',
@@ -48,6 +49,7 @@ const NETWORK_FIRST_ASSETS = new Set([
   '/auroraDock.js',
   '/app.js',
   '/appSettings.js',
+  '/accountCleanupSettings.js',
   '/userAccessSettings.js',
   '/webScan.js',
   '/fullSiteScan.js',

@@ -79,3 +79,14 @@ değiştirilmemiş hesaplara uygulanır. İşlemler kullanıcı bazında sıraya
 aynı otomatik tur ikinci kez sayılmaz. Hesaplar ekranı görünürken durumlar
 30 saniyede bir yenilenir. Testler yalnızca izole test kullanıcıları ve sahte
 ağ yanıtlarıyla çalışır; gerçek hesaplar test amacıyla silinmez.
+
+### Kullanıcının gün seçimi
+
+Ayarlar → Çalışmayan hesapları otomatik sil → Gün sayısına göre alanından
+1–3650 tam gün seçilip kaydedilebilir. Ayar her kullanıcının kendi hesabında
+saklanır. Bu modda 50 tarama sınırı yerine gün süresi kullanılır. İlk başarısız
+otomatik taramadan itibaren süre hesaplanır; eski kayıtlarda mevcut kalıcı hata
+tarihi kullanılır, tarih bilinmiyorsa yeni başarısız taramada başlar.
+Süre dolması tek başına silmez: kalıcı hata eşiğini geçmiş hesabın sonraki
+otomatik taramada da başarısız bulunması gerekir. Aktif sonuç süreyi sıfırlar.
+Gün ayarı yapılmadığında veya “50 otomatik tarama” seçildiğinde eski kural sürer.

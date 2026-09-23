@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   startupSound: false,
   autoScanMinutes: 60,
   failureThreshold: 3,
+  automaticDeleteDays: 0,
   playbackMode: 'auto',
   autoRetry: true,
   retryCount: 3,
@@ -47,6 +48,8 @@ function sanitizeSettings(input = {}) {
     startupSound: sanitizeBoolean(input.startupSound, DEFAULT_SETTINGS.startupSound),
     autoScanMinutes: sanitizeNumber(input.autoScanMinutes, ALLOWED_SCAN_MINUTES, DEFAULT_SETTINGS.autoScanMinutes),
     failureThreshold: sanitizeNumber(input.failureThreshold, ALLOWED_FAILURE_THRESHOLDS, DEFAULT_SETTINGS.failureThreshold),
+    automaticDeleteDays: Number.isInteger(Number(input.automaticDeleteDays)) && Number(input.automaticDeleteDays) >= 0 && Number(input.automaticDeleteDays) <= 3650
+      ? Number(input.automaticDeleteDays) : DEFAULT_SETTINGS.automaticDeleteDays,
     playbackMode: sanitizeString(input.playbackMode, ALLOWED_PLAYBACK_MODES, DEFAULT_SETTINGS.playbackMode),
     autoRetry: sanitizeBoolean(input.autoRetry, DEFAULT_SETTINGS.autoRetry),
     retryCount: sanitizeNumber(input.retryCount, ALLOWED_RETRY_COUNTS, DEFAULT_SETTINGS.retryCount),
@@ -71,6 +74,12 @@ export async function getAppSettings() {
 }
 
 export async function updateAppSettings(patch = {}) {
+  if (Object.hasOwn(patch || {}, 'automaticDeleteDays') &&
+      (typeof patch.automaticDeleteDays !== 'number' || !Number.isInteger(patch.automaticDeleteDays) || patch.automaticDeleteDays < 0 || patch.automaticDeleteDays > 3650)) {
+    const error = new Error('Silme suresi 1–3650 tam gun olmali; 0 mevcut 50 tarama kuralidir.');
+    error.status = 400;
+    throw error;
+  }
   const current = await getAppSettings();
   const next = sanitizeSettings({ ...current, ...(patch && typeof patch === 'object' ? patch : {}) });
 

@@ -885,6 +885,7 @@ function getFilteredSources() {
   return state.sources.filter((source) => {
     const status = accountHealthStatus(source);
     const statusMatches = statusFilter === 'all'
+      || (statusFilter === 'favorites' && accountFavoritesController?.isFavorite(source.id))
       || (statusFilter === 'multi' && sourceHasMultipleConnections(source, state.accountHealth))
       || (statusFilter === 'unscanned' && (status === 'unscanned' || status === 'unsupported'))
       || status === statusFilter;

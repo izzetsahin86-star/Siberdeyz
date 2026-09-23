@@ -164,3 +164,48 @@ test('cleanup remains tenant-scoped even when another user has the same source I
     }
   });
 });
+
+test('custom days replaces 50 scans: account survives 50 failures before deadline and deletes at deadline', async () => {
+  await fixture(async ({ id }) => {
+    await updateAppSettings({ automaticDeleteDays: 3 });
+    for (let i = 1; i <= 50; i++) await scanAccounts([id], automatic(i));
+    assert.ok(await getPlaylistSourceById(id));
+    assert.equal((await getPersistentFailureStatus()).automaticDeleteDays, 3);
+    const first = Date.parse(automatic(1).scannedAt);
+    await scanAccounts([id], { automatic: true, scannedAt: new Date(first + 3 * 86400000 - 1).toISOString() });
+    assert.ok(await getPlaylistSourceById(id));
+    await scanAccounts([id], { automatic: true, scannedAt: new Date(first + 3 * 86400000).toISOString() });
+    assert.equal(await getPlaylistSourceById(id), null);
+  });
+});
+
+test('active result resets the day clock; manual failure cannot delete even after deadline', async () => {
+  await fixture(async ({ id }) => {
+    await updateAppSettings({ automaticDeleteDays: 1 });
+    await scanAccounts([id], automatic(1));
+    globalThis.fetch = async () => new Response('#EXTM3U\n', { status: 200 });
+    await scanAccount(id);
+    globalThis.fetch = async () => new Response('', { status: 503 });
+    await scanAccounts([id], automatic(2000));
+    await scanAccounts([id], automatic(2001));
+    await scanAccounts([id], automatic(2002));
+    assert.ok(await getPlaylistSourceById(id));
+    const record = (await getPersistentFailureStatus()).accounts[id];
+    assert.equal(record.firstAutomaticFailureAt, automatic(2000).scannedAt);
+    await scanAccount(id);
+    assert.ok(await getPlaylistSourceById(id));
+  });
+});
+
+test('day settings persist, reject invalid input, and retain old mode when unset', async () => {
+  await fixture(async () => {
+    const { getAppSettings } = await import('../src/modules/appSettingsService.js');
+    assert.equal((await getAppSettings()).automaticDeleteDays, 0);
+    await updateAppSettings({ automaticDeleteDays: 14 });
+    assert.equal((await getAppSettings()).automaticDeleteDays, 14);
+    for (const invalid of [-1, 1.5, 3651, '7', null]) {
+      await assert.rejects(updateAppSettings({ automaticDeleteDays: invalid }), /tam gun/);
+    }
+    assert.equal((await getAppSettings()).automaticDeleteDays, 14);
+  });
+});

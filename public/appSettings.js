@@ -1,7 +1,10 @@
+import { createAccountCleanupSettings } from './accountCleanupSettings.js';
+
 const DEFAULT_SETTINGS = Object.freeze({
   startupSound: false,
   autoScanMinutes: 60,
   failureThreshold: 3,
+  automaticDeleteDays: 0,
   playbackMode: 'auto',
   autoRetry: true,
   retryCount: 3,
@@ -29,6 +32,7 @@ export function createAppSettingsController({
 } = {}) {
   let settings = { ...DEFAULT_SETTINGS };
   let saveQueue = Promise.resolve();
+  const cleanupSettings = createAccountCleanupSettings({ save });
 
   const elements = {
     startupSound: document.querySelector('#startupSoundSetting'),
@@ -52,6 +56,7 @@ export function createAppSettingsController({
   }
 
   function render() {
+    cleanupSettings.render(settings);
     if (elements.startupSound) elements.startupSound.checked = Boolean(settings.startupSound);
     if (elements.autoScanMinutes) elements.autoScanMinutes.value = String(settings.autoScanMinutes);
     if (elements.failureThreshold) elements.failureThreshold.value = String(settings.failureThreshold);

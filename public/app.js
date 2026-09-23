@@ -50,6 +50,7 @@ const state = {
   accountAutoScanStatus: null,
   accountFailureThreshold: 3,
   accountAutomaticDeleteThreshold: 50,
+  accountAutomaticDeleteDays: 0,
   accountFailureRecords: {},
   accountPersistentFailedIds: new Set(),
   accountScanningIds: new Set(),
@@ -944,8 +945,10 @@ function renderSources() {
 
       if (isPersistentFailed) {
         metaParts.push(
-          (failureRecord?.consecutiveFailures || state.accountFailureThreshold)
-          + '/' + state.accountAutomaticDeleteThreshold + ' otomatik hata; sinirda silinir'
+          state.accountAutomaticDeleteDays > 0
+            ? state.accountAutomaticDeleteDays + ' gun calismazsa otomatik silinir'
+            : (failureRecord?.consecutiveFailures || state.accountFailureThreshold)
+              + '/' + state.accountAutomaticDeleteThreshold + ' otomatik hata; sinirda silinir'
         );
       }
 
@@ -1100,6 +1103,7 @@ async function loadAccountFailureStatus() {
 
     state.accountFailureThreshold = Number(data.threshold) || 3;
     state.accountAutomaticDeleteThreshold = Number(data.automaticDeleteThreshold) || 50;
+    state.accountAutomaticDeleteDays = Number(data.automaticDeleteDays) || 0;
     state.accountFailureRecords = data.accounts || {};
     state.accountPersistentFailedIds = new Set(data.persistentIds || []);
     return true;

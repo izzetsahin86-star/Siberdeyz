@@ -18,11 +18,6 @@ function getTrackerFile() {
   return path.join(getStorageDir(), 'account-failure-tracker.json');
 }
 
-async function getFailureThreshold() {
-  const settings = await getAppSettings();
-  return Number(settings.failureThreshold) || 3;
-}
-
 function emptyState(threshold) {
   return { threshold, accounts: {} };
 }
@@ -45,11 +40,13 @@ async function writeState(state) {
 }
 
 async function readState() {
-  const threshold = await getFailureThreshold();
+  const settings = await getAppSettings();
+  const threshold = Number(settings.failureThreshold) || 3;
   const saved = await readJson(getTrackerFile(), emptyState(threshold));
 
   return {
     threshold,
+    automaticDeleteDays: settings.automaticDeleteDays || 0,
     accounts: saved && typeof saved.accounts === 'object' && saved.accounts ? saved.accounts : {},
   };
 }
@@ -70,6 +67,7 @@ function publicRecord(record = {}) {
   return {
     consecutiveFailures: Math.max(0, Number(record.consecutiveFailures) || 0),
     sourceUpdatedAt: String(record.sourceUpdatedAt || ''),
+    firstAutomaticFailureAt: String(record.firstAutomaticFailureAt || ''),
     lastStatus: String(record.lastStatus || ''),
     lastAutomaticScanAt: String(record.lastAutomaticScanAt || ''),
     persistentFailedAt: String(record.persistentFailedAt || ''),
@@ -93,15 +91,21 @@ export function recordAccountScanResults(results = [], { automatic = false, scan
         ? publicRecord() : saved;
       if (status === 'active' || status === 'expired') {
         state.accounts[id] = { ...previous, sourceUpdatedAt, consecutiveFailures: 0,
-          lastStatus: status, persistentFailedAt: '',
+          lastStatus: status, persistentFailedAt: '', firstAutomaticFailureAt: '',
           lastAutomaticScanAt: automatic ? scannedAt : previous.lastAutomaticScanAt };
       } else if (automatic && status === 'failed') {
         // Retrying the same scheduled batch must never count it twice.
         const failures = previous.consecutiveFailures + (previous.lastAutomaticScanAt === scannedAt ? 0 : 1);
-        state.accounts[id] = { sourceUpdatedAt, consecutiveFailures: failures, lastStatus: status,
+        const firstAutomaticFailureAt = previous.consecutiveFailures > 0
+          ? (previous.firstAutomaticFailureAt || previous.persistentFailedAt || scannedAt) : scannedAt;
+        state.accounts[id] = { sourceUpdatedAt, firstAutomaticFailureAt, consecutiveFailures: failures, lastStatus: status,
           lastAutomaticScanAt: scannedAt,
           persistentFailedAt: failures >= state.threshold ? (previous.persistentFailedAt || scannedAt) : '' };
-        if (failures >= AUTOMATIC_DELETE_THRESHOLD) candidates.push(id);
+        const elapsed = Date.parse(scannedAt) - Date.parse(firstAutomaticFailureAt);
+        const shouldDelete = state.automaticDeleteDays > 0
+          ? failures >= state.threshold && Number.isFinite(elapsed) && elapsed >= state.automaticDeleteDays * 86400000
+          : failures >= AUTOMATIC_DELETE_THRESHOLD;
+        if (shouldDelete) candidates.push(id);
       }
     }
     await writeState(state);
@@ -156,7 +160,7 @@ async function getPersistentFailureStatusUnlocked() {
     ))
     .map(([id]) => id);
 
-  return { threshold, automaticDeleteThreshold: AUTOMATIC_DELETE_THRESHOLD, persistentIds, count: persistentIds.length, accounts };
+  return { threshold, automaticDeleteDays: state.automaticDeleteDays, automaticDeleteThreshold: AUTOMATIC_DELETE_THRESHOLD, persistentIds, count: persistentIds.length, accounts };
 }
 
 export function getPersistentFailureStatus() {

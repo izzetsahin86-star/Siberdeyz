@@ -1,3 +1,5 @@
+import { withTenantMutation } from './tenantMutationQueue.js';
+import { applyAccountScanPolicy } from './accountAutomaticCleanup.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { getTenantDataDir } from './tenantContext.js';
@@ -30,7 +32,8 @@ async function readJson(filePath, fallback) {
 
 async function writeJson(filePath, value) {
   await fs.mkdir(getStorageDir(), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(value, null, 2));
+  await fs.writeFile(filePath + '.tmp', JSON.stringify(value, null, 2));
+  await fs.rename(filePath + '.tmp', filePath);
 }
 
 async function readSources() {
@@ -283,7 +286,7 @@ export async function getAccountHealth() {
   };
 }
 
-export async function scanAccount(sourceId) {
+async function scanAccountUnlocked(sourceId) {
   const id = String(sourceId || '').trim();
   const sources = await readSources();
   const source = sources.find((item) => String(item.id) === id);
@@ -295,6 +298,7 @@ export async function scanAccount(sourceId) {
   }
 
   const record = await scanSource(source);
+  await applyAccountScanPolicy([{ id, health: record }], [source]);
   const health = await readHealthState();
   health.accounts[id] = record;
   await writeJson(getHealthFile(), health);
@@ -305,7 +309,7 @@ export async function scanAccount(sourceId) {
   };
 }
 
-export async function scanAccounts(sourceIds = []) {
+async function scanAccountsUnlocked(sourceIds = [], options = {}) {
   const ids = Array.from(new Set(
     (Array.isArray(sourceIds) ? sourceIds : [])
       .map((value) => String(value || '').trim())
@@ -354,14 +358,18 @@ export async function scanAccounts(sourceIds = []) {
 
   await Promise.all(workers);
 
+  const deletedIds = await applyAccountScanPolicy(results, sources, options);
+  const deleted = new Set(deletedIds);
   const health = await readHealthState();
+  for (const id of deletedIds) delete health.accounts[id];
   for (const result of results) {
-    health.accounts[result.id] = publicRecord(result.health);
+    if (!deleted.has(result.id)) health.accounts[result.id] = publicRecord(result.health);
   }
   await writeJson(getHealthFile(), health);
 
   return {
-    results: results.map((result) => ({
+    deletedIds,
+    results: results.filter(result => !deleted.has(result.id)).map((result) => ({
       id: result.id,
       health: publicRecord(result.health),
     })),
@@ -369,7 +377,7 @@ export async function scanAccounts(sourceIds = []) {
 }
 
 
-export async function removeAccountHealth(sourceId = '') {
+async function removeAccountHealthUnlocked(sourceId = '') {
   const id = String(sourceId || '').trim();
 
   if (!id) {
@@ -387,4 +395,16 @@ export async function removeAccountHealth(sourceId = '') {
 
   delete health.accounts[id];
   await writeJson(getHealthFile(), health);
+}
+
+export function scanAccount(...args) {
+  return withTenantMutation('health', () => scanAccountUnlocked(...args));
+}
+
+export function scanAccounts(...args) {
+  return withTenantMutation('health', () => scanAccountsUnlocked(...args));
+}
+
+export function removeAccountHealth(...args) {
+  return withTenantMutation('health', () => removeAccountHealthUnlocked(...args));
 }

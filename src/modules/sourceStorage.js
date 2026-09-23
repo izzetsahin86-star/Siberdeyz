@@ -1,3 +1,4 @@
+import { withTenantMutation } from './tenantMutationQueue.js';
 import { createHash } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
@@ -158,7 +159,9 @@ async function writeState(state) {
     return;
   }
 
-  await fs.writeFile(getStorageFile(), JSON.stringify(state, null, 2));
+  const file = getStorageFile();
+  await fs.writeFile(file + '.tmp', JSON.stringify(state, null, 2));
+  await fs.rename(file + '.tmp', file);
 }
 
 function cleanUrl(value) {
@@ -230,14 +233,14 @@ export async function getSourceStatus() {
   };
 }
 
-export async function clearActivePlaylistSource() {
+async function clearActivePlaylistSourceUnlocked() {
   const state = await readState();
   state.activeSourceId = '';
   await writeState(state);
   return getSourceStatus();
 }
 
-export async function savePlaylistSource(url, label = '', options = {}) {
+async function savePlaylistSourceUnlocked(url, label = '', options = {}) {
   const clean = cleanUrl(url);
   const state = await readState();
   const now = new Date().toISOString();
@@ -272,7 +275,7 @@ export async function savePlaylistSource(url, label = '', options = {}) {
   return getSourceStatus();
 }
 
-export async function savePlaylistSources(sources = []) {
+async function savePlaylistSourcesUnlocked(sources = []) {
   const state = await readState();
   const now = new Date().toISOString();
   const imported = [];
@@ -322,7 +325,7 @@ export async function savePlaylistSources(sources = []) {
   return getSourceStatus();
 }
 
-export async function saveUploadedPlaylistSource({ label = '', fileName = '', channels = [] } = {}) {
+async function saveUploadedPlaylistSourceUnlocked({ label = '', fileName = '', channels = [] } = {}) {
   const normalizedChannels = normalizeStoredChannels(channels);
 
   if (normalizedChannels.length === 0) {
@@ -360,7 +363,7 @@ export async function saveUploadedPlaylistSource({ label = '', fileName = '', ch
   return getSourceStatus();
 }
 
-export async function saveWebScanPlaylistSource({ label = '', pageUrl = '', channels = [] } = {}) {
+async function saveWebScanPlaylistSourceUnlocked({ label = '', pageUrl = '', channels = [] } = {}) {
   const normalizedChannels = normalizeStoredChannels(channels);
 
   if (normalizedChannels.length === 0) {
@@ -406,7 +409,7 @@ export async function saveWebScanPlaylistSource({ label = '', pageUrl = '', chan
 }
 
 
-export async function appendM3uYayinimChannel({ name = '', url = '', pageUrl = '' } = {}) {
+async function appendM3uYayinimChannelUnlocked({ name = '', url = '', pageUrl = '' } = {}) {
   const clean = cleanUrl(url);
   const state = await readState();
   const now = new Date().toISOString();
@@ -448,7 +451,7 @@ export async function appendM3uYayinimChannel({ name = '', url = '', pageUrl = '
   return { ...(await getSourceStatus()), added: !exists, channelCount: source.channels.length };
 }
 
-export async function deleteActiveWebScanChannel(channelId = '') {
+async function deleteActiveWebScanChannelUnlocked(channelId = '') {
   const state = await readState();
   const active = state.sources.find((source) => source.id === state.activeSourceId) || state.sources[0];
 
@@ -501,7 +504,7 @@ export async function deleteActiveWebScanChannel(channelId = '') {
   };
 }
 
-export async function setActivePlaylistSource(sourceId) {
+async function setActivePlaylistSourceUnlocked(sourceId) {
   const state = await readState();
   const source = state.sources.find((item) => item.id === String(sourceId));
 
@@ -514,7 +517,7 @@ export async function setActivePlaylistSource(sourceId) {
   return getSourceStatus();
 }
 
-export async function deletePlaylistSource(sourceId = '') {
+async function deletePlaylistSourceUnlocked(sourceId = '') {
   const state = await readState();
   const id = String(sourceId || '').trim();
 
@@ -539,4 +542,57 @@ function maskUrl(url) {
   } catch {
     return 'Kayitli yayin var';
   }
+}
+
+export function clearActivePlaylistSource(...args) {
+  return withTenantMutation('sources', () => clearActivePlaylistSourceUnlocked(...args));
+}
+
+export function savePlaylistSource(...args) {
+  return withTenantMutation('sources', () => savePlaylistSourceUnlocked(...args));
+}
+
+export function savePlaylistSources(...args) {
+  return withTenantMutation('sources', () => savePlaylistSourcesUnlocked(...args));
+}
+
+export function saveUploadedPlaylistSource(...args) {
+  return withTenantMutation('sources', () => saveUploadedPlaylistSourceUnlocked(...args));
+}
+
+export function saveWebScanPlaylistSource(...args) {
+  return withTenantMutation('sources', () => saveWebScanPlaylistSourceUnlocked(...args));
+}
+
+export function appendM3uYayinimChannel(...args) {
+  return withTenantMutation('sources', () => appendM3uYayinimChannelUnlocked(...args));
+}
+
+export function deleteActiveWebScanChannel(...args) {
+  return withTenantMutation('sources', () => deleteActiveWebScanChannelUnlocked(...args));
+}
+
+export function setActivePlaylistSource(...args) {
+  return withTenantMutation('sources', () => setActivePlaylistSourceUnlocked(...args));
+}
+
+export function deletePlaylistSource(...args) {
+  return withTenantMutation('sources', () => deletePlaylistSourceUnlocked(...args));
+}
+
+// Called only by the automatic failure policy, with the source version actually scanned.
+export function deleteAutomaticallyFailedSources(candidates = []) {
+  return withTenantMutation('sources', async () => {
+    const state = await readState();
+    const versions = new Map(candidates.map(item => [item.id, item.updatedAt]));
+    const deletedIds = state.sources.filter(source => source.type === 'url'
+      && versions.has(source.id) && versions.get(source.id) === source.updatedAt)
+      .map(source => source.id);
+    if (!deletedIds.length) return [];
+    const deleted = new Set(deletedIds);
+    state.sources = state.sources.filter(source => !deleted.has(source.id));
+    if (deleted.has(state.activeSourceId)) state.activeSourceId = '';
+    await writeState(state);
+    return deletedIds;
+  });
 }

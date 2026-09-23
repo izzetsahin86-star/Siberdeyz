@@ -63,3 +63,19 @@ Dar pencere veya dokunmatik kullanımda mevcut arayüz devam eder.
 Kontrol: `npm ci && npm test`. Masaüstü regresyon testleri cihaz seçimini,
 mobil DOM'un korunmasını, ekran geçişlerini ve kısayolları kapsar. Gerçek iOS
 Safari ve oturum açılmış canlı yayın testi ayrıca yapılmalıdır.
+
+## Otomatik başarısız hesap temizliği
+
+URL hesabı art arda 50 otomatik taramada `failed` sonucu alırsa kayıt, sağlık
+bilgisi ve hata sayacı otomatik silinir. Mevcut ardışık hata sayacı korunur;
+etiketleme eşiği (2/3/5) ile silme eşiği (50) birbirinden bağımsızdır.
+Otomatik veya elle taramada `active` sonucu gelirse sayaç sıfırlanır ve
+“Kalıcı çalışmıyor” etiketi kalkar. Elle tarama hataları silme sayacını artırmaz.
+Dosya hesapları kapsam dışındadır; süresi biten hesaplar bu kuralla silinmez.
+Otomatik tarama kapalıysa otomatik silme de çalışmaz.
+
+Silme, yalnızca o turda yeniden başarısız bulunan ve tarama sırasında
+değiştirilmemiş hesaplara uygulanır. İşlemler kullanıcı bazında sıraya alınır;
+aynı otomatik tur ikinci kez sayılmaz. Hesaplar ekranı görünürken durumlar
+30 saniyede bir yenilenir. Testler yalnızca izole test kullanıcıları ve sahte
+ağ yanıtlarıyla çalışır; gerçek hesaplar test amacıyla silinmez.

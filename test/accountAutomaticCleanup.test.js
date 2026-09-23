@@ -234,3 +234,56 @@ test('scan count accepts arbitrary whole numbers and rejects invalid values', as
     assert.equal((await getAppSettings()).automaticDeleteScans, 1234);
   });
 });
+
+
+test('expired URL account is permanently deleted on its first automatic scan', async () => {
+  await fixture(async () => {
+    const expired = await savePlaylistSource(
+      'https://provider.invalid/get.php?username=expired-user&password=expired-pass',
+      'Expired account'
+    );
+    const expiredId = expired.activeSourceId;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      user_info: { auth: 1, status: 'Expired', exp_date: '1700000000' },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+
+    const result = await scanAccounts([expiredId], automatic(1));
+    assert.deepEqual(result.deletedIds, [expiredId]);
+    assert.equal(await getPlaylistSourceById(expiredId), null);
+    assert.equal((await getAccountHealth()).accounts[expiredId], undefined);
+    assert.equal((await getPersistentFailureStatus()).accounts[expiredId], undefined);
+  });
+});
+
+test('manual scan reports expiration but leaves deletion to automatic scanning', async () => {
+  await fixture(async () => {
+    const expired = await savePlaylistSource(
+      'https://provider.invalid/player_api.php?username=expired-user&password=expired-pass',
+      'Expired account'
+    );
+    const expiredId = expired.activeSourceId;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      user_info: { auth: 1, status: 'Active', exp_date: '1700000000' },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+
+    const manual = await scanAccount(expiredId);
+    assert.equal(manual.health.status, 'expired');
+    assert.ok(await getPlaylistSourceById(expiredId));
+    const automaticResult = await scanAccounts([expiredId], automatic(2));
+    assert.deepEqual(automaticResult.deletedIds, [expiredId]);
+    assert.equal(await getPlaylistSourceById(expiredId), null);
+  });
+});
+
+test('automatic cleanup does not treat unsupported file accounts as expired candidates', async () => {
+  await fixture(async () => {
+    const uploaded = await saveUploadedPlaylistSource({
+      fileName: 'local.m3u',
+      channels: [{ name: 'Local', url: 'https://provider.invalid/live.ts' }],
+    });
+    const fileId = uploaded.activeSourceId;
+    const result = await scanAccounts([fileId], automatic(3));
+    assert.deepEqual(result.deletedIds, []);
+    assert.ok(await getPlaylistSourceById(fileId));
+  });
+});

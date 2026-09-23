@@ -94,3 +94,12 @@ Tarama sayısına göre modunda kullanıcı 1–10000 arasında istediği tam sa
 otomatik taramada başarısız bulunursa silinir. Aktif sonuç sayacı sıfırlar.
 Yeni kullanıcılar için başlangıç değeri 50'dir; mevcut ayarı olmayan
 kullanıcılarda da 50 korunur.
+
+
+### Süresi biten hesaplar
+
+Sağlayıcı API'sinin `expired` durumu veya geçmiş bitiş tarihiyle süresi bittiği
+doğrulanan URL hesabı, otomatik tarama sırasında beklemeden kalıcı silinir.
+Bu hesaplara gün veya tarama sayısı uygulanmaz. Elle tarama yalnızca durumu
+gösterir; silme işlemini otomatik tarama yapar. Otomatik tarama kapalıysa bu
+temizlik de çalışmaz. Dosya hesapları kapsam dışındadır.

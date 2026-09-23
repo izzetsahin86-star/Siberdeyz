@@ -7,7 +7,7 @@ export function createAccountCleanupSettings({ save }) {
   card.id = 'accountCleanupSettings';
   card.innerHTML = `
     <div class="setting-card-head"><h2>Çalışmayan hesapları otomatik sil</h2>
-    <p>Hesap aktif çıkarsa bekleme süresi sıfırlanır. Silme, süre dolduktan sonra yeniden başarısız sonuç veren ilk otomatik taramada yapılır.</p></div>
+    <p>Hesap aktif çıkarsa bekleme süresi sıfırlanır. Süresi bitmiş hesaplar otomatik taramada doğrulandığı anda kalıcı silinir.</p></div>
     <label class="setting-select-row"><span>Silme kuralı</span>
       <select id="accountCleanupMode"><option value="scans">Tarama sayısına göre</option><option value="days">Gün sayısına göre</option></select>
     </label>
@@ -17,7 +17,7 @@ export function createAccountCleanupSettings({ save }) {
     <label class="setting-select-row"><span>Kaç gün çalışmazsa silinsin?</span>
       <input id="accountCleanupDays" type="number" min="1" max="3650" step="1" value="7" inputmode="numeric" disabled style="width:100%;min-width:0;font-size:16px" />
     </label>
-    <div class="setting-card-head"><p>Tarama sayısı 1–10000, gün sayısı 1–3650 olabilir. Hesap aktif çıkarsa sayaç ve süre sıfırlanır. Otomatik tarama kapalıysa silme yapılmaz.</p></div>
+    <div class="setting-card-head"><p>Çalışmayan hesaplar için tarama sayısı 1–10000, gün sayısı 1–3650 olabilir. Süresi bitmiş hesaplarda bekleme uygulanmaz. Otomatik tarama kapalıysa silme yapılmaz.</p></div>
     <button id="saveAccountCleanupDays" class="setting-action-button" type="button">Silme ayarını kaydet</button>
     <p id="accountCleanupStatus" class="settings-status" role="status" aria-live="polite"></p>`;
   const danger = grid.querySelector('.setting-card-danger');

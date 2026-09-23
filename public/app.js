@@ -1233,6 +1233,8 @@ async function uploadSourceFiles() {
 
   const manualLabel = files.length === 1 ? elements.sourceNameInput.value.trim() : '';
   let importedTotal = 0;
+  let importedSources = 0;
+  let importedChannels = 0;
 
   elements.sourceFileInput.disabled = true;
   elements.saveSourceButton.disabled = true;
@@ -1266,11 +1268,16 @@ async function uploadSourceFiles() {
       }
 
       importedTotal += data.imported || 0;
+      importedSources += data.importedSources || 0;
+      importedChannels += data.importedChannels || 0;
       setSourceState(data);
     }
 
     elements.sourceNameInput.value = '';
-    setSourceStatus(files.length + ' dosya kaydedildi, ' + importedTotal + ' kayit eklendi.');
+    const details = [];
+    if (importedSources) details.push(importedSources + ' URL hesabi');
+    if (importedChannels) details.push(importedChannels + ' yayin');
+    setSourceStatus(files.length + ' dosya kaydedildi, ' + (details.join(', ') || importedTotal + ' kayit') + ' eklendi.');
     switchPanel('channels');
     stopPlayback({ message: '', resetSound: false });
     await loadChannels({ force: true, reset: true });

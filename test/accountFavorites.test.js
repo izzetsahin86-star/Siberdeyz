@@ -76,3 +76,13 @@ test('unknown account cannot be favorited', async () => {
     );
   });
 });
+
+
+test('accounts beyond the first 5000 can be favorited', async () => {
+  await withTenant(async () => {
+    const ids = Array.from({ length: 5005 }, (_, index) => 'account-' + index);
+    const result = await addAccountFavorite('account-5004', ids);
+    assert.deepEqual(result, { ids: ['account-5004'] });
+    assert.deepEqual(await listAccountFavorites(ids), { ids: ['account-5004'] });
+  });
+});

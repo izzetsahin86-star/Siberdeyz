@@ -10,12 +10,13 @@ function getFilePath() {
   return path.join(getTenantDataDir(), FILE_NAME);
 }
 
-function normalizeIds(values = []) {
-  return Array.from(new Set(
+function normalizeIds(values = [], { limit = true } = {}) {
+  const ids = Array.from(new Set(
     (Array.isArray(values) ? values : [])
       .map((value) => String(value || '').trim())
       .filter(Boolean)
-  )).slice(0, MAX_FAVORITES);
+  ));
+  return limit ? ids.slice(0, MAX_FAVORITES) : ids;
 }
 
 async function readState() {
@@ -45,7 +46,7 @@ export function listAccountFavorites(validSourceIds = null) {
     const state = await readState();
 
     if (Array.isArray(validSourceIds)) {
-      const valid = new Set(normalizeIds(validSourceIds));
+      const valid = new Set(normalizeIds(validSourceIds, { limit: false }));
       const filtered = state.ids.filter((id) => valid.has(id));
       if (filtered.length !== state.ids.length) {
         state.ids = filtered;
@@ -59,7 +60,7 @@ export function listAccountFavorites(validSourceIds = null) {
 
 export function addAccountFavorite(value, validSourceIds = []) {
   const id = sourceId(value);
-  const valid = new Set(normalizeIds(validSourceIds));
+  const valid = new Set(normalizeIds(validSourceIds, { limit: false }));
 
   if (!id || !valid.has(id)) {
     const error = new Error('Hesap bulunamadi.');

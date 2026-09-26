@@ -1,5 +1,6 @@
 import { existsSync } from 'fs';
 import puppeteer from 'puppeteer-core';
+import { withHeavyTask } from '../resourceBudget.js';
 import { assertPublicHttpUrl, MEDIA_FINDER_USER_AGENT } from '../mediaFinderPro/urlSafety.js';
 import { isMediaContentType, looksLikeMediaUrl, mediaKind } from '../mediaFinderPro/extractors.js';
 import { addAdvancedCandidate, extractEmbeddedMediaUrls, collectFrameResources, adaptiveListen } from './advancedDiscovery.js';
@@ -133,7 +134,7 @@ async function scanPage(browser, entry, candidates, diagnostics, shouldContinue)
   }
 }
 
-export async function deepDiscoverV2(entries, { shouldContinue, onProgress } = {}) {
+async function deepDiscoverV2Unlocked(entries, { shouldContinue, onProgress } = {}) {
   const candidates = new Map();
   const diagnostics = { pagesOpened: 0, playerClicks: 0, iframes: 0, blockedRequests: 0, errors: 0 };
   const browser = await puppeteer.launch({
@@ -150,4 +151,8 @@ export async function deepDiscoverV2(entries, { shouldContinue, onProgress } = {
     await browser.close().catch(() => {});
   }
   return { candidates: [...candidates.values()], diagnostics };
+}
+
+export async function deepDiscoverV2(entries, options = {}) {
+  return withHeavyTask(() => deepDiscoverV2Unlocked(entries, options));
 }

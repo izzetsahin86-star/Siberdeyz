@@ -32,7 +32,7 @@ const state = {
   sessionLabel: '',
   appSettings: {
     startupSound: false,
-    autoScanMinutes: 60,
+    autoScanMinutes: 1440,
     failureThreshold: 3,
     playbackMode: 'auto',
     autoRetry: true,
@@ -760,7 +760,7 @@ function renderAccountAutoScanStatus() {
 
   const lastStarted = formatAccountAutoScanTime(status.lastStartedAt);
   const nextRun = formatAccountAutoScanTime(status.nextRunAt);
-  const parts = ['Otomatik tarama: ' + String(status.intervalMinutes || 60) + ' dk'];
+  const parts = ['Otomatik tarama: ' + String(status.intervalMinutes || 1440) + ' dk'];
 
   if (status.running) {
     const progress = status.totalAccounts > 0

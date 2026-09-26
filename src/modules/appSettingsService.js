@@ -12,7 +12,7 @@ function getSettingsFile() {
 
 const DEFAULT_SETTINGS = Object.freeze({
   startupSound: false,
-  autoScanMinutes: 60,
+  autoScanMinutes: 1440,
   failureThreshold: 3,
   automaticDeleteDays: 0,
   automaticDeleteScans: 50,
@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   channelDensity: 'compact',
 });
 
-const ALLOWED_SCAN_MINUTES = new Set([0, 30, 60, 120]);
+const ALLOWED_SCAN_MINUTES = new Set([0, 30, 60, 1440]);
 const ALLOWED_FAILURE_THRESHOLDS = new Set([2, 3, 5]);
 const ALLOWED_PLAYBACK_MODES = new Set(['auto', 'direct', 'compatibility']);
 const ALLOWED_RETRY_COUNTS = new Set([1, 3, 5]);
@@ -47,7 +47,10 @@ function sanitizeString(value, allowed, fallback) {
 function sanitizeSettings(input = {}) {
   return {
     startupSound: sanitizeBoolean(input.startupSound, DEFAULT_SETTINGS.startupSound),
-    autoScanMinutes: sanitizeNumber(input.autoScanMinutes, ALLOWED_SCAN_MINUTES, DEFAULT_SETTINGS.autoScanMinutes),
+    // Existing 2-hour settings become the new 24-hour default without rewriting saved data.
+    autoScanMinutes: Number(input.autoScanMinutes) === 120
+      ? 1440
+      : sanitizeNumber(input.autoScanMinutes, ALLOWED_SCAN_MINUTES, DEFAULT_SETTINGS.autoScanMinutes),
     failureThreshold: sanitizeNumber(input.failureThreshold, ALLOWED_FAILURE_THRESHOLDS, DEFAULT_SETTINGS.failureThreshold),
     automaticDeleteDays: Number.isInteger(Number(input.automaticDeleteDays)) && Number(input.automaticDeleteDays) >= 0 && Number(input.automaticDeleteDays) <= 3650
       ? Number(input.automaticDeleteDays) : DEFAULT_SETTINGS.automaticDeleteDays,

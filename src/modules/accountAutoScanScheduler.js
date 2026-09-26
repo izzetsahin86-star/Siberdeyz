@@ -4,7 +4,7 @@ import { scanAccounts } from './accountHealthService.js';
 import { getAppSettings } from './appSettingsService.js';
 import { getTenantDataDir, getTenantId, runWithTenantId } from './tenantContext.js';
 
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 25;
 const STARTUP_CATCHUP_DELAY_MS = 5000;
 const schedulers = new Map();
 
@@ -27,7 +27,7 @@ function getSourceFile() {
 function defaultStatus() {
   return {
     enabled: true,
-    intervalMinutes: 60,
+    intervalMinutes: 1440,
     running: false,
     lastStartedAt: '',
     lastCompletedAt: '',

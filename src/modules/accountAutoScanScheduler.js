@@ -219,9 +219,14 @@ export async function startAccountAutoScanScheduler() {
   runtime.started = true;
 
   const config = await getScanConfig();
+  const savedStatus = await readJson(getStatusFile(), null);
   let status = await readStatus();
 
   if (!config.enabled) return scheduleNextFrom(status);
+  // A previous 2-hour timer must not survive the transition to 24 hours.
+  if (savedStatus && savedStatus.intervalMinutes !== config.intervalMinutes) {
+    return scheduleNextFrom(status, Date.now());
+  }
 
   const savedNext = Date.parse(status.nextRunAt);
   if (!Number.isFinite(savedNext)) return scheduleNextFrom(status, Date.now());

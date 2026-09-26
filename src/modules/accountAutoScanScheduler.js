@@ -4,7 +4,7 @@ import { scanAccounts } from './accountHealthService.js';
 import { getAppSettings } from './appSettingsService.js';
 import { getTenantDataDir, getTenantId, runWithTenantId } from './tenantContext.js';
 
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 25;
 const STARTUP_CATCHUP_DELAY_MS = 5000;
 const schedulers = new Map();
 
@@ -27,7 +27,7 @@ function getSourceFile() {
 function defaultStatus() {
   return {
     enabled: true,
-    intervalMinutes: 60,
+    intervalMinutes: 1440,
     running: false,
     lastStartedAt: '',
     lastCompletedAt: '',
@@ -219,9 +219,14 @@ export async function startAccountAutoScanScheduler() {
   runtime.started = true;
 
   const config = await getScanConfig();
+  const savedStatus = await readJson(getStatusFile(), null);
   let status = await readStatus();
 
   if (!config.enabled) return scheduleNextFrom(status);
+  // A previous 2-hour timer must not survive the transition to 24 hours.
+  if (savedStatus && savedStatus.intervalMinutes !== config.intervalMinutes) {
+    return scheduleNextFrom(status, Date.now());
+  }
 
   const savedNext = Date.parse(status.nextRunAt);
   if (!Number.isFinite(savedNext)) return scheduleNextFrom(status, Date.now());

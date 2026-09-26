@@ -6,6 +6,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import puppeteer from 'puppeteer-core';
+import { withHeavyTask } from './resourceBudget.js';
 import { getTenantDataDir, getTenantId } from './tenantContext.js';
 import { saveWebScanPlaylistSource } from './sourceStorage.js';
 
@@ -448,7 +449,7 @@ function scoreDetailLink(link, rootHost) {
   }
 }
 
-async function discoverWithBrowser(pageUrl) {
+async function discoverWithBrowserUnlocked(pageUrl) {
   const browser = await puppeteer.launch({
     executablePath: getChromiumPath(),
     headless: true,
@@ -843,6 +844,10 @@ async function mapWithConcurrency(items, limit, worker) {
 
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => run()));
   return results;
+}
+
+async function discoverWithBrowser(pageUrl) {
+  return withHeavyTask(() => discoverWithBrowserUnlocked(pageUrl));
 }
 
 export async function scanWebPage(rawUrl) {

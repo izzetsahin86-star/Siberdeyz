@@ -1,4 +1,5 @@
 import { withTenantMutation } from './tenantMutationQueue.js';
+import { withHeavyTask } from './resourceBudget.js';
 import { applyAccountScanPolicy } from './accountAutomaticCleanup.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -18,7 +19,7 @@ function getHealthFile() {
 }
 const SCAN_TIMEOUT_MS = 9000;
 const MAX_BATCH_SIZE = 100;
-const SCAN_CONCURRENCY = 10;
+const SCAN_CONCURRENCY = 3;
 
 async function readJson(filePath, fallback) {
   try {
@@ -398,11 +399,11 @@ async function removeAccountHealthUnlocked(sourceId = '') {
 }
 
 export function scanAccount(...args) {
-  return withTenantMutation('health', () => scanAccountUnlocked(...args));
+  return withTenantMutation('health', () => withHeavyTask(() => scanAccountUnlocked(...args)));
 }
 
 export function scanAccounts(...args) {
-  return withTenantMutation('health', () => scanAccountsUnlocked(...args));
+  return withTenantMutation('health', () => withHeavyTask(() => scanAccountsUnlocked(...args)));
 }
 
 export function removeAccountHealth(...args) {

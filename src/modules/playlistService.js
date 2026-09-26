@@ -6,6 +6,7 @@ import { getPlaylistFetchCandidates } from './playlistCompatibility.js';
 import { getTenantId } from './tenantContext.js';
 
 const tenantCaches = new Map();
+const MAX_TENANT_CACHES = 4;
 
 function emptyRuntime() {
   return {
@@ -22,8 +23,14 @@ function emptyRuntime() {
 
 function runtimeForCurrentTenant() {
   const tenantId = getTenantId();
-  if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, emptyRuntime());
-  return tenantCaches.get(tenantId);
+  const runtime = tenantCaches.get(tenantId) || emptyRuntime();
+  // Move the active tenant to the back; drop only least-recently-used caches.
+  tenantCaches.delete(tenantId);
+  tenantCaches.set(tenantId, runtime);
+  while (tenantCaches.size > MAX_TENANT_CACHES) {
+    tenantCaches.delete(tenantCaches.keys().next().value);
+  }
+  return runtime;
 }
 
 function getSourceKey(source) {

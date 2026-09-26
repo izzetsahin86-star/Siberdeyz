@@ -1,5 +1,6 @@
 import { existsSync } from 'fs';
 import puppeteer from 'puppeteer-core';
+import { withHeavyTask } from '../resourceBudget.js';
 import {
   extractMediaCandidatesFromText,
   isMediaContentType,
@@ -98,7 +99,7 @@ function protectionDetected(title, body, linkCount, mediaCount) {
   );
 }
 
-export async function discoverBrowserSearch(siteUrl, query) {
+async function discoverBrowserSearchUnlocked(siteUrl, query) {
   const browser = await launchBrowser();
   const root = new URL(siteUrl);
   const results = new Map();
@@ -219,7 +220,7 @@ export async function discoverBrowserSearch(siteUrl, query) {
   }
 }
 
-export async function discoverMediaWithBrowser(pageEntries, { shouldContinue } = {}) {
+async function discoverMediaWithBrowserUnlocked(pageEntries, { shouldContinue } = {}) {
   const entries = Array.isArray(pageEntries) ? pageEntries.slice(0, 16) : [];
   if (!entries.length) return { candidates: [], diagnostics: { pagesVisited: 0, protectedPages: 0, errors: 0 } };
 
@@ -416,4 +417,12 @@ export async function discoverMediaWithBrowser(pageEntries, { shouldContinue } =
   }
 
   return { candidates: [...found.values()], diagnostics };
+}
+
+export async function discoverBrowserSearch(siteUrl, query) {
+  return withHeavyTask(() => discoverBrowserSearchUnlocked(siteUrl, query));
+}
+
+export async function discoverMediaWithBrowser(pageEntries, options = {}) {
+  return withHeavyTask(() => discoverMediaWithBrowserUnlocked(pageEntries, options));
 }

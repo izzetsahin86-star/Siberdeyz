@@ -2,7 +2,7 @@ import { createAccountCleanupSettings } from './accountCleanupSettings.js';
 
 const DEFAULT_SETTINGS = Object.freeze({
   startupSound: false,
-  autoScanMinutes: 60,
+  autoScanMinutes: 1440,
   failureThreshold: 3,
   automaticDeleteDays: 0,
   automaticDeleteScans: 50,

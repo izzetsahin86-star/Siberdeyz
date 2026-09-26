@@ -4,6 +4,7 @@ const CATALOG_TIMEOUT_MS = 9000;
 const STREAM_TIMEOUT_MS = 7000;
 const MAX_STREAM_SAMPLES = 3;
 const MAX_PLAYLIST_BYTES = 384 * 1024;
+const MAX_XTREAM_CATALOG_BYTES = 8 * 1024 * 1024;
 const MAX_CONCURRENT_VERIFICATIONS = 4;
 const HARD_REJECTION_STATUSES = new Set([401, 403, 458]);
 
@@ -162,6 +163,39 @@ async function probeStreamUrl(url) {
   }
 }
 
+async function readCatalogJsonLimited(response) {
+  const expected = Number(response.headers.get('content-length'));
+  if (Number.isFinite(expected) && expected > MAX_XTREAM_CATALOG_BYTES) {
+    await cancelBody(response);
+    return { oversized: true };
+  }
+
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > MAX_XTREAM_CATALOG_BYTES) return { oversized: true };
+    return { data: JSON.parse(text) };
+  }
+
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value?.byteLength || 0;
+      if (totalBytes > MAX_XTREAM_CATALOG_BYTES) {
+        await reader.cancel();
+        return { oversized: true };
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return { data: JSON.parse(Buffer.concat(chunks, totalBytes).toString('utf8')) };
+}
+
 async function fetchXtreamLiveStreams(source) {
   const connection = getXtreamConnection(source);
   if (!connection) {
@@ -194,7 +228,17 @@ async function fetchXtreamLiveStreams(source) {
       };
     }
 
-    const data = await response.json();
+    const catalog = await readCatalogJsonLimited(response);
+    if (catalog.oversized) {
+      return {
+        connection,
+        streams: [],
+        status: response.status,
+        hardRejected: false,
+        error: 'Canli yayin listesi bellek guvenligi icin cok buyuk; API durumu esas alindi.',
+      };
+    }
+    const data = catalog.data;
     const streams = Array.isArray(data)
       ? data.filter((item) => item && item.stream_id != null)
       : [];

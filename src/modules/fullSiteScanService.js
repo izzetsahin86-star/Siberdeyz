@@ -6,6 +6,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import puppeteer from 'puppeteer-core';
+import { withHeavyTask } from './resourceBudget.js';
 import { getTenantDataDir, getTenantId } from './tenantContext.js';
 import { saveWebScanPlaylistSource } from './sourceStorage.js';
 
@@ -1155,7 +1156,9 @@ export async function startFullSiteScan(rawUrl, rawLimit = 50) {
 
   jobs.set(tenantId, job);
   await persistJob(job, true);
-  void runJob(job);
+  void withHeavyTask(() => runJob(job)).catch((error) => {
+    console.error('Full site scan resource gate failed:', error);
+  });
 
   return snapshotJob(job);
 }
